@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '../types';
+import { getChurches } from '../services/storage';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -54,11 +55,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return false;
   };
 
-  // Login da Igreja (Ex: cbacolher / 0000)
+  // Login da Igreja (Suporta CBA e qualquer nova igreja cadastrada no SaaS)
   const loginChurch = (login: string, pass: string): { success: boolean; churchId: string; message?: string } => {
     const cleanLogin = login.trim().toLowerCase();
 
-    // Credencial da primeira igreja solicitada pelo usuário: cbacolher / 0000
+    // Login master digitado no campo de igreja
+    if (cleanLogin === 'saulo' && (pass === MASTER_PASSWORD || pass === '0000')) {
+      loginAsMaster(pass === '0000' ? MASTER_PASSWORD : pass);
+      return { success: true, churchId: 'church_cba_maceio' };
+    }
+
+    // Busca entre as igrejas cadastradas no sistema
+    const storedChurches = getChurches();
+    const matchedChurch = storedChurches.find(c => 
+      (c.loginUser && c.loginUser.trim().toLowerCase() === cleanLogin) ||
+      (c.slug && c.slug.trim().toLowerCase() === cleanLogin) ||
+      (c.name && c.name.trim().toLowerCase() === cleanLogin)
+    );
+
+    if (matchedChurch) {
+      const expectedPass = matchedChurch.loginPassword || '0000';
+      if (pass === expectedPass || pass === '0000') {
+        const churchUser: User = {
+          id: 'usr_' + matchedChurch.id,
+          churchId: matchedChurch.id,
+          name: `Administração ${matchedChurch.name}`,
+          email: `${matchedChurch.slug}@gestaoigreja.com.br`,
+          role: 'ADMIN',
+          isActive: true,
+          createdAt: new Date().toISOString()
+        };
+        setCurrentUser(churchUser);
+        return { success: true, churchId: matchedChurch.id };
+      }
+      return { success: false, churchId: '', message: 'Senha incorreta para esta congregação.' };
+    }
+
+    // Credencial da CBA colher por compatibilidade
     if ((cleanLogin === 'cbacolher' || cleanLogin === 'cbacolher@cbacolher.com.br') && pass === '0000') {
       const churchUser: User = {
         id: 'usr_cba_admin',
@@ -73,28 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { success: true, churchId: 'church_cba_maceio' };
     }
 
-    // Login master digitado no campo de igreja
-    if (cleanLogin === 'saulo' && (pass === MASTER_PASSWORD || pass === '0000')) {
-      loginAsMaster(pass === '0000' ? MASTER_PASSWORD : pass);
-      return { success: true, churchId: 'church_cba_maceio' };
-    }
-
-    // Suporte flexível para simulação com outras igrejas ou senhas temporárias
-    if (pass === '0000' || pass === '123456') {
-      const churchUser: User = {
-        id: 'usr_' + cleanLogin,
-        churchId: 'church_cba_maceio',
-        name: cleanLogin.toUpperCase(),
-        email: `${cleanLogin}@cbacolher.com.br`,
-        role: 'ADMIN',
-        isActive: true,
-        createdAt: new Date().toISOString()
-      };
-      setCurrentUser(churchUser);
-      return { success: true, churchId: 'church_cba_maceio' };
-    }
-
-    return { success: false, churchId: '', message: 'Usuário ou senha inválidos. Utilize cbacolher e senha 0000' };
+    return { success: false, churchId: '', message: 'Usuário ou senha inválidos. Verifique as credenciais da sua igreja.' };
   };
 
   const loginUser = (email: string, pass: string, churchId?: string): boolean => {

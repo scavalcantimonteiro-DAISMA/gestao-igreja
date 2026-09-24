@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Church as ChurchIcon, Plus, Users, Calendar, MapPin, X, Save, Trash2, Heart } from 'lucide-react';
+import { Church as ChurchIcon, Plus, Users, Calendar, MapPin, X, Save, Trash2, Heart, MessageCircle } from 'lucide-react';
 import { Ministry } from '../../types';
 
 import { useChurch } from '../../context/ChurchContext';
@@ -18,6 +18,31 @@ export const MinistriesList: React.FC = () => {
     membersCount: 5,
     members: []
   });
+
+  const handleShareScale = (m: Ministry) => {
+    let text = `*ESCALA & COMUNICAÇÃO DE MINISTÉRIO*\\n`;
+    text += `*${currentChurch.name.toUpperCase()}*\\n`;
+    text += `*Ministério:* ${m.name}\\n`;
+    text += `*Líder Responsável:* ${m.leaderName}${m.viceLeaderName ? ` / ${m.viceLeaderName}` : ''}\\n`;
+    if (m.meetingDay || m.meetingTime) {
+      text += `*Horário/Encontro:* ${m.meetingDay || 'Conforme escala'} às ${m.meetingTime || '18:30'}\\n`;
+    }
+    if (m.location) {
+      text += `*Local:* ${m.location}\\n`;
+    }
+    text += `\\n👥 *EQUIPE ESCALADA / INTEGRANTES ATIVOS (${m.members.length}):*\\n`;
+    m.members.forEach((name, idx) => {
+      text += `${idx + 1}. ${name}\\n`;
+    });
+    if (m.volunteers && m.volunteers.length > 0) {
+      text += `\\n🌱 *Voluntários:* ${m.volunteers.join(', ')}\\n`;
+    }
+    text += `\\n"A chama que nos move é o amor! ❤️‍🔥"\\n_Coordenação Geral CBAcolher_`;
+
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    showToast(`Abrindo WhatsApp com escala de ${m.name}...`, 'info');
+  };
 
   const refreshList = () => {
     setMinistries(getMinistries(currentChurch.id));
@@ -201,6 +226,20 @@ export const MinistriesList: React.FC = () => {
                       </div>
                     </div>
                   )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleShareScale(m)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 active:scale-95 transition-all"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                    <span>Disparar Escala no WhatsApp</span>
+                  </button>
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    {m.members.length} membros
+                  </span>
                 </div>
               </div>
             </div>

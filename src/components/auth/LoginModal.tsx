@@ -130,7 +130,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onOpenM
             className="text-xs text-sky-600 hover:text-sky-700 font-semibold flex items-center justify-center gap-1.5 mx-auto transition-colors"
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Sou o Desenvolvedor (Master Admin Saulo Monteiro - 160605)</span>
+            <span>Sou o Desenvolvedor (Master Admin Saulo Monteiro)</span>
           </button>
         </div>
       </div>
@@ -162,7 +162,7 @@ export const MasterAdminModal: React.FC<MasterAdminModalProps> = ({ isOpen, onCl
       onSuccess();
       onClose();
     } else {
-      setError('Senha master incorreta. (Dica: 160605)');
+      setError('Senha master incorreta.');
     }
   };
 
@@ -204,7 +204,7 @@ export const MasterAdminModal: React.FC<MasterAdminModalProps> = ({ isOpen, onCl
             <input
               type="password"
               autoFocus
-              placeholder="Digite a senha (160605)"
+              placeholder="Digite a senha master"
               value={pass}
               onChange={e => setPass(e.target.value)}
               className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-center tracking-widest text-lg outline-none focus:bg-white focus:border-sky-500 font-mono"

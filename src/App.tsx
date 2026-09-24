@@ -30,10 +30,21 @@ const MainLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
+  const [viewingChurchAsMaster, setViewingChurchAsMaster] = useState(false);
 
   // SE NÃO ESTIVER LOGADO: Exibe a tela de login inicial antes de tudo!
   if (!currentUser) {
     return <LoginPage />;
+  }
+
+  // SE FOR O MASTER ADMIN (SAULO MONTEIRO) E NÃO ESTIVER EM MODO SUPORTE DE UMA IGREJA ESPECÍFICA:
+  // Renderiza diretamente o Painel Master SEM NENHUM MENU LATERAL!
+  if (isMasterAdmin && !viewingChurchAsMaster) {
+    return (
+      <MasterAdminPanel 
+        onSwitchToChurchView={() => setViewingChurchAsMaster(true)} 
+      />
+    );
   }
 
   const handleNavigate = (tab: string) => {
@@ -43,6 +54,22 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] text-slate-800 flex flex-col selection:bg-sky-500 selection:text-white">
+      {/* Banner de Aviso quando o Master Admin estiver inspecionando uma igreja */}
+      {isMasterAdmin && viewingChurchAsMaster && (
+        <div className="bg-slate-900 text-white px-4 sm:px-6 py-2.5 text-xs flex items-center justify-between font-medium z-40 relative shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Modo Suporte Master Admin: Visualizando <strong>{currentChurch.name}</strong></span>
+          </div>
+          <button 
+            onClick={() => setViewingChurchAsMaster(false)}
+            className="bg-white hover:bg-sky-50 text-slate-900 px-3 py-1 rounded-lg font-bold text-xs shadow transition-colors"
+          >
+            ← Voltar ao Painel Master (SaaS)
+          </button>
+        </div>
+      )}
+
       {/* Sidebar de Navegação */}
       <Sidebar
         isOpen={isSidebarOpen}
@@ -88,13 +115,30 @@ const MainLayout: React.FC = () => {
         </main>
 
         {/* Rodapé Claro & Moderno */}
-        <footer className="mt-auto border-t border-slate-200/80 bg-white/90 backdrop-blur-sm px-6 py-4 text-center text-xs text-slate-500">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto">
-            <p>
-              © {new Date().getFullYear()} <strong className="text-slate-700">{currentChurch.name}</strong> • Todos os direitos reservados.
-            </p>
-            <p className="flex items-center gap-1.5 text-[11px]">
-              Desenvolvido por <span className="font-bold text-sky-600">Saulo Monteiro</span> — Sistemas & Desenvolvimento
+        <footer className="mt-auto border-t border-slate-200/80 bg-white/95 backdrop-blur-sm px-4 sm:px-6 py-4 text-xs text-slate-500 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 max-w-7xl mx-auto">
+            <div className="flex items-center gap-2.5">
+              {currentChurch.logoUrl ? (
+                <img 
+                  src={currentChurch.logoUrl} 
+                  alt={currentChurch.name} 
+                  className="h-7 w-auto object-contain rounded-md shadow-xs" 
+                />
+              ) : currentChurch.slug === 'cbacolher' || currentChurch.id === 'church_cba_maceio' ? (
+                <img 
+                  src="/logo-cba-completa.png" 
+                  alt={currentChurch.name} 
+                  className="h-7 w-auto object-contain rounded-md shadow-xs" 
+                />
+              ) : (
+                <div className="h-7 w-7 rounded-lg bg-sky-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  {currentChurch.name[0]}
+                </div>
+              )}
+              <span>© {new Date().getFullYear()} <strong className="text-slate-700">{currentChurch.name}</strong></span>
+            </div>
+            <p className="text-xs text-slate-600 font-medium text-center sm:text-right">
+              Desenvolvido e comercializado por <strong className="text-sky-700 font-bold">Saulo Monteiro</strong>, todos os direitos reservados.
             </p>
           </div>
         </footer>

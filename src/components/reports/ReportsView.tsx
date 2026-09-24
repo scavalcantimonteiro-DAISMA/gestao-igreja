@@ -11,19 +11,23 @@ import {
   getBirthdays,
   getWeddingAnniversaries 
 } from '../../services/storage';
+import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
 
 export const ReportsView: React.FC = () => {
   const { currentChurch } = useChurch();
   const { showToast } = useNotification();
 
   const [selectedReport, setSelectedReport] = useState<'membros' | 'aniversariantes' | 'casamentos' | 'pgs' | 'financeiro'>('membros');
+  const [bdayFilter, setBdayFilter] = useState<'geral' | 'mes' | 'hoje_7dias'>('geral');
+  const currentMonthNumber = (new Date().getMonth() + 1).toString().padStart(2, '0');
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthNumber);
 
   const members = getMembers(currentChurch.id);
   const children = getChildren(currentChurch.id);
   const pgs = getSmallGroups(currentChurch.id);
   const entries = getFinancialEntries(currentChurch.id);
   const expenses = getFinancialExpenses(currentChurch.id);
-  const { today: bToday, upcoming: bUpcoming } = getBirthdays(currentChurch.id);
+  const { today: bToday, upcoming: bUpcoming, all: bAll = [] } = getBirthdays(currentChurch.id);
   const { today: wToday, upcoming: wUpcoming } = getWeddingAnniversaries(currentChurch.id);
 
   const handlePrint = () => {
@@ -45,6 +49,11 @@ export const ReportsView: React.FC = () => {
       });
       expenses.forEach(x => {
         csvContent += `"${x.date}";"Saida";"${x.description}";"${x.category}";"${x.amount}";"${x.paymentMethod}"\n`;
+      });
+    } else if (selectedReport === 'aniversariantes') {
+      csvContent += 'Data;Nome;Idade;WhatsApp;Tipo\n';
+      bAll.forEach(b => {
+        csvContent += `"${b.formattedDate}";"${b.name}";"${b.age} anos";"${b.whatsapp}";"${b.isChild ? 'Departamento Infantil' : 'Adulto'}"\n`;
       });
     } else {
       csvContent += 'Nome;Telefone;Info\n';
@@ -194,36 +203,163 @@ export const ReportsView: React.FC = () => {
           </div>
         )}
 
-        {selectedReport === 'aniversariantes' && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold border-b border-slate-200">
-                <tr>
-                  <th className="p-3">Data</th>
-                  <th className="p-3">Nome</th>
-                  <th className="p-3">Idade</th>
-                  <th className="p-3">WhatsApp</th>
-                  <th className="p-3">Tipo</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {bToday.concat(bUpcoming).map(b => (
-                  <tr key={b.id} className="hover:bg-sky-50/40 transition-colors">
-                    <td className="p-3 font-bold text-amber-600">{b.formattedDate}</td>
-                    <td className="p-3 font-semibold text-slate-900">{b.name}</td>
-                    <td className="p-3 text-slate-600">{b.age} anos</td>
-                    <td className="p-3 text-slate-600">{b.whatsapp}</td>
-                    <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800">
-                        {b.isChild ? 'Acolher Kids' : 'Adulto'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {selectedReport === 'aniversariantes' && (() => {
+          const list = (() => {
+            if (bdayFilter === 'hoje_7dias') return bToday.concat(bUpcoming);
+            if (bdayFilter === 'mes') return bAll.filter(b => b.formattedDate.endsWith(`/${selectedMonth}`));
+            return bAll;
+          })();
+
+          const months = [
+            { num: '01', name: 'Janeiro' },
+            { num: '02', name: 'Fevereiro' },
+            { num: '03', name: 'Março' },
+            { num: '04', name: 'Abril' },
+            { num: '05', name: 'Maio' },
+            { num: '06', name: 'Junho' },
+            { num: '07', name: 'Julho' },
+            { num: '08', name: 'Agosto' },
+            { num: '09', name: 'Setembro' },
+            { num: '10', name: 'Outubro' },
+            { num: '11', name: 'Novembro' },
+            { num: '12', name: 'Dezembro' }
+          ];
+
+          return (
+            <div className="space-y-4">
+              {/* Barra de Filtros e Informação Pastoral */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-50 via-teal-50 to-emerald-50 border border-sky-200/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Cake className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900">Aniversariantes no Geral • CBAcolher</h4>
+                    <p className="text-xs text-slate-600">
+                      Disparo pastoral oficial: <strong>Pr. Tércio Ribeiro (+55 82 98225-9873)</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setBdayFilter('geral')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      bdayFilter === 'geral'
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    Todos no Geral ({bAll.length})
+                  </button>
+
+                  <button
+                    onClick={() => setBdayFilter('mes')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      bdayFilter === 'mes'
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    Filtrar por Mês
+                  </button>
+
+                  <button
+                    onClick={() => setBdayFilter('hoje_7dias')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      bdayFilter === 'hoje_7dias'
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    Hoje & 7 Dias ({bToday.length + bUpcoming.length})
+                  </button>
+
+                  {bdayFilter === 'mes' && (
+                    <select
+                      value={selectedMonth}
+                      onChange={e => setSelectedMonth(e.target.value)}
+                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-800 outline-none focus:border-sky-500"
+                    >
+                      {months.map(m => (
+                        <option key={m.num} value={m.num}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabela de Aniversariantes com WhatsApp ao lado do nome */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Data</th>
+                      <th className="p-3">Nome (com WhatsApp ao lado)</th>
+                      <th className="p-3">Idade</th>
+                      <th className="p-3">WhatsApp / Disparo Pastoral</th>
+                      <th className="p-3">Tipo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {list.length > 0 ? (
+                      list.map(b => (
+                        <tr key={b.id} className="hover:bg-sky-50/40 transition-colors">
+                          <td className="p-3 font-bold text-amber-600 whitespace-nowrap">{b.formattedDate}</td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-900">{b.name}</span>
+                              <BirthdayWhatsAppAction
+                                personName={b.name}
+                                age={b.age}
+                                phone={b.whatsapp}
+                                isChild={b.isChild}
+                                formattedDate={b.formattedDate}
+                                size="xs"
+                                variant="inline-icon"
+                              />
+                            </div>
+                          </td>
+                          <td className="p-3 text-slate-600 whitespace-nowrap">{b.age} anos</td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-600">{b.whatsapp || 'Não informado'}</span>
+                              <BirthdayWhatsAppAction
+                                personName={b.name}
+                                age={b.age}
+                                phone={b.whatsapp}
+                                isChild={b.isChild}
+                                formattedDate={b.formattedDate}
+                                size="xs"
+                                variant="button"
+                                label="Felicitações"
+                              />
+                            </div>
+                          </td>
+                          <td className="p-3 whitespace-nowrap">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              b.isChild ? 'bg-sky-100 text-sky-800' : 'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              {b.isChild ? 'Departamento Infantil' : 'Adulto'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-6 text-center text-slate-400">
+                          Nenhum aniversariante encontrado para o filtro selecionado.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
 
         {selectedReport === 'casamentos' && (
           <div className="overflow-x-auto">

@@ -62,87 +62,147 @@ function setLocal<T>(key: string, value: T): void {
   }
 }
 
-const DEMO_CLEANED_KEY = 'gi_demo_cleaned_v4';
-
-export function cleanDemoData(): void {
-  setLocal('children', []);
-  setLocal('families', []);
-  setLocal('small_groups', []);
-  setLocal('ministries', INITIAL_MINISTRIES);
-  setLocal('leadership', INITIAL_LEADERSHIP);
-  setLocal('schedules', INITIAL_SCHEDULES);
-  setLocal('events', INITIAL_EVENTS);
-  setLocal('appointments', []);
-  setLocal('visits', []);
-  setLocal('prayer_requests', []);
-  setLocal('visitors', []);
-  setLocal('financial_entries', []);
-  setLocal('financial_expenses', []);
-  setLocal('audit_logs', []);
-  
-  // Limpa congregações de teste mantendo apenas a Comunidade Batista Acolher
-  setLocal('churches', INITIAL_CHURCHES);
-
-  // Garante os 140 membros reais da planilha oficial
-  setLocal('members', INITIAL_MEMBERS);
-  
+// Backup automático de segurança executado a cada carregamento
+export function createAutoSafetyBackup(): void {
   try {
-    localStorage.setItem(PREFIX + DEMO_CLEANED_KEY, 'true');
-  } catch (e) {
-    console.error(e);
+    const backup: Record<string, any> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(PREFIX) && !key.includes('safety_backup')) {
+        try {
+          backup[key] = JSON.parse(localStorage.getItem(key) || 'null');
+        } catch {
+          backup[key] = localStorage.getItem(key);
+        }
+      }
+    }
+    if (Object.keys(backup).length > 0) {
+      localStorage.setItem(PREFIX + 'safety_backup_vault', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        data: backup
+      }));
+    }
+  } catch (err) {
+    console.warn('Auto safety backup note:', err);
   }
 }
 
-// Inicializa dados se vazios
-export function initializeStorage(): void {
-  // Executa limpeza automática dos dados de demonstração prévios se ainda não executada
-  try {
-    if (localStorage.getItem(PREFIX + DEMO_CLEANED_KEY) !== 'true') {
-      cleanDemoData();
+export interface SystemBackupPayload {
+  version: string;
+  systemName: string;
+  developer: string;
+  exportedAt: string;
+  data: Record<string, any>;
+}
+
+// Exporta todo o banco de dados multi-igreja em JSON seguro
+export function exportFullSystemBackup(): SystemBackupPayload {
+  const data: Record<string, any> = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(PREFIX)) {
+      try {
+        data[key] = JSON.parse(localStorage.getItem(key) || 'null');
+      } catch {
+        data[key] = localStorage.getItem(key);
+      }
     }
-  } catch (e) {
-    cleanDemoData();
   }
+  return {
+    version: '2.0',
+    systemName: 'Portal Igrejas Multi-Tenant',
+    developer: 'Saulo Monteiro',
+    exportedAt: new Date().toISOString(),
+    data
+  };
+}
 
+// Restaura todo o banco de dados multi-igreja a partir de JSON
+export function importFullSystemBackup(payload: SystemBackupPayload): boolean {
+  if (!payload || !payload.data || typeof payload.data !== 'object') {
+    return false;
+  }
+  try {
+    for (const [key, value] of Object.entries(payload.data)) {
+      if (typeof value === 'string') {
+        localStorage.setItem(key, value);
+      } else {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    }
+    return true;
+  } catch (err) {
+    console.error('Erro ao importar backup completo:', err);
+    return false;
+  }
+}
+
+// Inicializa dados de forma 100% não-destrutiva (NUNCA apaga dados cadastrados pelo usuário)
+export function initializeStorage(): void {
+  // 1. Cria backup instantâneo de segurança do estado atual
+  createAutoSafetyBackup();
+
+  // 2. Congregações: Preserva TODAS as congregações cadastradas pelo usuário
   const storedChurches = getLocal<Church[]>('churches', INITIAL_CHURCHES);
-  if (storedChurches.length > 0 && storedChurches[0].id === 'church_cba_maceio') {
-    storedChurches[0].address = INITIAL_CHURCHES[0].address;
-    storedChurches[0].pastorName = INITIAL_CHURCHES[0].pastorName;
-    setLocal('churches', storedChurches);
+  const cbaIndex = storedChurches.findIndex(c => c.id === 'church_cba_maceio');
+  if (cbaIndex >= 0) {
+    storedChurches[cbaIndex].address = INITIAL_CHURCHES[0].address;
+    storedChurches[cbaIndex].pastorName = INITIAL_CHURCHES[0].pastorName;
+    storedChurches[cbaIndex].pastorPhone = INITIAL_CHURCHES[0].pastorPhone;
+    storedChurches[cbaIndex].pastorWhatsapp = INITIAL_CHURCHES[0].pastorWhatsapp;
+    if (INITIAL_CHURCHES[0].logoUrl) {
+      storedChurches[cbaIndex].logoUrl = INITIAL_CHURCHES[0].logoUrl;
+    }
+  } else {
+    // Insere a CBA no início caso não exista, sem remover congregações cadastradas
+    storedChurches.unshift(INITIAL_CHURCHES[0]);
   }
+  setLocal('churches', storedChurches);
 
-  // Garante que a lista de membros contenha os 140 membros reais da Comunidade Batista Acolher
+  // 3. Membros: Garante os 140 membros da CBA sem apagar membros de nenhuma congregação cadastrada
   const storedMembers = getLocal<Member[]>('members', INITIAL_MEMBERS);
-  const hasRealMembers = storedMembers.some(m => m.id.startsWith('mem_cba_'));
-  if (!hasRealMembers || storedMembers.length < 50) {
-    setLocal('members', INITIAL_MEMBERS);
+  const hasCbaMembers = storedMembers.some(m => m.churchId === 'church_cba_maceio');
+  if (!hasCbaMembers) {
+    const merged = [...storedMembers, ...INITIAL_MEMBERS];
+    setLocal('members', merged);
   }
 
+  // 4. Ministérios
   const storedMinistries = getLocal<Ministry[]>('ministries', INITIAL_MINISTRIES);
   if (storedMinistries.length === 0 && INITIAL_MINISTRIES.length > 0) {
     setLocal('ministries', INITIAL_MINISTRIES);
   }
 
+  // 5. Liderança
   const storedLeadership = getLocal<Leadership[]>('leadership', INITIAL_LEADERSHIP);
   if (storedLeadership.length === 0 && INITIAL_LEADERSHIP.length > 0) {
     setLocal('leadership', INITIAL_LEADERSHIP);
   }
 
+  // 6. Programação / Escalas (Garante EBD aos domingos às 17h para a CBA)
   const storedSchedules = getLocal<Schedule[]>('schedules', INITIAL_SCHEDULES);
-  if (storedSchedules.length === 0 && INITIAL_SCHEDULES.length > 0) {
-    setLocal('schedules', INITIAL_SCHEDULES);
+  let schedulesModified = false;
+  const updatedSchedules = storedSchedules.map(s => {
+    if (s.id === 'sched_cba_dom_ebd' && s.time !== '17:00') {
+      schedulesModified = true;
+      return { ...s, time: '17:00', description: 'Estudos bíblicos temáticos aos domingos às 17h para todas as faixas etárias, preparando para a celebração das 18h30.' };
+    }
+    return s;
+  });
+  if (schedulesModified) {
+    setLocal('schedules', updatedSchedules);
   }
 
+  // 7. Eventos
   const storedEvents = getLocal<ChurchEvent[]>('events', INITIAL_EVENTS);
   if (storedEvents.length === 0 && INITIAL_EVENTS.length > 0) {
     setLocal('events', INITIAL_EVENTS);
   }
 
+  // 8. Garante integridade de coleções secundárias sem sobrescrever registros existentes
   getLocal<Child[]>('children', INITIAL_CHILDREN);
   getLocal<Family[]>('families', INITIAL_FAMILIES);
   getLocal<SmallGroup[]>('small_groups', INITIAL_SMALL_GROUPS);
-  getLocal<Schedule[]>('schedules', INITIAL_SCHEDULES);
-  getLocal<ChurchEvent[]>('events', INITIAL_EVENTS);
   getLocal<PastoralAppointment[]>('appointments', INITIAL_APPOINTMENTS);
   getLocal<PastoralVisit[]>('visits', INITIAL_VISITS);
   getLocal<PrayerRequest[]>('prayer_requests', INITIAL_PRAYER_REQUESTS);
@@ -151,7 +211,6 @@ export function initializeStorage(): void {
   getLocal<FinancialExpense[]>('financial_expenses', INITIAL_FINANCIAL_EXPENSES);
   getLocal<MessageTemplate[]>('message_templates', INITIAL_MESSAGE_TEMPLATES);
   getLocal<AuditLog[]>('audit_logs', INITIAL_AUDIT_LOGS);
-
 }
 
 // ==========================================
@@ -182,6 +241,16 @@ export function deleteChurch(id: string): void {
   const churches = getChurches();
   if (churches.length <= 1) return;
   setLocal('churches', churches.filter(c => c.id !== id));
+
+  // Limpa dados associados à igreja excluída
+  if (id !== 'church_cba_maceio') {
+    const members = getLocal<Member[]>('members', INITIAL_MEMBERS).filter(m => m.churchId !== id);
+    setLocal('members', members);
+    const children = getLocal<Child[]>('children', []).filter(c => c.churchId !== id);
+    setLocal('children', children);
+    const schedules = getLocal<Schedule[]>('schedules', []).filter(s => s.churchId !== id);
+    setLocal('schedules', schedules);
+  }
 }
 
 // ==========================================
@@ -190,8 +259,9 @@ export function deleteChurch(id: string): void {
 
 export function getMembers(churchId: string): Member[] {
   let members = getLocal<Member[]>('members', INITIAL_MEMBERS);
-  if (churchId === 'church_cba_maceio' && (!members.some(m => m.id.startsWith('mem_cba_')) || members.length < 50)) {
-    members = INITIAL_MEMBERS;
+  const hasCbaMembers = members.some(m => m.churchId === 'church_cba_maceio');
+  if (churchId === 'church_cba_maceio' && !hasCbaMembers) {
+    members = [...members, ...INITIAL_MEMBERS];
     setLocal('members', members);
   }
   return members.filter(m => m.churchId === churchId);
@@ -581,13 +651,14 @@ export interface BirthdayItem {
   age: number;
   birthDate: string;
   whatsapp: string;
+  phone?: string;
   isToday: boolean;
   daysRemaining: number;
   formattedDate: string;
   isChild?: boolean;
 }
 
-export function getBirthdays(churchId: string): { today: BirthdayItem[]; upcoming: BirthdayItem[] } {
+export function getBirthdays(churchId: string): { today: BirthdayItem[]; upcoming: BirthdayItem[]; all: BirthdayItem[] } {
   const members = getMembers(churchId);
   const children = getChildren(churchId);
   const today = new Date();
@@ -621,6 +692,7 @@ export function getBirthdays(churchId: string): { today: BirthdayItem[]; upcomin
       age: isToday ? age : age,
       birthDate: m.birthDate,
       whatsapp: m.whatsapp,
+      phone: m.whatsapp || m.phone || '',
       isToday,
       daysRemaining: diffDays,
       formattedDate: `${String(birthDay).padStart(2, '0')}/${String(birthMonth + 1).padStart(2, '0')}`,
@@ -653,6 +725,7 @@ export function getBirthdays(churchId: string): { today: BirthdayItem[]; upcomin
       age,
       birthDate: c.birthDate,
       whatsapp: c.guardianWhatsapp || c.guardianPhone,
+      phone: c.guardianWhatsapp || c.guardianPhone || '',
       isToday,
       daysRemaining: diffDays,
       formattedDate: `${String(birthDay).padStart(2, '0')}/${String(birthMonth + 1).padStart(2, '0')}`,
@@ -665,7 +738,13 @@ export function getBirthdays(churchId: string): { today: BirthdayItem[]; upcomin
     .filter(p => !p.isToday && p.daysRemaining > 0 && p.daysRemaining <= 7)
     .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
-  return { today: todayList, upcoming: upcomingList };
+  const allSorted = [...allPersons].sort((a, b) => {
+    const aParts = a.formattedDate.split('/').reverse().join('');
+    const bParts = b.formattedDate.split('/').reverse().join('');
+    return aParts.localeCompare(bParts);
+  });
+
+  return { today: todayList, upcoming: upcomingList, all: allSorted };
 }
 
 export interface WeddingAnniversaryItem {

@@ -17,6 +17,7 @@ import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { MemberFormModal } from './MemberFormModal';
 import { WhatsAppButton } from '../common/WhatsAppButton';
+import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { 
   getMembers, 
@@ -228,9 +229,20 @@ export const MemberList: React.FC = () => {
                       )}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-sky-700 transition-colors leading-tight">
-                        {m.name}
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-sky-700 transition-colors leading-tight">
+                          {m.name}
+                        </h4>
+                        {m.birthDate && (
+                          <BirthdayWhatsAppAction
+                            personName={m.name}
+                            phone={m.whatsapp}
+                            formattedDate={m.birthDate.split('-').reverse().slice(0, 2).join('/')}
+                            size="xs"
+                            variant="inline-icon"
+                          />
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {m.churchRole || 'Membro'} {m.profession && `• ${m.profession}`}
                       </p>
@@ -251,9 +263,19 @@ export const MemberList: React.FC = () => {
                   )}
 
                   {m.birthDate && (
-                    <div className="flex items-center gap-2">
-                      <Cake className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Nasc: {m.birthDate.split('-').reverse().join('/')}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Cake className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Nasc: {m.birthDate.split('-').reverse().join('/')}</span>
+                      </div>
+                      <BirthdayWhatsAppAction
+                        personName={m.name}
+                        phone={m.whatsapp}
+                        formattedDate={m.birthDate.split('-').reverse().slice(0, 2).join('/')}
+                        size="xs"
+                        variant="badge"
+                        label="WhatsApp"
+                      />
                     </div>
                   )}
 

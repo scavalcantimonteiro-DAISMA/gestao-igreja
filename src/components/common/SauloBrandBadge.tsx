@@ -70,7 +70,7 @@ export const SauloBrandBadge: React.FC<SauloBrandBadgeProps> = ({ onOpenMaster, 
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/20 active:scale-95 transition-all"
           >
             <ShieldCheck className="w-4 h-4" />
-            Acesso Master Admin (160605)
+            Acesso Master Admin
           </button>
         )}
       </div>

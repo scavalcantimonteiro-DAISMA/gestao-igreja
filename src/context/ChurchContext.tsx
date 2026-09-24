@@ -7,6 +7,7 @@ interface ChurchContextType {
   allChurches: Church[];
   selectChurch: (churchId: string) => void;
   updateCurrentChurch: (updated: Partial<Church>) => void;
+  updateChurchData: (church: Church) => void;
   registerNewChurch: (newChurch: Omit<Church, 'id' | 'createdAt'>) => Church;
   removeChurch: (churchId: string) => void;
   isFinancialUnlocked: boolean;
@@ -59,7 +60,9 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const selectChurch = (churchId: string) => {
-    const found = churches.find(c => c.id === churchId);
+    const all = getChurches();
+    setChurches(all);
+    const found = all.find(c => c.id === churchId);
     if (found) {
       setActiveChurchId(churchId);
       localStorage.setItem(ACTIVE_CHURCH_KEY, churchId);
@@ -73,6 +76,11 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...updated
     };
     saveChurch(fullUpdated);
+    setChurches(getChurches());
+  };
+
+  const updateChurchData = (church: Church) => {
+    saveChurch(church);
     setChurches(getChurches());
   };
 
@@ -139,6 +147,7 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       allChurches: churches,
       selectChurch,
       updateCurrentChurch,
+      updateChurchData,
       registerNewChurch,
       removeChurch,
       isFinancialUnlocked,

@@ -19,6 +19,7 @@ import { useChurch } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
 import { ChurchBrandLogo } from '../common/ChurchBrandLogo';
 import { WhatsAppButton } from '../common/WhatsAppButton';
+import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
 import { DailyReportModal } from '../common/DailyReportModal';
 import { 
   getMembers, 
@@ -61,7 +62,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   // Modelos de mensagens
   const templates = getMessageTemplates(currentChurch.id);
   const bdayTemplate = templates.find(t => t.type === 'aniversario')?.text || 
-    'Olá, {nome}! A Comunidade Batista Acolher se alegra imensamente com sua vida. Feliz aniversário de {idade} anos! 🎂✨';
+    `Olá, {nome}! A ${currentChurch.name} se alegra imensamente com sua vida. Feliz aniversário de {idade} anos! 🎂✨`;
   const weddingTemplate = templates.find(t => t.type === 'aniversario_casamento')?.text || 
     'Olá, {nome}! Parabéns pelo aniversário de casamento ({anos_casamento} anos!). Que Deus abençoe essa união. 💍';
 
@@ -252,10 +253,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-sm text-slate-900">{person.name}</h4>
                           {person.isChild && (
-                            <span className="text-[10px] px-2 py-0.2 rounded bg-sky-100 text-sky-800 font-semibold">
-                              Kids
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-semibold">
+                              Dep. Infantil
                             </span>
                           )}
+                          <BirthdayWhatsAppAction
+                            personName={person.name}
+                            age={person.age}
+                            phone={person.whatsapp || person.phone}
+                            isChild={person.isChild}
+                            size="xs"
+                            variant="inline-icon"
+                          />
                         </div>
                         <p className="text-xs font-semibold text-amber-700">
                           🎂 Completando {person.age} anos hoje!
@@ -263,12 +272,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                       </div>
                     </div>
 
-                    <WhatsAppButton
-                      phone={person.whatsapp}
-                      message={message}
-                      label="Enviar WhatsApp"
-                      size="sm"
-                    />
+                    <div className="flex items-center gap-2">
+                      <BirthdayWhatsAppAction
+                        personName={person.name}
+                        age={person.age}
+                        phone={person.whatsapp || person.phone}
+                        isChild={person.isChild}
+                        variant="button"
+                        label="Felicitações (Pr. Tércio)"
+                      />
+                    </div>
                   </div>
                 );
               })
@@ -289,11 +302,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                 {bdaysUpcoming.map(u => (
                   <span
                     key={u.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-700 font-medium"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-700 font-medium hover:border-amber-300 transition-colors"
                   >
                     <span className="font-bold text-amber-700">{u.formattedDate}</span>
-                    <span>{u.name}</span>
+                    <span className="font-semibold text-slate-900">{u.name}</span>
                     <span className="text-[10px] text-slate-500">({u.age} anos)</span>
+                    <BirthdayWhatsAppAction
+                      personName={u.name}
+                      age={u.age}
+                      phone={u.whatsapp || u.phone}
+                      isChild={u.isChild}
+                      formattedDate={u.formattedDate}
+                      size="xs"
+                      variant="inline-icon"
+                    />
                   </span>
                 ))}
               </div>

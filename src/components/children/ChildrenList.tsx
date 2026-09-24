@@ -4,6 +4,7 @@ import { Child } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
+import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
 import { MaskedInput } from '../common/MaskedInput';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { getChildren, saveChild, deleteChild, logAction, getMessageTemplates, formatWhatsAppMessage } from '../../services/storage';
@@ -20,13 +21,13 @@ export const ChildrenList: React.FC = () => {
 
   const [formData, setFormData] = useState<Partial<Child>>({
     gender: 'M',
-    childrenMinistry: 'Acolher Kids',
+    childrenMinistry: 'Departamento Infantil',
     ebdClass: 'Turma Samuel'
   });
 
   const templates = getMessageTemplates(currentChurch.id);
   const childBdayTemplate = templates.find(t => t.type === 'aniversario_crianca')?.text || 
-    'Parabéns, {nome}! 🎈 O Ministério Acolher Kids se alegra pelo seu aniversário! Que Deus te abençoe rica e grandemente! 🎂';
+    'Parabéns, {nome}! 🎈 O Departamento Infantil se alegra pelo seu aniversário! Que Deus te abençoe rica e grandemente! 🎂';
 
   const refreshList = () => {
     setChildren(getChildren(currentChurch.id));
@@ -46,7 +47,7 @@ export const ChildrenList: React.FC = () => {
         guardianName: '',
         guardianPhone: '',
         guardianWhatsapp: '',
-        childrenMinistry: 'Acolher Kids',
+        childrenMinistry: 'Departamento Infantil',
         ebdClass: 'Turma Samuel',
         school: '',
         schoolGrade: '',
@@ -81,7 +82,7 @@ export const ChildrenList: React.FC = () => {
       currentChurch.id,
       'Administrador',
       'ADMIN',
-      childToEdit ? 'Edição de Criança' : 'Cadastro de Criança (Kids)',
+      childToEdit ? 'Edição de Criança' : 'Cadastro de Criança (Departamento Infantil)',
       `${saved.name} (Responsável: ${saved.guardianName})`
     );
 
@@ -111,7 +112,7 @@ export const ChildrenList: React.FC = () => {
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3">
             <Baby className="w-6 h-6 text-sky-600" />
-            <span>Crianças (Ministério Acolher Kids)</span>
+            <span>Departamento Infantil</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             {currentChurch.name} • {filtered.length} criança(s) cadastrada(s)
@@ -172,7 +173,19 @@ export const ChildrenList: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm sm:text-base text-slate-900">{c.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm sm:text-base text-slate-900">{c.name}</h4>
+                          <BirthdayWhatsAppAction
+                            personName={c.name}
+                            age={c.birthDate ? new Date().getFullYear() - parseInt(c.birthDate.split('-')[0], 10) : undefined}
+                            phone={c.guardianWhatsapp || c.guardianPhone}
+                            isChild={true}
+                            guardianName={c.guardianName}
+                            formattedDate={c.birthDate ? c.birthDate.split('-').reverse().slice(0, 2).join('/') : undefined}
+                            size="xs"
+                            variant="inline-icon"
+                          />
+                        </div>
                         <span className="inline-block text-[11px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded mt-0.5 border border-sky-200">
                           {c.ebdClass || c.childrenMinistry}
                         </span>
@@ -185,9 +198,22 @@ export const ChildrenList: React.FC = () => {
                   </div>
 
                   <div className="mt-4 space-y-2 text-xs text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <Cake className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                      <span>Nasc: {c.birthDate?.split('-').reverse().join('/')}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Cake className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span>Nasc: {c.birthDate?.split('-').reverse().join('/')}</span>
+                      </div>
+                      <BirthdayWhatsAppAction
+                        personName={c.name}
+                        age={c.birthDate ? new Date().getFullYear() - parseInt(c.birthDate.split('-')[0], 10) : undefined}
+                        phone={c.guardianWhatsapp || c.guardianPhone}
+                        isChild={true}
+                        guardianName={c.guardianName}
+                        formattedDate={c.birthDate ? c.birthDate.split('-').reverse().slice(0, 2).join('/') : undefined}
+                        size="xs"
+                        variant="badge"
+                        label="Felicitações"
+                      />
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -260,7 +286,7 @@ export const ChildrenList: React.FC = () => {
                 <h3 className="text-base font-bold text-slate-900">
                   {childToEdit ? 'Editar Cadastro Infantil' : 'Novo Cadastro de Criança'}
                 </h3>
-                <p className="text-xs text-sky-600 font-medium">Ministério Infantil Acolher Kids</p>
+                <p className="text-xs text-sky-600 font-medium">Departamento Infantil</p>
               </div>
             </div>
 

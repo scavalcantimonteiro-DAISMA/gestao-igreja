@@ -26,6 +26,8 @@ export const INITIAL_CHURCHES: Church[] = [
     id: 'church_cba_maceio',
     name: 'Comunidade Batista Acolher',
     slug: 'cbacolher',
+    loginUser: 'cbacolher',
+    loginPassword: '0000',
     address: 'Avenida Júlio Marquez Luz, 1409 (antiga Av. Jatiúca)',
     neighborhood: 'Jatiúca',
     city: 'Maceió',
@@ -35,10 +37,10 @@ export const INITIAL_CHURCHES: Church[] = [
     phone: '(82) 3325-1408',
     whatsapp: '5582997861774',
     website: 'https://cbacolher.com.br',
-    logoUrl: '/logo-cba.png',
-    pastorName: 'Pr. Tércio Ribeiro & Pr. Saulo Monteiro',
-    pastorPhone: '(82) 99786-1774',
-    pastorWhatsapp: '5582997861774',
+    logoUrl: '/logo-cba-completa.png',
+    pastorName: 'Pr. Tércio Ribeiro',
+    pastorPhone: '(82) 98225-9873',
+    pastorWhatsapp: '5582982259873',
     dailyReportHour: '07:30',
     financialPin: '0000',
     financialPinChanged: false,
@@ -82,7 +84,7 @@ export const INITIAL_MESSAGE_TEMPLATES: MessageTemplate[] = [
     churchId: 'church_cba_maceio',
     type: 'aniversario',
     title: 'Aniversário de Membro',
-    text: 'Olá, {nome}! A Comunidade Batista Acolher se alegra imensamente com a sua vida hoje. Que o Senhor continue te abençoando, concedendo paz, saúde e vitórias neste novo ciclo de {idade} anos! Feliz aniversário! 🎂🙏✨',
+    text: 'Graça e Paz, {nome}! 🎂✨ A Comunidade Batista Acolher se alegra imensamente com a sua vida hoje! Que o Senhor derrame bênçãos abundantes de saúde, paz e muitas vitórias sobre você neste novo ciclo de {idade} anos. Feliz Aniversário!\n\nCom carinho e bênçãos pastorais,\n*Pr. Tércio Ribeiro*\nWhatsApp: +55 82 98225-9873\nComunidade Batista Acolher - "A chama que nos move é o amor! ❤️‍🔥"',
     updatedAt: '2026-01-10T00:00:00Z'
   },
   {
@@ -90,7 +92,7 @@ export const INITIAL_MESSAGE_TEMPLATES: MessageTemplate[] = [
     churchId: 'church_cba_maceio',
     type: 'aniversario_casamento',
     title: 'Aniversário de Casamento',
-    text: 'Olá, {nome}! Hoje celebramos com vocês mais um ano de casamento ({anos_casamento} anos!). Que Deus continue abençoando, guardando e fortalecendo cada dia mais essa linda união. "A chama que nos move é o amor." Feliz aniversário de casamento! 💍🕊️',
+    text: 'Graça e Paz, {nome}! 💍 Hoje celebramos com vocês mais um abençoado ano de casamento ({anos_casamento} anos!). Que Deus continue guardando e fortalecendo cada dia mais a aliança de vocês. "A chama que nos move é o amor! ❤️‍🔥"\n\nCom bênçãos pastorais,\n*Pr. Tércio Ribeiro*\nWhatsApp: +55 82 98225-9873\nComunidade Batista Acolher',
     updatedAt: '2026-01-10T00:00:00Z'
   },
   {
@@ -98,7 +100,7 @@ export const INITIAL_MESSAGE_TEMPLATES: MessageTemplate[] = [
     churchId: 'church_cba_maceio',
     type: 'visitante',
     title: 'Acolhimento de Visitante',
-    text: 'Olá, {nome}! Foi uma grande alegria receber você na Comunidade Batista Acolher. As portas da nossa igreja e os nossos corações estão sempre abertos para você e sua família. Esperamos vê-lo(a) novamente em breve! Um grande abraço na paz de Cristo. 👋⛪',
+    text: 'Graça e Paz, {nome}! 👋⛪ Foi uma grande alegria receber você na Comunidade Batista Acolher. Nossas portas e corações estão sempre abertos para você e sua família. "A chama que nos move é o amor! ❤️‍🔥"\n\nUm abraço fraterno,\n*Pr. Tércio Ribeiro*\nWhatsApp: +55 82 98225-9873\nComunidade Batista Acolher',
     updatedAt: '2026-01-10T00:00:00Z'
   },
   {
@@ -106,15 +108,15 @@ export const INITIAL_MESSAGE_TEMPLATES: MessageTemplate[] = [
     churchId: 'church_cba_maceio',
     type: 'acompanhamento',
     title: 'Acompanhamento Pastoral',
-    text: 'Olá, {nome}! Passando para saber como você está e reforçar que estamos orando pela sua vida e família. Se precisar de uma palavra, oração ou visita pastoral, estamos sempre à disposição. Deus te abençoe! 🙏📖',
+    text: 'Graça e Paz, {nome}! 🙏📖 Passando para saber como você está e reforçar que estou orando pela sua vida e família. Se precisar de uma palavra, oração ou visita pastoral, estou sempre à disposição.\n\nCom orações e carinho,\n*Pr. Tércio Ribeiro*\nWhatsApp: +55 82 98225-9873\nComunidade Batista Acolher',
     updatedAt: '2026-01-10T00:00:00Z'
   },
   {
     id: 'tpl_5',
     churchId: 'church_cba_maceio',
     type: 'aniversario_crianca',
-    title: 'Aniversário Infantil (Acolher Kids)',
-    text: 'Parabéns, {nome}! 🎈 Hoje o Ministério Acolher Kids está em festa pelo seu aniversário! Que o Papai do Céu continue te enchendo de amor, sabedoria e muita alegria. Feliz aniversário! 🎂🎉🥳',
+    title: 'Aniversário Infantil (Departamento Infantil)',
+    text: 'Parabéns, {nome}! 🎈 Hoje o Departamento Infantil e toda a nossa igreja estão em festa pelo seu aniversário! Que o Papai do Céu continue te enchendo de amor, sabedoria e muita alegria. Feliz aniversário! 🎂🎉🥳\n\nCom carinho e bênçãos,\n*Pr. Tércio Ribeiro*\nWhatsApp: +55 82 98225-9873\nComunidade Batista Acolher',
     updatedAt: '2026-01-10T00:00:00Z'
   }
 ];

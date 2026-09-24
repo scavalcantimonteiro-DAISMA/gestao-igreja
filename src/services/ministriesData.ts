@@ -4,12 +4,12 @@ export const CBA_MINISTRIES: Ministry[] = [
   {
     "id": "min_infantil",
     "churchId": "church_cba_maceio",
-    "name": "Ministério Infantil (Acolher Kids)",
+    "name": "Departamento Infantil",
     "leaderName": "Marcela da Mota Lins Queiroga",
     "viceLeaderName": "Alexia Brandão Gozele",
     "meetingDay": "Domingo",
-    "meetingTime": "09:00 e 18:30",
-    "location": "Salas do Acolher Kids",
+    "meetingTime": "17:00 e 18:30",
+    "location": "Salas do Departamento Infantil",
     "description": "Ensino bíblico, acolhimento e discipulado de bebês e crianças durante as celebrações.",
     "membersCount": 12,
     "members": [
@@ -344,7 +344,7 @@ export const CBA_LEADERSHIP: Leadership[] = [
     "role": "Líder Ministério Infantil",
     "phone": "(81) 99225-2278",
     "whatsapp": "5581992252278",
-    "ministry": "Acolher Kids",
+    "ministry": "Departamento Infantil",
     "startDate": "2023-02-01",
     "observations": "Coordenação pedagógica e espiritual das crianças.",
     "createdAt": "2026-01-15T10:00:00.000Z"
@@ -356,7 +356,7 @@ export const CBA_LEADERSHIP: Leadership[] = [
     "role": "Vice-Líder Ministério Infantil",
     "phone": "(82) 99660-3258",
     "whatsapp": "5582996603258",
-    "ministry": "Acolher Kids",
+    "ministry": "Departamento Infantil",
     "startDate": "2023-02-01",
     "observations": "Apoio na coordenação do Ministério Infantil.",
     "createdAt": "2026-01-15T10:00:00.000Z"

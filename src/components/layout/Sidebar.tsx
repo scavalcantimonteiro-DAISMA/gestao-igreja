@@ -19,10 +19,12 @@ import {
   DollarSign, 
   Settings, 
   X,
-  Globe
+  Globe,
+  Smartphone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
+import { InstallAppModal } from '../common/InstallAppModal';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -39,11 +41,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { isMasterAdmin } = useAuth();
   const { currentChurch, isFinancialUnlocked } = useChurch();
+  const [showInstallModal, setShowInstallModal] = React.useState(false);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'members', label: 'Cadastro de Membros', icon: Users },
-    { id: 'children', label: 'Crianças (Acolher Kids)', icon: Baby },
+    { id: 'children', label: 'Departamento Infantil', icon: Baby },
     { id: 'families', label: 'Famílias & Casamentos', icon: HeartHandshake },
     { id: 'schedules', label: 'Programação', icon: Calendar },
     { id: 'events', label: 'Eventos Especiais', icon: Sparkles },
@@ -166,17 +169,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
+        {/* Botão de Instalação do Aplicativo (PWA) */}
+        <div className="px-3 py-2 border-t border-slate-100">
+          <button
+            onClick={() => setShowInstallModal(true)}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 text-emerald-900 border border-emerald-200 text-xs font-bold transition-all shadow-xs"
+          >
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-emerald-600" />
+              <span>Instalar Aplicativo</span>
+            </div>
+            <span className="text-[9px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold uppercase">
+              App
+            </span>
+          </button>
+        </div>
+
         {/* Rodapé do Menu Lateral */}
         <div className="p-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-slate-700 truncate max-w-[170px]">{currentChurch.name}</span>
             <span className="text-[10px] font-bold text-sky-700">v1.0 SaaS</span>
           </div>
-          <p className="text-[10px] text-slate-400">
-            Desenvolvido por <span className="text-slate-600 font-semibold">Saulo Monteiro</span>
+          <p className="text-[10px] text-slate-500 leading-tight">
+            Desenvolvido e comercializado por <span className="text-slate-700 font-bold">Saulo Monteiro</span>, todos os direitos reservados.
           </p>
         </div>
       </aside>
+
+      <InstallAppModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
     </>
   );
 };

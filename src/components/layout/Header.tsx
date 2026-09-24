@@ -13,13 +13,14 @@ import {
   Sparkles,
   Cake,
   HeartHandshake,
-  Calendar
+  Calendar,
+  Smartphone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
 import { ChurchBrandLogo } from '../common/ChurchBrandLogo';
-import { SauloBrandBadge } from '../common/SauloBrandBadge';
 import { DailyReportModal } from '../common/DailyReportModal';
+import { InstallAppModal } from '../common/InstallAppModal';
 import { getBirthdays, getWeddingAnniversaries, getPastoralAppointments } from '../../services/storage';
 
 interface HeaderProps {
@@ -47,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [showChurchSwitcher, setShowChurchSwitcher] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   // Contadores para o sino de notificações
   const { today: bdaysToday } = getBirthdays(currentChurch.id);
@@ -151,10 +153,18 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Direita: Saulo Badge, Relatório Diário, Notificações e Perfil */}
+        {/* Direita: Relatório Diário, Notificações e Perfil */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Badge Saulo Monteiro */}
-          <SauloBrandBadge onOpenMaster={onOpenMasterAdmin} compact={true} />
+
+          {/* Botão Instalar Aplicativo (PWA) */}
+          <button
+            onClick={() => setShowInstallModal(true)}
+            title="Instalar Aplicativo no Celular ou Computador"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold shadow-sm transition-all"
+          >
+            <Smartphone className="w-4 h-4 text-emerald-600" />
+            <span className="hidden lg:inline">Instalar App</span>
+          </button>
 
           {/* Botão Relatório Diário do Pastor */}
           <button
@@ -243,91 +253,23 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Menu do Usuário */}
-          <div className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-left transition-all"
-            >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-600 to-blue-700 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
-                {currentUser ? currentUser.name[0] : 'U'}
-              </div>
-              <div className="hidden sm:flex flex-col min-w-0">
-                <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]">
-                  {currentUser?.name || 'Convidado'}
-                </span>
-                <span className="text-[10px] text-sky-700 font-semibold">
-                  {currentUser?.role === 'SUPERADMIN' ? 'Master Admin' : currentUser?.role || 'Usuário'}
-                </span>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-500 hidden sm:block" />
-            </button>
-
-            {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-64 rounded-3xl bg-white border border-slate-200 shadow-2xl p-3 z-50 animate-in fade-in">
-                <div className="pb-3 mb-2 border-b border-slate-100">
-                  <p className="font-bold text-xs text-slate-900">{currentUser?.name}</p>
-                  <p className="text-[11px] text-slate-500">{currentUser?.email}</p>
-                  <span className="inline-block mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                    Perfil: {currentUser?.role}
-                  </span>
-                </div>
-
-                {/* Demonstração Rápida de Perfis */}
-                <div className="space-y-1 mb-3">
-                  <p className="px-2 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                    Alternar Perfil
-                  </p>
-                  <button
-                    onClick={() => { switchDemoRole('ADMIN', currentChurch.id); setShowUserMenu(false); }}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${currentUser?.role === 'ADMIN' ? 'bg-sky-50 text-sky-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5 text-sky-600" />
-                    <span>Administrador CBA</span>
-                  </button>
-                  <button
-                    onClick={() => { switchDemoRole('PASTOR', currentChurch.id); setShowUserMenu(false); }}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${currentUser?.role === 'PASTOR' ? 'bg-sky-50 text-sky-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5 text-sky-600" />
-                    <span>Pastor Presidente</span>
-                  </button>
-                  <button
-                    onClick={() => { switchDemoRole('SECRETARIA', currentChurch.id); setShowUserMenu(false); }}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${currentUser?.role === 'SECRETARIA' ? 'bg-sky-50 text-sky-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                  >
-                    <FileText className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Secretaria CBA</span>
-                  </button>
-                  <button
-                    onClick={() => { switchDemoRole('TESOURARIA', currentChurch.id); setShowUserMenu(false); }}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${currentUser?.role === 'TESOURARIA' ? 'bg-amber-50 text-amber-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                  >
-                    <Lock className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Tesouraria CBA</span>
-                  </button>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 flex flex-col gap-1">
-                  <button
-                    onClick={() => {
-                      logout();
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-rose-600 hover:bg-rose-50 font-semibold transition-colors"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    Desconectar e Voltar ao Login
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Botão de Desconectar / Sair */}
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 text-xs font-semibold transition-colors shadow-2xs"
+            title="Desconectar do Sistema"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Sair</span>
+          </button>
         </div>
       </header>
 
       {/* Modal Relatório Diário */}
       <DailyReportModal isOpen={showDailyReport} onClose={() => setShowDailyReport(false)} />
+
+      {/* Modal Instalação do Aplicativo (PWA) */}
+      <InstallAppModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
     </>
   );
 };

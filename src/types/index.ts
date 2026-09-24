@@ -14,6 +14,8 @@ export interface Church {
   id: string;
   name: string;
   slug: string;
+  loginUser?: string;
+  loginPassword?: string;
   cnpj?: string;
   address: string;
   neighborhood?: string;
