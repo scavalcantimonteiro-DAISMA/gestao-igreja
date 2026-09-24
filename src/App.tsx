@@ -111,7 +111,7 @@ const MainLayout: React.FC = () => {
           {activeTab === 'reports' && <ReportsView />}
           {activeTab === 'finance' && <FinancialDashboardView />}
           {activeTab === 'settings' && <SettingsView />}
-          {activeTab === 'master' && <MasterAdminPanel />}
+          {activeTab === 'master' && isMasterAdmin && <MasterAdminPanel />}
         </main>
 
         {/* Rodapé Claro & Moderno */}

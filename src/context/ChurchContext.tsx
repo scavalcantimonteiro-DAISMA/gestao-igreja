@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Church } from '../types';
 import { getChurches, getChurchById, saveChurch, deleteChurch, initializeStorage } from '../services/storage';
+import { syncChurchesFromCloud, saveChurchToCloud, deleteChurchFromCloud } from '../services/cloudSync';
 
 interface ChurchContextType {
   currentChurch: Church;
@@ -40,6 +41,13 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const [isFinancialUnlocked, setIsFinancialUnlocked] = useState<boolean>(false);
 
+  // Sincroniza congregações com a nuvem (Firestore) ao carregar a página
+  useEffect(() => {
+    syncChurchesFromCloud().then(() => {
+      setChurches(getChurches());
+    });
+  }, []);
+
   const currentChurch = churches.find(c => c.id === activeChurchId) || churches[0] || {
     id: 'church_cba_maceio',
     name: 'Comunidade Batista Acolher',
@@ -78,11 +86,13 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...updated
     };
     saveChurch(fullUpdated);
+    saveChurchToCloud(fullUpdated);
     setChurches(getChurches());
   };
 
   const updateChurchData = (church: Church) => {
     saveChurch(church);
+    saveChurchToCloud(church);
     setChurches(getChurches());
   };
 
@@ -95,12 +105,14 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       createdAt: new Date().toISOString()
     };
     saveChurch(newChurch);
+    saveChurchToCloud(newChurch);
     setChurches(getChurches());
     return newChurch;
   };
 
   const removeChurch = (churchId: string) => {
     deleteChurch(churchId);
+    deleteChurchFromCloud(churchId);
     const updated = getChurches();
     setChurches(updated);
     if (activeChurchId === churchId && updated.length > 0) {
@@ -152,6 +164,7 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       mustChangePassword: true
     };
     saveChurch(updated);
+    saveChurchToCloud(updated);
     setChurches(getChurches());
     return { success: true, provisionalPass: newTemp };
   };
@@ -175,6 +188,7 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       mustChangePassword: false
     };
     saveChurch(updated);
+    saveChurchToCloud(updated);
     setChurches(getChurches());
     return { success: true, message: 'Nova senha cadastrada com sucesso!' };
   };

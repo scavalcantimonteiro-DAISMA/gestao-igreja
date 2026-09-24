@@ -142,21 +142,28 @@ export function initializeStorage(): void {
   // 1. Cria backup instantâneo de segurança do estado atual
   createAutoSafetyBackup();
 
-  // 2. Congregações: Preserva TODAS as congregações cadastradas pelo usuário
+  // 2. Congregações: Preserva TODAS as congregações cadastradas pelo usuário e adiciona igrejas iniciais (CBA e Capunga)
   const storedChurches = getLocal<Church[]>('churches', INITIAL_CHURCHES);
-  const cbaIndex = storedChurches.findIndex(c => c.id === 'church_cba_maceio');
-  if (cbaIndex >= 0) {
-    storedChurches[cbaIndex].address = INITIAL_CHURCHES[0].address;
-    storedChurches[cbaIndex].pastorName = INITIAL_CHURCHES[0].pastorName;
-    storedChurches[cbaIndex].pastorPhone = INITIAL_CHURCHES[0].pastorPhone;
-    storedChurches[cbaIndex].pastorWhatsapp = INITIAL_CHURCHES[0].pastorWhatsapp;
-    if (INITIAL_CHURCHES[0].logoUrl) {
-      storedChurches[cbaIndex].logoUrl = INITIAL_CHURCHES[0].logoUrl;
+  INITIAL_CHURCHES.forEach(initChurch => {
+    const existingIndex = storedChurches.findIndex(c => 
+      c.id === initChurch.id || 
+      (c.loginUser && c.loginUser.toLowerCase() === initChurch.loginUser.toLowerCase()) ||
+      (c.slug && c.slug.toLowerCase() === initChurch.slug.toLowerCase())
+    );
+    if (existingIndex >= 0) {
+      if (initChurch.id === 'church_cba_maceio') {
+        storedChurches[existingIndex].address = initChurch.address;
+        storedChurches[existingIndex].pastorName = initChurch.pastorName;
+        storedChurches[existingIndex].pastorPhone = initChurch.pastorPhone;
+        storedChurches[existingIndex].pastorWhatsapp = initChurch.pastorWhatsapp;
+        if (initChurch.logoUrl) {
+          storedChurches[existingIndex].logoUrl = initChurch.logoUrl;
+        }
+      }
+    } else {
+      storedChurches.push(initChurch);
     }
-  } else {
-    // Insere a CBA no início caso não exista, sem remover congregações cadastradas
-    storedChurches.unshift(INITIAL_CHURCHES[0]);
-  }
+  });
   setLocal('churches', storedChurches);
 
   // 3. Membros: Garante os 140 membros da CBA sem apagar membros de nenhuma congregação cadastrada

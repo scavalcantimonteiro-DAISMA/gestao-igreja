@@ -55,7 +55,21 @@ O **Gestão Igreja** é uma plataforma eclesiástica moderna, responsiva e **Mul
 
 ---
 
-## 4. Como Executar e Atualizar
+## 4. Autenticação, Sincronização em Nuvem & Multi-Dispositivo
+
+* **Sincronização em Nuvem (Cloud Firestore):**
+  - Todas as igrejas cadastradas são salvas e sincronizadas automaticamente no Firestore (`churches` collection via `cloudSync.ts`).
+  - As igrejas iniciais (CBA e Igreja Batista Capunga no Parnamirim) vêm também pré-carregadas em `seedData.ts`, garantindo disponibilidade instantânea e offline em qualquer máquina ou celular.
+* **Isolamento de Sessão & Segurança:**
+  - Login de igreja isolado: congregações clientes só enxergam seus próprios dados e **não têm acesso** ao painel master nem ao menu "Trocar Igreja".
+  - Troca obrigatória de senha no 1º login: quando uma nova igreja é cadastrada com senha provisória ou quando a senha é resetada pelo Master, ela é obrigada a definir sua nova senha no primeiro acesso antes de entrar no sistema.
+  - Normalização inteligente de login: remove stopwords (`no`, `de`, `da`, `do`), acentos e pontuações, permitindo que os pastores acessem digitando tanto `ibcapungaparnamirim` quanto `ibcapunganoparnamirim` ou o nome por extenso.
+* **Ferramenta "Copiar Acesso":**
+  - No painel Master Admin, o botão "Copiar Acesso" copia instantaneamente para a área de transferência a mensagem formatada para envio no WhatsApp do pastor com usuário, link e orientações de 1º acesso.
+
+---
+
+## 5. Como Executar e Atualizar
 
 ```bash
 # Instalar dependências
@@ -73,3 +87,4 @@ git commit -m "suas alterações"
 git push origin main
 ```
 *(Ou dar 2 cliques no script `ENVIAR_IGREJA_PARA_GITHUB.bat` na Área de Trabalho)*.
+

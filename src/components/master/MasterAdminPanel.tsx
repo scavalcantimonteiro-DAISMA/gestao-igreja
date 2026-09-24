@@ -27,7 +27,8 @@ import {
   Smartphone, 
   Check, 
   Code2,
-  KeyRound
+  KeyRound,
+  Copy
 } from 'lucide-react';
 import { Church } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
@@ -514,6 +515,22 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   {/* BARRA DE AÇÕES INFERIOR */}
                   <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
+                      {/* Botão de Copiar Acesso */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const userLogin = c.loginUser || c.slug;
+                          const textToCopy = `🏛️ *Acesso ao Sistema de Gestão Eclesiástica*\n\n⛪ *Igreja:* ${c.name}\n👤 *Usuário:* ${userLogin}\n🔑 *Senha Inicial:* ${c.mustChangePassword ? '1234 (ou a provisória cadastrada)' : 'Sua senha cadastrada'}\n🌐 *Link de Acesso:* https://gestaodeigrejas-beta.vercel.app\n\n*(No primeiro acesso será solicitado definir a senha definitiva)*`;
+                          navigator.clipboard.writeText(textToCopy);
+                          showToast(`Acesso da igreja "${c.name}" copiado!`, 'success');
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-sky-50 text-sky-700 hover:border-sky-300 border border-slate-200 text-xs font-semibold transition-all shadow-2xs"
+                        title="Copiar dados de acesso (usuário, senha e link) para enviar ao pastor"
+                      >
+                        <Copy className="w-3.5 h-3.5 text-sky-600" />
+                        <span>Copiar Acesso</span>
+                      </button>
+
                       {/* Botão de Resetar Senha */}
                       <button
                         type="button"
@@ -726,7 +743,22 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   required
                   placeholder="Ex: Igreja Batista Renovada"
                   value={newChurchData.name || ''}
-                  onChange={e => setNewChurchData({ ...newChurchData, name: e.target.value })}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const autoLogin = val
+                      .toLowerCase()
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .replace(/\b(no|na|nos|nas|de|do|da|dos|das|em|e|a|o)\b/gi, '')
+                      .replace(/[^a-z0-9]/g, '');
+                    setNewChurchData(prev => ({
+                      ...prev,
+                      name: val,
+                      loginUser: (!prev.loginUser || prev.loginUser === '' || prev.loginUser === autoLogin.slice(0, -1) || prev.loginUser === autoLogin) 
+                        ? autoLogin 
+                        : prev.loginUser
+                    }));
+                  }}
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
                 />
               </div>

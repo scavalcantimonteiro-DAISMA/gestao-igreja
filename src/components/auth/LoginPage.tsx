@@ -25,14 +25,41 @@ export const LoginPage: React.FC = () => {
   const [confirmPassInput, setConfirmPassInput] = useState('');
   const [changePassError, setChangePassError] = useState('');
 
-  // Detecção dinâmica da igreja ao digitar
-  const trimmedLogin = churchLogin.trim().toLowerCase();
-  const matchedChurch = trimmedLogin 
-    ? allChurches.find(c => 
-        (c.loginUser && c.loginUser.toLowerCase() === trimmedLogin) ||
-        (c.slug && c.slug.toLowerCase() === trimmedLogin) ||
-        (c.name && c.name.toLowerCase() === trimmedLogin)
-      )
+  // Função auxiliar de normalização (remove acentos, pontuações, espaços e stopwords)
+  const normalizeChurchKey = (str?: string) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, '');
+  };
+
+  const stripStopwords = (str: string) => {
+    return str.replace(/(no|na|de|do|da|dos|das|em|a|o)/g, '');
+  };
+
+  const cleanTerm = normalizeChurchKey(churchLogin);
+  const cleanTermNoStop = stripStopwords(cleanTerm);
+
+  // Detecção dinâmica da igreja ao digitar (reconhece login, slug, nome e variações como ibcapungaparnamirim)
+  const matchedChurch = cleanTerm.length >= 3 
+    ? allChurches.find(c => {
+        const u = normalizeChurchKey(c.loginUser);
+        const s = normalizeChurchKey(c.slug);
+        const n = normalizeChurchKey(c.name);
+
+        const uNoStop = stripStopwords(u);
+        const sNoStop = stripStopwords(s);
+        const nNoStop = stripStopwords(n);
+
+        return u === cleanTerm || s === cleanTerm || n === cleanTerm ||
+               uNoStop === cleanTermNoStop || sNoStop === cleanTermNoStop ||
+               (cleanTerm.length >= 4 && (u.includes(cleanTerm) || cleanTerm.includes(u))) ||
+               (cleanTerm.length >= 4 && (s.includes(cleanTerm) || cleanTerm.includes(s))) ||
+               (cleanTerm.length >= 6 && n.includes(cleanTerm)) ||
+               (cleanTermNoStop.length >= 5 && nNoStop.includes(cleanTermNoStop));
+      })
     : null;
 
   // Campo do Login Master de Saulo Monteiro

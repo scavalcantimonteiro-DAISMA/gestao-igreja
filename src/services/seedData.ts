@@ -46,6 +46,29 @@ export const INITIAL_CHURCHES: Church[] = [
     financialPinChanged: false,
     isActive: true,
     createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'church_ib_capunga_parnamirim',
+    name: 'Igreja Batista Capunga no Parnamirim',
+    slug: 'ibcapungaparnamirim',
+    loginUser: 'ibcapungaparnamirim',
+    loginPassword: '0000',
+    mustChangePassword: true,
+    address: 'Parnamirim',
+    neighborhood: 'Parnamirim',
+    city: 'Recife',
+    state: 'PE',
+    instagram: '@ibcapunga',
+    phone: '(81) 99999-9999',
+    whatsapp: '5581999999999',
+    pastorName: 'Pastor Titular',
+    pastorPhone: '',
+    pastorWhatsapp: '',
+    dailyReportHour: '08:00',
+    financialPin: '0000',
+    financialPinChanged: false,
+    isActive: true,
+    createdAt: '2026-09-24T12:00:00Z'
   }
 ];
 

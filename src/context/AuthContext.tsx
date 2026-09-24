@@ -56,27 +56,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return false;
   };
 
+  // Função auxiliar de normalização (remove acentos, pontuações, espaços e stopwords)
+  const normalizeChurchKey = (str?: string) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, '');
+  };
+
+  const stripStopwords = (str: string) => {
+    return str.replace(/(no|na|de|do|da|dos|das|em|a|o)/g, '');
+  };
+
   // Login da Igreja (Suporta CBA e qualquer nova igreja cadastrada no SaaS)
   const loginChurch = (login: string, pass: string): { success: boolean; churchId: string; mustChangePassword?: boolean; message?: string } => {
-    const cleanLogin = login.trim().toLowerCase();
+    const cleanTerm = normalizeChurchKey(login);
+    const cleanTermNoStop = stripStopwords(cleanTerm);
 
-    // Login master digitado no campo de igreja
-    if (cleanLogin === 'saulo' && (pass === MASTER_PASSWORD || pass === '0000')) {
-      loginAsMaster(pass === '0000' ? MASTER_PASSWORD : pass);
-      return { success: true, churchId: 'church_cba_maceio' };
+    if (!cleanTerm) {
+      return { success: false, churchId: '', message: 'Informe o login da sua congregação.' };
     }
 
-    // Busca entre as igrejas cadastradas no sistema
+    // Busca inteligente e flexível entre as igrejas cadastradas no sistema
     const storedChurches = getChurches();
-    const matchedChurch = storedChurches.find(c => 
-      (c.loginUser && c.loginUser.trim().toLowerCase() === cleanLogin) ||
-      (c.slug && c.slug.trim().toLowerCase() === cleanLogin) ||
-      (c.name && c.name.trim().toLowerCase() === cleanLogin)
-    );
+    const matchedChurch = storedChurches.find(c => {
+      const u = normalizeChurchKey(c.loginUser);
+      const s = normalizeChurchKey(c.slug);
+      const n = normalizeChurchKey(c.name);
+
+      const uNoStop = stripStopwords(u);
+      const sNoStop = stripStopwords(s);
+      const nNoStop = stripStopwords(n);
+
+      return u === cleanTerm || s === cleanTerm || n === cleanTerm ||
+             uNoStop === cleanTermNoStop || sNoStop === cleanTermNoStop ||
+             (cleanTerm.length >= 4 && (u.includes(cleanTerm) || cleanTerm.includes(u))) ||
+             (cleanTerm.length >= 4 && (s.includes(cleanTerm) || cleanTerm.includes(s))) ||
+             (cleanTerm.length >= 6 && n.includes(cleanTerm)) ||
+             (cleanTermNoStop.length >= 5 && nNoStop.includes(cleanTermNoStop));
+    });
 
     if (matchedChurch) {
       const expectedPass = matchedChurch.loginPassword || '0000';
-      const isPassCorrect = pass === expectedPass || (pass === '0000' && !matchedChurch.loginPassword);
+      const isPassCorrect = 
+        pass === expectedPass || 
+        (pass === '0000' && !matchedChurch.loginPassword) ||
+        (matchedChurch.mustChangePassword && (pass === '1234' || pass === '0000' || pass === expectedPass));
 
       if (isPassCorrect) {
         // Se a senha for provisória ou tiver sido resetada, sinaliza que deve trocar antes de entrar
@@ -92,7 +119,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const churchUser: User = {
           id: 'usr_' + matchedChurch.id,
           churchId: matchedChurch.id,
-          name: `Administração ${matchedChurch.name}`,
+          name: matchedChurch.name,
           email: `${matchedChurch.slug}@gestaoigreja.com.br`,
           role: 'ADMIN',
           isActive: true,
@@ -102,21 +129,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { success: true, churchId: matchedChurch.id, mustChangePassword: false };
       }
       return { success: false, churchId: '', message: 'Senha incorreta para esta congregação.' };
-    }
-
-    // Credencial da CBA colher por compatibilidade
-    if ((cleanLogin === 'cbacolher' || cleanLogin === 'cbacolher@cbacolher.com.br') && pass === '0000') {
-      const churchUser: User = {
-        id: 'usr_cba_admin',
-        churchId: 'church_cba_maceio',
-        name: 'Administração CBA',
-        email: 'cbacolher@cbacolher.com.br',
-        role: 'ADMIN',
-        isActive: true,
-        createdAt: new Date().toISOString()
-      };
-      setCurrentUser(churchUser);
-      return { success: true, churchId: 'church_cba_maceio', mustChangePassword: false };
     }
 
     return { success: false, churchId: '', message: 'Usuário ou senha inválidos. Verifique as credenciais da sua igreja.' };
@@ -130,7 +142,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const churchUser: User = {
       id: 'usr_' + church.id,
       churchId: church.id,
-      name: `Administração ${church.name}`,
+      name: church.name,
       email: `${church.slug}@gestaoigreja.com.br`,
       role: 'ADMIN',
       isActive: true,
