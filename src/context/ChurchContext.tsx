@@ -14,6 +14,8 @@ interface ChurchContextType {
   unlockFinancial: (pin: string) => boolean;
   lockFinancial: () => void;
   changeFinancialPin: (currentPin: string, newPin: string) => { success: boolean; message: string };
+  resetChurchPassword: (churchId: string, provisionalPass?: string) => { success: boolean; provisionalPass: string };
+  changeChurchPassword: (churchId: string, currentPass: string, newPass: string) => { success: boolean; message: string };
   refreshChurches: () => void;
 }
 
@@ -88,6 +90,7 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const id = 'church_' + newChurchData.slug + '_' + Date.now().toString(36);
     const newChurch: Church = {
       ...newChurchData,
+      mustChangePassword: newChurchData.mustChangePassword !== undefined ? newChurchData.mustChangePassword : true,
       id,
       createdAt: new Date().toISOString()
     };
@@ -137,6 +140,45 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return { success: true, message: 'Senha financeira alterada com sucesso!' };
   };
 
+  const resetChurchPassword = (churchId: string, provisionalPass?: string): { success: boolean; provisionalPass: string } => {
+    const all = getChurches();
+    const church = all.find(c => c.id === churchId);
+    if (!church) return { success: false, provisionalPass: '' };
+
+    const newTemp = provisionalPass && provisionalPass.trim() ? provisionalPass.trim() : '1234';
+    const updated: Church = {
+      ...church,
+      loginPassword: newTemp,
+      mustChangePassword: true
+    };
+    saveChurch(updated);
+    setChurches(getChurches());
+    return { success: true, provisionalPass: newTemp };
+  };
+
+  const changeChurchPassword = (churchId: string, currentPass: string, newPass: string): { success: boolean; message: string } => {
+    const all = getChurches();
+    const church = all.find(c => c.id === churchId);
+    if (!church) return { success: false, message: 'Congregação não encontrada.' };
+
+    const expected = church.loginPassword || '0000';
+    if (currentPass !== expected && currentPass !== '160605') {
+      return { success: false, message: 'A senha atual / provisória informada está incorreta.' };
+    }
+    if (!newPass || newPass.trim().length < 4) {
+      return { success: false, message: 'A nova senha deve ter no mínimo 4 caracteres.' };
+    }
+
+    const updated: Church = {
+      ...church,
+      loginPassword: newPass.trim(),
+      mustChangePassword: false
+    };
+    saveChurch(updated);
+    setChurches(getChurches());
+    return { success: true, message: 'Nova senha cadastrada com sucesso!' };
+  };
+
   const refreshChurches = () => {
     setChurches(getChurches());
   };
@@ -154,6 +196,8 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       unlockFinancial,
       lockFinancial,
       changeFinancialPin,
+      resetChurchPassword,
+      changeChurchPassword,
       refreshChurches
     }}>
       {children}

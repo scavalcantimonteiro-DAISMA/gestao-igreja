@@ -6,7 +6,8 @@ interface AuthContextType {
   currentUser: User | null;
   isMasterAdmin: boolean;
   loginAsMaster: (password: string) => boolean;
-  loginChurch: (login: string, pass: string) => { success: boolean; churchId: string; message?: string };
+  loginChurch: (login: string, pass: string) => { success: boolean; churchId: string; mustChangePassword?: boolean; message?: string };
+  loginChurchDirect: (churchId: string) => void;
   loginUser: (email: string, pass: string, churchId?: string) => boolean;
   logout: () => void;
   switchDemoRole: (role: UserRole, churchId: string) => void;
@@ -56,7 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Login da Igreja (Suporta CBA e qualquer nova igreja cadastrada no SaaS)
-  const loginChurch = (login: string, pass: string): { success: boolean; churchId: string; message?: string } => {
+  const loginChurch = (login: string, pass: string): { success: boolean; churchId: string; mustChangePassword?: boolean; message?: string } => {
     const cleanLogin = login.trim().toLowerCase();
 
     // Login master digitado no campo de igreja
@@ -75,7 +76,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (matchedChurch) {
       const expectedPass = matchedChurch.loginPassword || '0000';
-      if (pass === expectedPass || pass === '0000') {
+      const isPassCorrect = pass === expectedPass || (pass === '0000' && !matchedChurch.loginPassword);
+
+      if (isPassCorrect) {
+        // Se a senha for provisória ou tiver sido resetada, sinaliza que deve trocar antes de entrar
+        if (matchedChurch.mustChangePassword) {
+          return { 
+            success: true, 
+            churchId: matchedChurch.id, 
+            mustChangePassword: true, 
+            message: 'Esta congregação está com senha provisória e precisa cadastrar uma nova senha.' 
+          };
+        }
+
         const churchUser: User = {
           id: 'usr_' + matchedChurch.id,
           churchId: matchedChurch.id,
@@ -86,7 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           createdAt: new Date().toISOString()
         };
         setCurrentUser(churchUser);
-        return { success: true, churchId: matchedChurch.id };
+        return { success: true, churchId: matchedChurch.id, mustChangePassword: false };
       }
       return { success: false, churchId: '', message: 'Senha incorreta para esta congregação.' };
     }
@@ -103,10 +116,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         createdAt: new Date().toISOString()
       };
       setCurrentUser(churchUser);
-      return { success: true, churchId: 'church_cba_maceio' };
+      return { success: true, churchId: 'church_cba_maceio', mustChangePassword: false };
     }
 
     return { success: false, churchId: '', message: 'Usuário ou senha inválidos. Verifique as credenciais da sua igreja.' };
+  };
+
+  const loginChurchDirect = (churchId: string): void => {
+    const storedChurches = getChurches();
+    const church = storedChurches.find(c => c.id === churchId);
+    if (!church) return;
+
+    const churchUser: User = {
+      id: 'usr_' + church.id,
+      churchId: church.id,
+      name: `Administração ${church.name}`,
+      email: `${church.slug}@gestaoigreja.com.br`,
+      role: 'ADMIN',
+      isActive: true,
+      createdAt: new Date().toISOString()
+    };
+    setCurrentUser(churchUser);
   };
 
   const loginUser = (email: string, pass: string, churchId?: string): boolean => {
@@ -179,6 +209,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isMasterAdmin: currentUser?.role === 'SUPERADMIN',
       loginAsMaster,
       loginChurch,
+      loginChurchDirect,
       loginUser,
       logout,
       switchDemoRole

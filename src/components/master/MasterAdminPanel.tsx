@@ -26,7 +26,8 @@ import {
   MessageSquare, 
   Smartphone, 
   Check, 
-  Code2
+  Code2,
+  KeyRound
 } from 'lucide-react';
 import { Church } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
@@ -38,7 +39,7 @@ import { setupDemoChurch } from '../../services/demoChurch';
 import { exportFullSystemBackup, importFullSystemBackup } from '../../services/storage';
 
 export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> = ({ onSwitchToChurchView }) => {
-  const { allChurches, currentChurch, selectChurch, registerNewChurch, updateChurchData, removeChurch } = useChurch();
+  const { allChurches, currentChurch, selectChurch, registerNewChurch, updateChurchData, removeChurch, resetChurchPassword } = useChurch();
   const { logout } = useAuth();
   const { showToast } = useNotification();
 
@@ -46,6 +47,8 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [editingChurch, setEditingChurch] = useState<Church | null>(null);
   const [churchToDelete, setChurchToDelete] = useState<Church | null>(null);
+  const [churchToResetPassword, setChurchToResetPassword] = useState<Church | null>(null);
+  const [provisionalPassInput, setProvisionalPassInput] = useState<string>('1234');
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   // Dados para novo cadastro
@@ -173,6 +176,22 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
       removeChurch(churchToDelete.id);
       showToast(`Igreja "${churchToDelete.name}" removida da plataforma.`, 'success');
       setChurchToDelete(null);
+    }
+  };
+
+  // Reset de Senha de Congregação (Master Admin)
+  const handleConfirmResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!churchToResetPassword) return;
+
+    const passToSet = provisionalPassInput.trim() || '1234';
+    const res = resetChurchPassword(churchToResetPassword.id, passToSet);
+    if (res.success) {
+      showToast(`Senha provisória ("${res.provisionalPass}") definida para "${churchToResetPassword.name}". No próximo login da congregação, a nova senha será exigida.`, 'success');
+      setChurchToResetPassword(null);
+      setProvisionalPassInput('1234');
+    } else {
+      showToast('Erro ao redefinir a senha da congregação.', 'error');
     }
   };
 
@@ -419,11 +438,17 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                           )}
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <h4 className="font-bold text-base text-slate-900 leading-tight">{c.name}</h4>
                             {isSelected && (
                               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200 shrink-0">
                                 Ativa
+                              </span>
+                            )}
+                            {c.mustChangePassword && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0 flex items-center gap-1" title="Esta congregação está com senha provisória e precisará trocá-la no próximo acesso">
+                                <KeyRound className="w-2.5 h-2.5 text-amber-600" />
+                                Senha Provisória
                               </span>
                             )}
                           </div>
@@ -487,10 +512,25 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   </div>
 
                   {/* BARRA DE AÇÕES INFERIOR */}
-                  <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
+                  <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {/* Botão de Resetar Senha */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChurchToResetPassword(c);
+                          setProvisionalPassInput('1234');
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-amber-50 text-amber-700 hover:border-amber-300 border border-slate-200 text-xs font-semibold transition-all shadow-2xs"
+                        title="Redefinir senha provisória e exigir troca obrigatória no próximo login"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Resetar Senha</span>
+                      </button>
+
                       {/* Botão de Backup Excel */}
                       <button
+                        type="button"
                         onClick={() => handleDownloadBackup(c)}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-700 hover:border-emerald-300 border border-slate-200 text-xs font-semibold transition-all shadow-2xs"
                         title="Baixar planilha Excel com todos os dados desta congregação"
@@ -502,6 +542,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                       {/* Botão de Excluir */}
                       {allChurches.length > 1 && (
                         <button
+                          type="button"
                           onClick={() => setChurchToDelete(c)}
                           className="p-1.5 rounded-xl bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 transition-colors shadow-2xs"
                           title={`Excluir ${c.name}`}
@@ -512,6 +553,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => handleEnterChurch(c.id)}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-xs"
                       title="Visualizar o painel eclesiástico desta congregação"
@@ -713,22 +755,26 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Senha de Acesso *
+                    <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Senha Provisória *</span>
+                      <span className="text-[10px] text-amber-600 font-semibold">Exigirá troca no 1º login</span>
                     </label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         required
-                        placeholder="Senha para a igreja"
+                        placeholder="ex: 1234 ou 0000"
                         value={newChurchData.loginPassword || ''}
                         onChange={e => setNewChurchData({ ...newChurchData, loginPassword: e.target.value })}
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-medium outline-none focus:border-sky-500 transition-colors"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-mono font-medium outline-none focus:border-sky-500 transition-colors"
                       />
                     </div>
                   </div>
                 </div>
+                <p className="text-[11px] text-amber-700 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/80">
+                  🔒 <strong>Senha Provisória Obrigatória:</strong> Ao fazer o primeiro acesso com esta senha, a congregação será obrigada a cadastrar uma nova senha definitiva antes de entrar.
+                </p>
               </div>
 
               <div>
@@ -1026,6 +1072,76 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
           onConfirm={handleDeleteChurchConfirm}
           onCancel={() => setChurchToDelete(null)}
         />
+      )}
+
+      {/* 8. MODAL DE RESET DE SENHA PROVISÓRIA */}
+      {churchToResetPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
+            <button
+              onClick={() => setChurchToResetPassword(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-xs">
+                <KeyRound className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Resetar Senha da Congregação</h3>
+                <p className="text-xs text-slate-500 font-medium">{churchToResetPassword.name}</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 text-xs mb-4 leading-relaxed">
+              <p className="font-semibold mb-1">Como funciona o reset:</p>
+              <p className="text-[11px] text-amber-800">
+                Você define uma senha provisória temporária abaixo. Assim que o usuário da congregação tentar entrar com essa senha, o sistema bloqueará a tela e <strong>exigirá obrigatoriamente</strong> que ele cadastre uma nova senha definitiva.
+              </p>
+            </div>
+
+            <form onSubmit={handleConfirmResetPassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Nova Senha Provisória *
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={provisionalPassInput}
+                    onChange={e => setProvisionalPassInput(e.target.value)}
+                    placeholder="ex: 1234"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm font-mono outline-none focus:bg-white focus:border-amber-500 transition-colors"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Envie esta senha provisória para o pastor ou administrador da congregação.
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setChurchToResetPassword(null)}
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md shadow-amber-600/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Confirmar Reset</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
