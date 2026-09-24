@@ -28,7 +28,8 @@ import {
   Check, 
   Code2,
   KeyRound,
-  Copy
+  Copy,
+  ShieldAlert
 } from 'lucide-react';
 import { Church } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
@@ -40,7 +41,7 @@ import { setupDemoChurch } from '../../services/demoChurch';
 import { exportFullSystemBackup, importFullSystemBackup } from '../../services/storage';
 
 export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> = ({ onSwitchToChurchView }) => {
-  const { allChurches, currentChurch, selectChurch, registerNewChurch, updateChurchData, removeChurch, resetChurchPassword } = useChurch();
+  const { allChurches, currentChurch, selectChurch, registerNewChurch, updateChurchData, removeChurch, resetChurchPassword, resetChurchFinancialPin } = useChurch();
   const { logout } = useAuth();
   const { showToast } = useNotification();
 
@@ -49,6 +50,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
   const [editingChurch, setEditingChurch] = useState<Church | null>(null);
   const [churchToDelete, setChurchToDelete] = useState<Church | null>(null);
   const [churchToResetPassword, setChurchToResetPassword] = useState<Church | null>(null);
+  const [churchToResetFinancialPin, setChurchToResetFinancialPin] = useState<Church | null>(null);
   const [provisionalPassInput, setProvisionalPassInput] = useState<string>('1234');
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
@@ -198,6 +200,15 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
     } else {
       showToast('Erro ao redefinir a senha da congregação.', 'error');
     }
+  };
+
+  // Reset da Senha Financeira individual da congregação
+  const handleConfirmResetFinancialPin = async () => {
+    if (!churchToResetFinancialPin) return;
+
+    const res = await resetChurchFinancialPin(churchToResetFinancialPin.id);
+    showToast(res.message, res.success ? 'success' : 'error');
+    setChurchToResetFinancialPin(null);
   };
 
   // Ref para input de restauração de backup JSON
@@ -513,6 +524,19 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                         <span className="text-slate-500">WhatsApp Pastor:</span>
                         <span className="font-mono text-slate-700">{c.pastorWhatsapp || c.whatsapp}</span>
                       </div>
+
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
+                        <span className="text-slate-500 flex items-center gap-1">
+                          <DollarSign className="w-3 h-3 text-emerald-600" /> Senha Financeira:
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          c.financialPinChanged && c.financialPin && c.financialPin !== '0000'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {c.financialPinChanged && c.financialPin && c.financialPin !== '0000' ? 'Ativa & Exclusiva' : 'Pendente de Cadastro'}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -535,7 +559,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                         <span>Copiar Acesso</span>
                       </button>
 
-                      {/* Botão de Resetar Senha */}
+                      {/* Botão de Resetar Senha de Login */}
                       <button
                         type="button"
                         onClick={() => {
@@ -543,10 +567,21 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                           setProvisionalPassInput('1234');
                         }}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-amber-50 text-amber-700 hover:border-amber-300 border border-slate-200 text-xs font-semibold transition-all shadow-2xs"
-                        title="Redefinir senha provisória e exigir troca obrigatória no próximo login"
+                        title="Redefinir senha provisória de login da congregação"
                       >
                         <KeyRound className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Resetar Senha</span>
+                        <span>Resetar Login</span>
+                      </button>
+
+                      {/* Botão de Resetar Senha Financeira (Exclusivo por Igreja) */}
+                      <button
+                        type="button"
+                        onClick={() => setChurchToResetFinancialPin(c)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 hover:border-rose-300 border border-slate-200 text-xs font-semibold transition-all shadow-2xs"
+                        title="Resetar a senha financeira desta congregação separadamente"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Reset Financeiro</span>
                       </button>
 
                       {/* Botão de Backup Excel */}
@@ -1210,6 +1245,58 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 9. MODAL DE RESET DA SENHA FINANCEIRA (SEPARADAMENTE POR IGREJA) */}
+      {churchToResetFinancialPin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
+            <button
+              onClick={() => setChurchToResetFinancialPin(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-xl hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center shadow-xs">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Resetar Senha Financeira</h3>
+                <p className="text-xs text-slate-500 font-medium">{churchToResetFinancialPin.name}</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 text-xs mb-4 leading-relaxed space-y-1.5">
+              <p className="font-semibold">Como funciona o reset financeiro:</p>
+              <p className="text-[11px] text-amber-800">
+                A senha financeira atual da igreja <strong>{churchToResetFinancialPin.name}</strong> será invalidada imediatamente.
+              </p>
+              <p className="text-[11px] text-amber-950 font-bold bg-amber-100/70 p-2 rounded-xl border border-amber-200">
+                No próximo acesso ao módulo financeiro, o sistema exigirá que a igreja cadastre uma nova senha financeira (obrigatoriamente diferente da senha de login).
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setChurchToResetFinancialPin(null)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmResetFinancialPin}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Confirmar Reset Financeiro</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
