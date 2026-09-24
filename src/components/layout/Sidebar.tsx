@@ -31,13 +31,15 @@ interface SidebarProps {
   onClose: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onReturnToMasterAdmin?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onClose,
   activeTab,
-  setActiveTab
+  setActiveTab,
+  onReturnToMasterAdmin
 }) => {
   const { isMasterAdmin } = useAuth();
   const { currentChurch, isFinancialUnlocked } = useChurch();
@@ -113,15 +115,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Módulo Master SaaS (se Saulo Monteiro) */}
-        {isMasterAdmin && (
+        {isMasterAdmin && onReturnToMasterAdmin && (
           <div className="px-3 pt-3">
             <button
-              onClick={() => handleSelect('master')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'master'
-                  ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md'
-                  : 'bg-sky-50 text-sky-900 hover:bg-sky-100 border border-sky-200'
-              }`}
+              onClick={() => {
+                onReturnToMasterAdmin();
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all bg-sky-50 text-sky-900 hover:bg-sky-100 border border-sky-200 shadow-2xs"
+              title="Voltar ao Painel Master SaaS para administrar congregações"
             >
               <div className="flex items-center gap-2.5">
                 <Globe className="w-4 h-4 text-sky-600" />

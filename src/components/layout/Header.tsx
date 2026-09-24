@@ -31,6 +31,7 @@ interface HeaderProps {
   onSearchChange: (val: string) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onReturnToMaster?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -39,7 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
   searchTerm,
   onSearchChange,
   activeTab,
-  setActiveTab
+  setActiveTab,
+  onReturnToMaster
 }) => {
   const { currentUser, logout, switchDemoRole, isMasterAdmin } = useAuth();
   const { currentChurch, allChurches, selectChurch } = useChurch();
@@ -112,16 +114,16 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
                     ))}
 
-                    {isMasterAdmin && (
+                    {isMasterAdmin && onReturnToMaster && (
                       <button
                         onClick={() => {
-                          setActiveTab('master');
                           setShowChurchSwitcher(false);
+                          onReturnToMaster();
                         }}
                         className="w-full mt-2 pt-2 border-t border-slate-100 flex items-center gap-2 px-3 py-1.5 text-xs text-sky-600 hover:text-sky-700 font-semibold"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                        + Cadastrar Nova Igreja (SaaS)
+                        Ir para Painel Master (SaaS)
                       </button>
                     )}
                   </div>

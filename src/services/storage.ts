@@ -233,6 +233,62 @@ export function getChurchById(id: string): Church | undefined {
   return churches.find(c => c.id === id);
 }
 
+export function findChurchByLogin(churches: Church[], input: string): Church | undefined {
+  if (!input || !input.trim()) return undefined;
+  const raw = input.trim().toLowerCase();
+  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  if (!clean) return undefined;
+
+  // 1. Prioridade 1: Correspondência EXATA com loginUser ou slug
+  let match = churches.find(c => {
+    const u = (c.loginUser || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const s = (c.slug || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    return (u && u === clean) || (s && s === clean);
+  });
+  if (match) return match;
+
+  // 2. Prioridade 2: Correspondência EXATA com o nome normalizado da igreja
+  match = churches.find(c => {
+    const n = (c.name || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    return n && n === clean;
+  });
+  if (match) return match;
+
+  // 3. Prioridade 3: Correspondência removendo stopwords completas (no, na, de, do, da)
+  const stripWords = (t: string) => 
+    t.toLowerCase()
+     .normalize('NFD')
+     .replace(/[\u0300-\u036f]/g, '')
+     .replace(/\b(no|na|nos|nas|de|do|da|dos|das|em|e|a|o)\b/gi, '')
+     .replace(/[^a-z0-9]/g, '');
+
+  const cleanNoWords = stripWords(raw);
+  if (cleanNoWords.length >= 4) {
+    match = churches.find(c => {
+      const uNo = stripWords(c.loginUser || '');
+      const sNo = stripWords(c.slug || '');
+      const nNo = stripWords(c.name || '');
+      return (uNo && uNo.length >= 3 && uNo === cleanNoWords) ||
+             (sNo && sNo.length >= 3 && sNo === cleanNoWords) ||
+             (nNo && nNo.length >= 4 && nNo === cleanNoWords);
+    });
+    if (match) return match;
+  }
+
+  // 4. Prioridade 4: Prefixo inicial do loginUser ou slug (apenas se digitou pelo menos 4 caracteres)
+  if (clean.length >= 4) {
+    match = churches.find(c => {
+      const u = (c.loginUser || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const s = (c.slug || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      return (u && u.length >= clean.length && u.startsWith(clean)) ||
+             (s && s.length >= clean.length && s.startsWith(clean));
+    });
+    if (match) return match;
+  }
+
+  return undefined;
+}
+
 export function saveChurch(church: Church): void {
   const churches = getChurches();
   const index = churches.findIndex(c => c.id === church.id);

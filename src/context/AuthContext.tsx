@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '../types';
-import { getChurches } from '../services/storage';
+import { getChurches, findChurchByLogin } from '../services/storage';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -56,47 +56,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return false;
   };
 
-  // Função auxiliar de normalização (remove acentos, pontuações, espaços e stopwords)
-  const normalizeChurchKey = (str?: string) => {
-    if (!str) return '';
-    return str
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]/g, '');
-  };
-
-  const stripStopwords = (str: string) => {
-    return str.replace(/(no|na|de|do|da|dos|das|em|a|o)/g, '');
-  };
-
   // Login da Igreja (Suporta CBA e qualquer nova igreja cadastrada no SaaS)
   const loginChurch = (login: string, pass: string): { success: boolean; churchId: string; mustChangePassword?: boolean; message?: string } => {
-    const cleanTerm = normalizeChurchKey(login);
-    const cleanTermNoStop = stripStopwords(cleanTerm);
-
-    if (!cleanTerm) {
+    if (!login || !login.trim()) {
       return { success: false, churchId: '', message: 'Informe o login da sua congregação.' };
     }
 
-    // Busca inteligente e flexível entre as igrejas cadastradas no sistema
+    // Busca exata e segura entre as congregações cadastradas
     const storedChurches = getChurches();
-    const matchedChurch = storedChurches.find(c => {
-      const u = normalizeChurchKey(c.loginUser);
-      const s = normalizeChurchKey(c.slug);
-      const n = normalizeChurchKey(c.name);
-
-      const uNoStop = stripStopwords(u);
-      const sNoStop = stripStopwords(s);
-      const nNoStop = stripStopwords(n);
-
-      return u === cleanTerm || s === cleanTerm || n === cleanTerm ||
-             uNoStop === cleanTermNoStop || sNoStop === cleanTermNoStop ||
-             (cleanTerm.length >= 4 && (u.includes(cleanTerm) || cleanTerm.includes(u))) ||
-             (cleanTerm.length >= 4 && (s.includes(cleanTerm) || cleanTerm.includes(s))) ||
-             (cleanTerm.length >= 6 && n.includes(cleanTerm)) ||
-             (cleanTermNoStop.length >= 5 && nNoStop.includes(cleanTermNoStop));
-    });
+    const matchedChurch = findChurchByLogin(storedChurches, login);
 
     if (matchedChurch) {
       const expectedPass = matchedChurch.loginPassword || '0000';

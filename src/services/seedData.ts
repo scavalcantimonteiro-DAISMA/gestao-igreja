@@ -50,8 +50,8 @@ export const INITIAL_CHURCHES: Church[] = [
   {
     id: 'church_ib_capunga_parnamirim',
     name: 'Igreja Batista Capunga no Parnamirim',
-    slug: 'ibcapungaparnamirim',
-    loginUser: 'ibcapungaparnamirim',
+    slug: 'ibcapunga',
+    loginUser: 'ibcapunga',
     loginPassword: '0000',
     mustChangePassword: true,
     address: 'Parnamirim',

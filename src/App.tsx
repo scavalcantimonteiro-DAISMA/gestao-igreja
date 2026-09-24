@@ -42,7 +42,10 @@ const MainLayout: React.FC = () => {
   if (isMasterAdmin && !viewingChurchAsMaster) {
     return (
       <MasterAdminPanel 
-        onSwitchToChurchView={() => setViewingChurchAsMaster(true)} 
+        onSwitchToChurchView={() => {
+          setViewingChurchAsMaster(true);
+          setActiveTab('dashboard');
+        }} 
       />
     );
   }
@@ -62,7 +65,10 @@ const MainLayout: React.FC = () => {
             <span>Modo Suporte Master Admin: Visualizando <strong>{currentChurch.name}</strong></span>
           </div>
           <button 
-            onClick={() => setViewingChurchAsMaster(false)}
+            onClick={() => {
+              setViewingChurchAsMaster(false);
+              setActiveTab('dashboard');
+            }}
             className="bg-white hover:bg-sky-50 text-slate-900 px-3 py-1 rounded-lg font-bold text-xs shadow transition-colors"
           >
             ← Voltar ao Painel Master (SaaS)
@@ -76,6 +82,10 @@ const MainLayout: React.FC = () => {
         onClose={() => setIsSidebarOpen(false)}
         activeTab={activeTab}
         setActiveTab={handleNavigate}
+        onReturnToMasterAdmin={() => {
+          setViewingChurchAsMaster(false);
+          setActiveTab('dashboard');
+        }}
       />
 
       {/* Conteúdo Principal */}
@@ -83,12 +93,19 @@ const MainLayout: React.FC = () => {
         {/* Header Superior em Branco & Azul */}
         <Header
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          onOpenMasterAdmin={() => setIsMasterModalOpen(true)}
+          onOpenMasterAdmin={() => {
+            setViewingChurchAsMaster(false);
+            setActiveTab('dashboard');
+          }}
           onOpenLogin={() => {}}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           activeTab={activeTab}
           setActiveTab={handleNavigate}
+          onReturnToMaster={() => {
+            setViewingChurchAsMaster(false);
+            setActiveTab('dashboard');
+          }}
         />
 
         {/* Área Central Dinâmica */}
@@ -111,7 +128,6 @@ const MainLayout: React.FC = () => {
           {activeTab === 'reports' && <ReportsView />}
           {activeTab === 'finance' && <FinancialDashboardView />}
           {activeTab === 'settings' && <SettingsView />}
-          {activeTab === 'master' && isMasterAdmin && <MasterAdminPanel />}
         </main>
 
         {/* Rodapé Claro & Moderno */}
@@ -147,7 +163,10 @@ const MainLayout: React.FC = () => {
       <MasterAdminModal
         isOpen={isMasterModalOpen}
         onClose={() => setIsMasterModalOpen(false)}
-        onSuccess={() => handleNavigate('master')}
+        onSuccess={() => {
+          setIsMasterModalOpen(false);
+          setViewingChurchAsMaster(false);
+        }}
       />
     </div>
   );
