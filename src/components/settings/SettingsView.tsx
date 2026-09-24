@@ -11,7 +11,7 @@ export const SettingsView: React.FC = () => {
 
   const [activeSubTab, setActiveSubTab] = useState<'igreja' | 'mensagens' | 'auditoria'>('igreja');
 
-  // Form Igreja
+  // Form Igreja sincronizado dinamicamente com currentChurch
   const [churchForm, setChurchForm] = useState<Partial<Church>>({
     name: currentChurch.name,
     address: currentChurch.address,
@@ -23,18 +23,43 @@ export const SettingsView: React.FC = () => {
     pastorName: currentChurch.pastorName,
     pastorPhone: currentChurch.pastorPhone,
     pastorWhatsapp: currentChurch.pastorWhatsapp,
+    pastoralOfficeWhatsapp: currentChurch.pastoralOfficeWhatsapp,
+    secretaryWhatsapp: currentChurch.secretaryWhatsapp,
+    defaultBirthdaySender: currentChurch.defaultBirthdaySender || 'pastor',
+    defaultGeneralSender: currentChurch.defaultGeneralSender || 'secretaria',
     dailyReportHour: currentChurch.dailyReportHour
   });
+
+  // Atualiza os campos do formulário sempre que a congregação mudar ou sincronizar em tempo real da nuvem
+  React.useEffect(() => {
+    setChurchForm({
+      name: currentChurch.name,
+      address: currentChurch.address,
+      city: currentChurch.city,
+      state: currentChurch.state,
+      instagram: currentChurch.instagram,
+      phone: currentChurch.phone,
+      whatsapp: currentChurch.whatsapp,
+      pastorName: currentChurch.pastorName,
+      pastorPhone: currentChurch.pastorPhone,
+      pastorWhatsapp: currentChurch.pastorWhatsapp,
+      pastoralOfficeWhatsapp: currentChurch.pastoralOfficeWhatsapp,
+      secretaryWhatsapp: currentChurch.secretaryWhatsapp,
+      defaultBirthdaySender: currentChurch.defaultBirthdaySender || 'pastor',
+      defaultGeneralSender: currentChurch.defaultGeneralSender || 'secretaria',
+      dailyReportHour: currentChurch.dailyReportHour
+    });
+  }, [currentChurch]);
 
   // Mensagens
   const [templates, setTemplates] = useState<MessageTemplate[]>(() => getMessageTemplates(currentChurch.id));
   const logs = getAuditLogs(currentChurch.id);
 
-  const handleSaveChurch = (e: React.FormEvent) => {
+  const handleSaveChurch = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateCurrentChurch(churchForm);
-    logAction(currentChurch.id, 'Administrador', 'ADMIN', 'Atualização de Dados da Igreja', currentChurch.name);
-    showToast('Configurações da congregação salvas!', 'success');
+    await updateCurrentChurch(churchForm);
+    logAction(currentChurch.id, 'Administrador', 'ADMIN', 'Atualização de Dados e Canais de WhatsApp da Igreja', currentChurch.name);
+    showToast('Configurações salvas e sincronizadas com a nuvem!', 'success');
   };
 
   const handleUpdateTemplate = (id: string, newText: string) => {
@@ -138,54 +163,170 @@ export const SettingsView: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-700 mb-1">Instagram</label>
               <input
                 type="text"
+                placeholder="@igreja"
                 value={churchForm.instagram || ''}
                 onChange={e => setChurchForm({ ...churchForm, instagram: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp da Igreja</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Telefone Fixo / Recepção</label>
               <input
                 type="text"
-                value={churchForm.whatsapp || ''}
-                onChange={e => setChurchForm({ ...churchForm, whatsapp: e.target.value })}
+                placeholder="Ex: (81) 3325-0000"
+                value={churchForm.phone || ''}
+                onChange={e => setChurchForm({ ...churchForm, phone: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
               />
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-sky-700 uppercase tracking-wider mb-2">
-              Configurações Pastorais & Relatório Diário
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="pt-4 border-t border-slate-100 space-y-4">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-emerald-600" />
+                Canais de WhatsApp para Disparo de Mensagens
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Defina os números oficiais de WhatsApp que serão utilizados pelos módulos do sistema.
+              </p>
+            </div>
+
+            {/* Canal 1: Pastor Titular */}
+            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>👑 Pastor Titular</span>
+                </span>
+                <span className="text-[10px] bg-amber-200/70 text-amber-900 font-semibold px-2 py-0.5 rounded-full">
+                  Aniversários & Relatório Diário
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nome do Pastor</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Pr. João Silva"
+                    value={churchForm.pastorName || ''}
+                    onChange={e => setChurchForm({ ...churchForm, pastorName: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-amber-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-amber-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp do Pastor (com DDD)</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: (81) 98888-7777 ou 5581988887777"
+                    value={churchForm.pastorWhatsapp || ''}
+                    onChange={e => setChurchForm({ ...churchForm, pastorWhatsapp: e.target.value, pastorPhone: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-amber-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-amber-500 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Canal 2: Gabinete Pastoral */}
+            <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-sky-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🏛️ Gabinete Pastoral</span>
+                </span>
+                <span className="text-[10px] bg-sky-200/70 text-sky-900 font-semibold px-2 py-0.5 rounded-full">
+                  Atendimentos & Aniversários
+                </span>
+              </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Pastor Titular</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp do Gabinete Pastoral (com DDD)</label>
                 <input
                   type="text"
-                  value={churchForm.pastorName || ''}
-                  onChange={e => setChurchForm({ ...churchForm, pastorName: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
+                  placeholder="Ex: (81) 99999-8888 ou 5581999998888"
+                  value={churchForm.pastoralOfficeWhatsapp || ''}
+                  onChange={e => setChurchForm({ ...churchForm, pastoralOfficeWhatsapp: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-sky-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-sky-500 transition-colors"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp do Pastor</label>
-                <input
-                  type="text"
-                  value={churchForm.pastorWhatsapp || ''}
-                  onChange={e => setChurchForm({ ...churchForm, pastorWhatsapp: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
-                />
+            </div>
+
+            {/* Canal 3: Secretaria da Igreja */}
+            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>📋 Secretaria da Igreja</span>
+                </span>
+                <span className="text-[10px] bg-emerald-200/70 text-emerald-900 font-semibold px-2 py-0.5 rounded-full">
+                  Visitantes & Mensagens Gerais
+                </span>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Horário do Relatório</label>
-                <input
-                  type="time"
-                  value={churchForm.dailyReportHour || '07:30'}
-                  onChange={e => setChurchForm({ ...churchForm, dailyReportHour: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp da Secretaria (com DDD)</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: (81) 97777-6666 ou 5581977776666"
+                    value={churchForm.secretaryWhatsapp || churchForm.whatsapp || ''}
+                    onChange={e => setChurchForm({ ...churchForm, secretaryWhatsapp: e.target.value, whatsapp: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-emerald-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Telefone Fixo / Recepção</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: (81) 3325-0000"
+                    value={churchForm.phone || ''}
+                    onChange={e => setChurchForm({ ...churchForm, phone: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-emerald-500 transition-colors"
+                  />
+                </div>
               </div>
+            </div>
+
+            {/* Regras e Preferências de Disparo */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Preferências de Remetente Padrão
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Aniversários (Casamento & Idade):
+                  </label>
+                  <select
+                    value={churchForm.defaultBirthdaySender || 'pastor'}
+                    onChange={e => setChurchForm({ ...churchForm, defaultBirthdaySender: e.target.value as 'pastor' | 'gabinete' })}
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium outline-none focus:border-sky-500"
+                  >
+                    <option value="pastor">Pastor Titular (Mensagem Pastoral)</option>
+                    <option value="gabinete">Gabinete Pastoral</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Demais Mensagens (Visitantes & Avisos):
+                  </label>
+                  <select
+                    value={churchForm.defaultGeneralSender || 'secretaria'}
+                    onChange={e => setChurchForm({ ...churchForm, defaultGeneralSender: e.target.value as 'secretaria' | 'pastor' | 'gabinete' })}
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium outline-none focus:border-sky-500"
+                  >
+                    <option value="secretaria">Secretaria da Igreja</option>
+                    <option value="pastor">Pastor Titular</option>
+                    <option value="gabinete">Gabinete Pastoral</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Horário do Relatório Diário */}
+            <div className="pt-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Horário do Relatório Diário do Pastor</label>
+              <input
+                type="time"
+                value={churchForm.dailyReportHour || '07:30'}
+                onChange={e => setChurchForm({ ...churchForm, dailyReportHour: e.target.value })}
+                className="w-full sm:w-48 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
+              />
             </div>
           </div>
 

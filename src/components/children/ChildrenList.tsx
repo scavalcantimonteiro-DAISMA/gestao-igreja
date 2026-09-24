@@ -345,7 +345,7 @@ export const ChildrenList: React.FC = () => {
                   <MaskedInput
                     mask="phone"
                     label="WhatsApp do Responsável *"
-                    placeholder="(82) 99999-9999"
+                    placeholder="(DDD) 99999-9999"
                     value={formData.guardianPhone || ''}
                     onChange={val => setFormData({ ...formData, guardianPhone: val, guardianWhatsapp: val })}
                   />

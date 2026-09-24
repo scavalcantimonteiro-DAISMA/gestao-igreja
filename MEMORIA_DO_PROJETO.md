@@ -57,9 +57,18 @@ O **Gestão Igreja** é uma plataforma eclesiástica moderna, responsiva e **Mul
 
 ## 4. Autenticação, Sincronização em Nuvem & Multi-Dispositivo
 
-* **Sincronização em Nuvem (Cloud Firestore):**
-  - Todas as igrejas cadastradas são salvas e sincronizadas automaticamente no Firestore (`churches` collection via `cloudSync.ts`).
-  - As igrejas iniciais (CBA e Igreja Batista Capunga no Parnamirim) vêm também pré-carregadas em `seedData.ts`, garantindo disponibilidade instantânea e offline em qualquer máquina ou celular.
+* **Sincronização em Nuvem em Tempo Real (Cloud Firestore):**
+  - Todas as igrejas e seus perfis são salvos e sincronizados automaticamente no Firestore (`churches` collection via `cloudSync.ts`).
+  - **Sincronia Bidirecional Instantânea (Site <-> App):** Implementado listener contínuo com `onSnapshot` (`subscribeToChurches`). Qualquer alteração realizada no aplicativo (celular) reflete no site (desktop/navegador) em tempo real, e vice-versa.
+  - **Sanitização de Payloads Firestore:** Função `sanitizeForFirestore` remove recursivamente chaves com valor `undefined`, garantindo que nenhuma gravação falhe silenciosamente no Firestore.
+  - **Preservação de Dados Atualizados:** A inicialização do armazenamento local preserva as alterações do perfil do usuário e da nuvem sem sobrescrever com dados estáticos de seed.
+* **Canais Oficiais de WhatsApp para Disparos:**
+  - Sem números fixos no código: cada congregação define seus próprios números oficiais com DDD de qualquer estado do Brasil.
+  - **Pastor Titular:** Telefone/WhatsApp do pastor para felicitações pastorais e envio do Relatório Diário.
+  - **Gabinete Pastoral:** Telefone/WhatsApp do gabinete para mensagens e atendimentos.
+  - **Secretaria da Igreja:** Telefone/WhatsApp da secretaria para acolhimento de visitantes e avisos gerais.
+  - **Decisão de Remetente nos Disparos:** Nos aniversários de nova idade e casamento, a congregação decide na hora se dispara em nome do Pastor Titular ou do Gabinete Pastoral. Se os números não estiverem cadastrados, o sistema solicita e permite cadastrá-los na hora com 1 clique.
+  - Para as demais mensagens, o sistema solicita o cadastro obrigatório do WhatsApp da Secretaria da congregação.
 * **Isolamento de Sessão & Segurança:**
   - Login de igreja isolado: congregações clientes só enxergam seus próprios dados e **não têm acesso** ao painel master nem ao menu "Trocar Igreja".
   - Troca obrigatória de senha no 1º login: quando uma nova igreja é cadastrada com senha provisória ou quando a senha é resetada pelo Master, ela é obrigada a definir sua nova senha no primeiro acesso antes de entrar no sistema.

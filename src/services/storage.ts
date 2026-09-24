@@ -151,15 +151,10 @@ export function initializeStorage(): void {
       (c.slug && c.slug.toLowerCase() === initChurch.slug.toLowerCase())
     );
     if (existingIndex >= 0) {
-      if (initChurch.id === 'church_cba_maceio') {
-        storedChurches[existingIndex].address = initChurch.address;
-        storedChurches[existingIndex].pastorName = initChurch.pastorName;
-        storedChurches[existingIndex].pastorPhone = initChurch.pastorPhone;
-        storedChurches[existingIndex].pastorWhatsapp = initChurch.pastorWhatsapp;
-        if (initChurch.logoUrl) {
-          storedChurches[existingIndex].logoUrl = initChurch.logoUrl;
-        }
-      }
+      // Preserva alterações locais e vindas da nuvem (não sobrescreve)
+      const existing = storedChurches[existingIndex];
+      // Garante que campos essenciais existam se novos
+      if (!existing.pastorName && initChurch.pastorName) existing.pastorName = initChurch.pastorName;
     } else {
       storedChurches.push(initChurch);
     }

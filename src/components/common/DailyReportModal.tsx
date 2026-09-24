@@ -152,11 +152,16 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
   };
 
   const handleSendToPastor = () => {
-    // Número do pastor titular fornecido: +55 82 982259873
-    const phone = '5582982259873';
+    const rawPhone = currentChurch.pastorWhatsapp || currentChurch.pastorPhone || '';
+    const clean = rawPhone.replace(/\D/g, '');
+    if (!clean || clean.length < 8) {
+      showToast(`O WhatsApp do Pastor Titular (${currentChurch.pastorName || 'Pastor'}) não está cadastrado. Configure nas Configurações da Igreja.`, 'error');
+      return;
+    }
+    const phone = clean.startsWith('55') ? clean : `55${clean}`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(pastorText)}`;
     window.open(url, '_blank');
-    showToast('Abrindo WhatsApp do Pastor (+55 82 98225-9873)...', 'info');
+    showToast(`Abrindo WhatsApp de ${currentChurch.pastorName || 'Pastor Titular'} (${rawPhone})...`, 'info');
   };
 
   const handleShareGeneral = () => {
@@ -258,7 +263,9 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
               className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <MessageCircle className="w-4 h-4 fill-current" />
-              <span>Enviar para Pastor (+55 82 98225-9873)</span>
+              <span>
+                Enviar para Pastor {currentChurch.pastorName ? `(${currentChurch.pastorName})` : ''}
+              </span>
             </button>
           )}
 

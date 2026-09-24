@@ -234,9 +234,9 @@ export const ReportsView: React.FC = () => {
                     <Cake className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm text-slate-900">Aniversariantes no Geral • CBAcolher</h4>
+                    <h4 className="font-bold text-sm text-slate-900">Aniversariantes • {currentChurch.name}</h4>
                     <p className="text-xs text-slate-600">
-                      Disparo pastoral oficial: <strong>Pr. Tércio Ribeiro (+55 82 98225-9873)</strong>
+                      Disparo pastoral oficial: <strong>{currentChurch.pastorName || 'Pastor Titular'} ({currentChurch.pastorWhatsapp || currentChurch.pastorPhone || 'Configure nas configurações'})</strong>
                     </p>
                   </div>
                 </div>

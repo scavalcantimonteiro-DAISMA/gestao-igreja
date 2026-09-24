@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Church } from '../types';
 import { getChurches, getChurchById, saveChurch, deleteChurch, initializeStorage } from '../services/storage';
-import { syncChurchesFromCloud, saveChurchToCloud, deleteChurchFromCloud } from '../services/cloudSync';
+import { syncChurchesFromCloud, saveChurchToCloud, deleteChurchFromCloud, subscribeToChurches } from '../services/cloudSync';
 
 interface ChurchContextType {
   currentChurch: Church;
   allChurches: Church[];
   selectChurch: (churchId: string) => void;
-  updateCurrentChurch: (updated: Partial<Church>) => void;
-  updateChurchData: (church: Church) => void;
+  updateCurrentChurch: (updated: Partial<Church>) => Promise<void> | void;
+  updateChurchData: (church: Church) => Promise<void> | void;
   registerNewChurch: (newChurch: Omit<Church, 'id' | 'createdAt'>) => Church;
   removeChurch: (churchId: string) => void;
   isFinancialUnlocked: boolean;
@@ -41,11 +41,25 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const [isFinancialUnlocked, setIsFinancialUnlocked] = useState<boolean>(false);
 
-  // Sincroniza congregações com a nuvem (Firestore) ao carregar a página
+  // Sincroniza congregações com a nuvem (Firestore) em tempo real: Sincronia contínua Site <-> App
   useEffect(() => {
-    syncChurchesFromCloud().then(() => {
-      setChurches(getChurches());
+    // 1. Sincronização inicial
+    syncChurchesFromCloud().then((cloudChurches) => {
+      if (cloudChurches && cloudChurches.length > 0) {
+        setChurches(cloudChurches);
+      }
     });
+
+    // 2. Listener contínuo em tempo real (onSnapshot)
+    const unsubscribe = subscribeToChurches((updatedChurches) => {
+      if (updatedChurches && updatedChurches.length > 0) {
+        setChurches(updatedChurches);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const currentChurch = churches.find(c => c.id === activeChurchId) || churches[0] || {
@@ -80,20 +94,25 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  const updateCurrentChurch = (updated: Partial<Church>) => {
+  const updateCurrentChurch = async (updated: Partial<Church>) => {
     const fullUpdated: Church = {
       ...currentChurch,
-      ...updated
+      ...updated,
+      updatedAt: new Date().toISOString()
     };
     saveChurch(fullUpdated);
-    saveChurchToCloud(fullUpdated);
     setChurches(getChurches());
+    await saveChurchToCloud(fullUpdated);
   };
 
-  const updateChurchData = (church: Church) => {
-    saveChurch(church);
-    saveChurchToCloud(church);
+  const updateChurchData = async (church: Church) => {
+    const fullUpdated: Church = {
+      ...church,
+      updatedAt: new Date().toISOString()
+    };
+    saveChurch(fullUpdated);
     setChurches(getChurches());
+    await saveChurchToCloud(fullUpdated);
   };
 
   const registerNewChurch = (newChurchData: Omit<Church, 'id' | 'createdAt'>): Church => {
@@ -102,7 +121,8 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...newChurchData,
       mustChangePassword: newChurchData.mustChangePassword !== undefined ? newChurchData.mustChangePassword : true,
       id,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     saveChurch(newChurch);
     saveChurchToCloud(newChurch);

@@ -60,14 +60,18 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
     loginPassword: '',
     logoUrl: '',
     address: '',
-    city: 'Maceió',
-    state: 'AL',
+    city: '',
+    state: '',
     instagram: '',
     phone: '',
     whatsapp: '',
     pastorName: '',
     pastorPhone: '',
     pastorWhatsapp: '',
+    pastoralOfficeWhatsapp: '',
+    secretaryWhatsapp: '',
+    defaultBirthdaySender: 'pastor',
+    defaultGeneralSender: 'secretaria',
     dailyReportHour: '08:00',
     financialPin: '0000',
     financialPinChanged: false,
@@ -855,12 +859,12 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp da Igreja</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Secretaria / Geral</label>
                   <input
                     type="text"
-                    placeholder="(82) 99999-9999"
-                    value={newChurchData.whatsapp || ''}
-                    onChange={e => setNewChurchData({ ...newChurchData, whatsapp: e.target.value })}
+                    placeholder="(DDD) 99999-9999"
+                    value={newChurchData.secretaryWhatsapp || newChurchData.whatsapp || ''}
+                    onChange={e => setNewChurchData({ ...newChurchData, secretaryWhatsapp: e.target.value, whatsapp: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
                   />
                 </div>
@@ -881,12 +885,23 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp do Pastor</label>
                   <input
                     type="text"
-                    placeholder="(82) 99999-9999"
+                    placeholder="(DDD) 99999-9999"
                     value={newChurchData.pastorWhatsapp || ''}
-                    onChange={e => setNewChurchData({ ...newChurchData, pastorWhatsapp: e.target.value })}
+                    onChange={e => setNewChurchData({ ...newChurchData, pastorWhatsapp: e.target.value, pastorPhone: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Gabinete Pastoral</label>
+                <input
+                  type="text"
+                  placeholder="(DDD) 99999-9999"
+                  value={newChurchData.pastoralOfficeWhatsapp || ''}
+                  onChange={e => setNewChurchData({ ...newChurchData, pastoralOfficeWhatsapp: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -1065,8 +1080,31 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Pastor</label>
                   <input
                     type="text"
-                    value={editingChurch.pastorWhatsapp || editingChurch.whatsapp}
-                    onChange={e => setEditingChurch({ ...editingChurch, pastorWhatsapp: e.target.value })}
+                    value={editingChurch.pastorWhatsapp || ''}
+                    onChange={e => setEditingChurch({ ...editingChurch, pastorWhatsapp: e.target.value, pastorPhone: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-amber-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Gabinete Pastoral</label>
+                  <input
+                    type="text"
+                    placeholder="(DDD) 99999-9999"
+                    value={editingChurch.pastoralOfficeWhatsapp || ''}
+                    onChange={e => setEditingChurch({ ...editingChurch, pastoralOfficeWhatsapp: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-amber-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Secretaria</label>
+                  <input
+                    type="text"
+                    placeholder="(DDD) 99999-9999"
+                    value={editingChurch.secretaryWhatsapp || editingChurch.whatsapp || ''}
+                    onChange={e => setEditingChurch({ ...editingChurch, secretaryWhatsapp: e.target.value, whatsapp: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-amber-500 transition-colors"
                   />
                 </div>

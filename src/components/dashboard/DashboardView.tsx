@@ -367,10 +367,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                       </p>
                     </div>
 
-                    <WhatsAppButton
+                    <BirthdayWhatsAppAction
+                      personName={w.coupleName}
                       phone={w.whatsapp}
-                      message={message}
+                      type="wedding"
+                      weddingInfo={{
+                        husbandName: w.husbandName,
+                        wifeName: w.wifeName,
+                        yearsMarried: w.yearsMarried
+                      }}
                       label="Enviar Bênção"
+                      variant="button"
                       size="sm"
                     />
                   </div>

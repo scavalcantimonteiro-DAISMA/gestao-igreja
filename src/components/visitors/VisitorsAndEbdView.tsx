@@ -299,7 +299,7 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialT
                 <input
                   type="text"
                   required
-                  placeholder="(82) 99999-9999"
+                  placeholder="(DDD) 99999-9999"
                   value={visitorForm.whatsapp || ''}
                   onChange={e => setVisitorForm({ ...visitorForm, whatsapp: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-emerald-500"

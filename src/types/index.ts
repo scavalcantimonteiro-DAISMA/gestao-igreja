@@ -31,12 +31,22 @@ export interface Church {
   pastorName: string;
   pastorPhone: string;
   pastorWhatsapp: string;
+  pastoralOfficeName?: string;
+  pastoralOfficeWhatsapp?: string;
+  secretaryName?: string;
+  secretaryWhatsapp?: string;
+  defaultBirthdaySender?: 'pastor' | 'gabinete';
+  defaultGeneralSender?: 'secretaria' | 'pastor' | 'gabinete';
   dailyReportHour: string; // Ex: "07:30"
   financialPin: string;    // Padrão "0000" inicial
   financialPinChanged: boolean;
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
+
+export type WhatsAppSenderRole = 'pastor' | 'gabinete' | 'secretaria';
+
 
 export interface User {
   id: string;
