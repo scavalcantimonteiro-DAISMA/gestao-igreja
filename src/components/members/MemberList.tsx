@@ -21,7 +21,6 @@ import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { 
   getMembers, 
-  reloadSpreadsheetMembers,
   deleteMember, 
   logAction, 
   getSmallGroups, 
@@ -57,12 +56,6 @@ export const MemberList: React.FC = () => {
   };
 
   useDataSync(refreshList, [currentChurch.id]);
-
-  const handleReloadSpreadsheet = () => {
-    const reloaded = reloadSpreadsheetMembers(currentChurch.id);
-    setMembers(reloaded);
-    showToast(`Planilha oficial sincronizada com sucesso! ${reloaded.length} membros carregados.`, 'success');
-  };
 
   const handleEdit = (member: Member) => {
     setMemberToEdit(member);
@@ -143,16 +136,6 @@ export const MemberList: React.FC = () => {
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Baixar em Excel</span>
-          </button>
-
-          <button
-            onClick={handleReloadSpreadsheet}
-            title="Restaura os 140 membros originais da planilha oficial"
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold shadow-sm active:scale-95 transition-all"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span className="hidden sm:inline">Recarregar Planilha Oficial (140)</span>
-            <span className="sm:hidden">Planilha (140)</span>
           </button>
 
           <button
