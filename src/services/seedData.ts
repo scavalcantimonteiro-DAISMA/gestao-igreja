@@ -111,7 +111,12 @@ export const INITIAL_BIBLE_CLASSES: BibleClass[] = [
     teacherPhone: '(82) 99999-1111',
     assistantTeacher: 'Ana Paula Cavalcanti',
     ageGroup: '0 a 4 anos',
-    enrolledStudentsCount: 8,
+    enrolledStudentsCount: 3,
+    students: [
+      { id: 'std_1', name: 'Benjamin Cavalcanti', age: 3, phone: '(82) 98225-9873', enrolledAt: '2026-01-10', notes: 'Filho de Saulo e Sarah' },
+      { id: 'std_2', name: 'Laura Beatriz Lima', age: 4, phone: '(82) 99123-4567', enrolledAt: '2026-01-15' },
+      { id: 'std_3', name: 'Noah Gabriel Santos', age: 2, phone: '(82) 98765-4321', enrolledAt: '2026-02-01' }
+    ],
     notes: 'Revista Maternal: Deus Criou o Mundo. Material de pintura e brinquedos lúdicos.',
     status: 'Ativa',
     createdAt: '2026-01-10T10:00:00Z'
@@ -127,7 +132,12 @@ export const INITIAL_BIBLE_CLASSES: BibleClass[] = [
     teacherPhone: '(82) 99999-2222',
     assistantTeacher: 'Juliana Costa',
     ageGroup: '9 a 12 anos',
-    enrolledStudentsCount: 15,
+    enrolledStudentsCount: 3,
+    students: [
+      { id: 'std_4', name: 'Matheus Henrique Silva', age: 10, phone: '(82) 98888-1234', enrolledAt: '2026-01-12' },
+      { id: 'std_5', name: 'Rebeca Souza Oliveira', age: 11, phone: '(82) 98777-5678', enrolledAt: '2026-01-18' },
+      { id: 'std_6', name: 'Davi Lucas Pereira', age: 9, phone: '(82) 98111-9999', enrolledAt: '2026-02-05' }
+    ],
     notes: 'Revista Juniores: Heróis da Fé e os Ensinamentos de Jesus.',
     status: 'Ativa',
     createdAt: '2026-01-10T10:00:00Z'
@@ -143,7 +153,12 @@ export const INITIAL_BIBLE_CLASSES: BibleClass[] = [
     teacherPhone: '(82) 99999-3333',
     assistantTeacher: 'Beatriz Almeida',
     ageGroup: '15 a 25 anos',
-    enrolledStudentsCount: 22,
+    enrolledStudentsCount: 3,
+    students: [
+      { id: 'std_7', name: 'Gabriel Santos Almeida', age: 18, phone: '(82) 99333-4444', enrolledAt: '2026-01-10' },
+      { id: 'std_8', name: 'Isabela Rocha Vieira', age: 17, phone: '(82) 99444-5555', enrolledAt: '2026-01-10' },
+      { id: 'std_9', name: 'Thiago Martins Costa', age: 20, phone: '(82) 99555-6666', enrolledAt: '2026-01-15' }
+    ],
     notes: 'Estudos bíblicos temáticos sobre apologética, fé no mundo moderno e propósito.',
     status: 'Ativa',
     createdAt: '2026-01-10T10:00:00Z'
@@ -158,7 +173,12 @@ export const INITIAL_BIBLE_CLASSES: BibleClass[] = [
     teacher: 'Pr. Tércio Ribeiro',
     teacherPhone: '(82) 98225-9873',
     ageGroup: 'Adultos e Casais',
-    enrolledStudentsCount: 36,
+    enrolledStudentsCount: 3,
+    students: [
+      { id: 'std_10', name: 'Carlos Eduardo Mendes', age: 42, phone: '(82) 99666-7777', enrolledAt: '2026-01-10' },
+      { id: 'std_11', name: 'Fernanda Lima Mendes', age: 39, phone: '(82) 99777-8888', enrolledAt: '2026-01-10' },
+      { id: 'std_12', name: 'Roberto Carlos Silveira', age: 55, phone: '(82) 99888-9999', enrolledAt: '2026-01-15' }
+    ],
     notes: 'Estudo das Epístolas Paulinas e fortalecimento da família cristã.',
     status: 'Ativa',
     createdAt: '2026-01-10T10:00:00Z'

@@ -155,6 +155,10 @@ export interface Family {
   fatherName?: string;
   motherId?: string;
   motherName?: string;
+  weddingDate?: string; // YYYY-MM-DD - Data do Casamento para mensagens de aniversário
+  weddingPlace?: string;
+  whatsapp?: string; // Telefone/WhatsApp do casal para felicitações
+  phone?: string;
   children: { id: string; name: string; isChildRegistration?: boolean }[];
   address?: string;
   notes?: string;
@@ -351,6 +355,15 @@ export interface Visitor {
   createdAt: string;
 }
 
+export interface BibleClassStudent {
+  id: string;
+  name: string; // Nome Completo
+  age?: number; // Idade
+  phone?: string; // Telefone se houver
+  enrolledAt: string; // Data da matrícula
+  notes?: string;
+}
+
 export interface BibleClass {
   id: string;
   churchId: string;
@@ -363,6 +376,7 @@ export interface BibleClass {
   assistantTeacher?: string; // Professor auxiliar
   ageGroup?: string; // Faixa etária / Público
   enrolledStudentsCount: number;
+  students?: BibleClassStudent[]; // Lista de alunos matriculados
   notes?: string; // Tema, revista ou observações
   status?: 'Ativa' | 'Inativa';
   attendanceHistory?: {

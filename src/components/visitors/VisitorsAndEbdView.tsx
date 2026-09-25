@@ -16,9 +16,10 @@ import {
   Clock,
   MapPin,
   Edit3,
-  Search
+  Search,
+  UserCheck
 } from 'lucide-react';
-import { Visitor, BibleClass, BaptismRecord } from '../../types';
+import { Visitor, BibleClass, BibleClassStudent, BaptismRecord } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
@@ -77,6 +78,16 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
     status: 'Ativa',
     notes: ''
   });
+
+  // Gestão de Matrícula de Alunos por Sala
+  const [selectedClassForStudents, setSelectedClassForStudents] = useState<BibleClass | null>(null);
+  const [studentForm, setStudentForm] = useState({
+    name: '',
+    age: '',
+    phone: '',
+    notes: ''
+  });
+  const [studentToDelete, setStudentToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const [visitorForm, setVisitorForm] = useState<Partial<Visitor>>({
     firstVisitDate: new Date().toISOString().split('T')[0],
@@ -220,6 +231,69 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
       setClassToDelete(null);
       refreshBibleClasses();
     }
+  };
+
+  // Funções de Matrícula de Alunos
+  const handleEnrollStudent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClassForStudents || !studentForm.name.trim()) {
+      showToast('Nome completo do aluno é obrigatório.', 'error');
+      return;
+    }
+
+    const newStudent: BibleClassStudent = {
+      id: 'std_' + Date.now(),
+      name: studentForm.name.trim(),
+      age: studentForm.age ? parseInt(studentForm.age, 10) : undefined,
+      phone: studentForm.phone.trim(),
+      enrolledAt: new Date().toISOString().split('T')[0],
+      notes: studentForm.notes.trim()
+    };
+
+    const currentStudents = selectedClassForStudents.students || [];
+    const updatedStudents = [...currentStudents, newStudent];
+    const updatedClass: BibleClass = {
+      ...selectedClassForStudents,
+      students: updatedStudents,
+      enrolledStudentsCount: updatedStudents.length
+    };
+
+    saveBibleClass(updatedClass);
+    setSelectedClassForStudents(updatedClass);
+    refreshBibleClasses();
+    logAction(
+      currentChurch.id,
+      'Coordenação EBD',
+      'SECRETARIA',
+      'Matrícula de Aluno EBD',
+      `${newStudent.name} (${newStudent.age ? newStudent.age + ' anos' : 'Idade não informada'}) matriculado na sala ${selectedClassForStudents.name}`
+    );
+    showToast(`Aluno(a) "${newStudent.name}" matriculado(a) com sucesso!`, 'success');
+    setStudentForm({ name: '', age: '', phone: '', notes: '' });
+  };
+
+  const handleRemoveStudentConfirm = () => {
+    if (!selectedClassForStudents || !studentToDelete) return;
+    const currentStudents = selectedClassForStudents.students || [];
+    const updatedStudents = currentStudents.filter(s => s.id !== studentToDelete.id);
+    const updatedClass: BibleClass = {
+      ...selectedClassForStudents,
+      students: updatedStudents,
+      enrolledStudentsCount: updatedStudents.length
+    };
+
+    saveBibleClass(updatedClass);
+    setSelectedClassForStudents(updatedClass);
+    refreshBibleClasses();
+    logAction(
+      currentChurch.id,
+      'Coordenação EBD',
+      'SECRETARIA',
+      'Desmatrícula de Aluno EBD',
+      `${studentToDelete.name} removido da sala ${selectedClassForStudents.name}`
+    );
+    showToast('Matrícula removida com sucesso.', 'info');
+    setStudentToDelete(null);
   };
 
   const filteredClasses = bibleClasses.filter(c => {
@@ -544,10 +618,18 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
                         </p>
                       )}
 
-                      <p>
-                        <span className="text-slate-400 font-semibold">Alunos Matriculados:</span>{' '}
-                        <span className="text-slate-700 font-bold">{cls.enrolledStudentsCount || 0} alunos</span>
-                      </p>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-slate-400 font-semibold">Alunos Matriculados:</span>
+                        <button
+                          onClick={() => setSelectedClassForStudents(cls)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold text-xs transition-colors"
+                          title="Clique para ver os alunos e matricular novos"
+                        >
+                          <Users className="w-3 h-3 text-sky-600" />
+                          <span>{cls.students?.length ?? cls.enrolledStudentsCount ?? 0} alunos</span>
+                          <span className="text-[10px] text-sky-600 underline font-normal ml-0.5">Gerenciar</span>
+                        </button>
+                      </div>
 
                       {cls.notes && (
                         <p className="pt-1.5 text-[11px] text-slate-600 italic border-t border-slate-200/60 mt-1.5">
@@ -557,19 +639,28 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Rodapé com botão de WhatsApp */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                    {cls.teacherPhone ? (
-                      <WhatsAppButton
-                        phone={cls.teacherPhone}
-                        message={`Graça e Paz, Prof(a). ${cls.teacher}! Entrando em contato sobre a classe "${cls.name}" (${cls.room}) da EBD na ${currentChurch.name}.`}
-                        label="Falar com Professor"
-                        size="sm"
-                        variant="outline"
-                      />
-                    ) : (
-                      <span className="text-[11px] text-slate-400 italic">WhatsApp não informado</span>
-                    )}
+                  {/* Rodapé com botão de WhatsApp e Matrícula de Alunos */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedClassForStudents(cls)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm active:scale-95 transition-all"
+                        title="Matricular novo aluno nesta sala da EBD"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Matricular Aluno</span>
+                      </button>
+
+                      {cls.teacherPhone && (
+                        <WhatsAppButton
+                          phone={cls.teacherPhone}
+                          message={`Graça e Paz, Prof(a). ${cls.teacher}! Entrando em contato sobre a classe "${cls.name}" (${cls.room}) da EBD na ${currentChurch.name}.`}
+                          label="Professor"
+                          size="sm"
+                          variant="outline"
+                        />
+                      )}
+                    </div>
 
                     <span className="text-[11px] font-semibold text-slate-500">
                       {cls.scheduleTime || cls.schedule || '09:00 - 10:15'}
@@ -858,6 +949,217 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
           confirmVariant="danger"
           onConfirm={handleDeleteClassConfirm}
           onCancel={() => setClassToDelete(null)}
+        />
+      )}
+
+      {/* Modal: Matrícula e Gestão de Alunos por Sala da EBD */}
+      {selectedClassForStudents && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-2xl rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setSelectedClassForStudents(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Cabeçalho da Sala */}
+            <div className="flex items-start gap-3.5 pb-4 mb-4 border-b border-slate-100">
+              <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 border border-sky-200 flex items-center justify-center shrink-0">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <div className="flex-1 pr-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-lg font-black text-slate-900 leading-snug">
+                    {selectedClassForStudents.name}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                    {selectedClassForStudents.room}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Prof. Titular: <strong className="text-slate-700 font-semibold">{selectedClassForStudents.teacher}</strong> • Horário: {selectedClassForStudents.scheduleTime || selectedClassForStudents.schedule || '09:00'}
+                </p>
+              </div>
+            </div>
+
+            {/* Formulário: Matricular Novo Aluno */}
+            <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-200 mb-6">
+              <h4 className="text-xs font-bold text-sky-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4 text-sky-600" />
+                <span>Matricular Novo Aluno</span>
+              </h4>
+
+              <form onSubmit={handleEnrollStudent} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                  <div className="sm:col-span-6">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Nome Completo do Aluno *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Gabriel Lucas Santos"
+                      value={studentForm.name}
+                      onChange={e => setStudentForm({ ...studentForm, name: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs outline-none focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Idade
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="120"
+                      placeholder="Ex: 11"
+                      value={studentForm.age}
+                      onChange={e => setStudentForm({ ...studentForm, age: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs outline-none focus:border-sky-500 font-bold"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-4">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Telefone / WhatsApp (se houver)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="(DDD) 99999-9999"
+                      value={studentForm.phone}
+                      onChange={e => setStudentForm({ ...studentForm, phone: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Observações (ex: pai/mãe, necessidade especial, etc.)"
+                    value={studentForm.notes}
+                    onChange={e => setStudentForm({ ...studentForm, notes: e.target.value })}
+                    className="flex-1 w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs outline-none focus:border-sky-500"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Confirmar Matrícula</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Listagem de Alunos Matriculados */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-slate-500" />
+                  <span>Alunos Matriculados Nesta Sala</span>
+                </h4>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                  {selectedClassForStudents.students?.length || 0} alunos
+                </span>
+              </div>
+
+              {(!selectedClassForStudents.students || selectedClassForStudents.students.length === 0) ? (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100 text-slate-400">
+                  <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                  <p className="text-xs font-semibold text-slate-600">Nenhum aluno matriculado nesta sala ainda</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Preencha o formulário acima para registrar alunos com nome completo, idade e telefone.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+                  {selectedClassForStudents.students.map((student, idx) => (
+                    <div 
+                      key={student.id || idx}
+                      className="p-3.5 bg-white hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-800 font-bold text-xs flex items-center justify-center shrink-0">
+                          {student.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h5 className="text-xs font-bold text-slate-900">{student.name}</h5>
+                            {student.age !== undefined && student.age !== null && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                {student.age} anos
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+                            {student.phone ? (
+                              <span className="flex items-center gap-1 text-slate-600 font-medium">
+                                <Phone className="w-3 h-3 text-emerald-600" />
+                                {student.phone}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 italic">Sem telefone</span>
+                            )}
+                            {student.enrolledAt && (
+                              <span>Matrícula: {student.enrolledAt.split('-').reverse().join('/')}</span>
+                            )}
+                            {student.notes && (
+                              <span className="text-slate-400">({student.notes})</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {student.phone && (
+                          <WhatsAppButton
+                            phone={student.phone}
+                            message={`Graça e Paz, ${student.name}! Mensagem da coordenação da EBD da ${currentChurch.name}, sala ${selectedClassForStudents.name}.`}
+                            label="WhatsApp"
+                            size="sm"
+                            variant="outline"
+                          />
+                        )}
+                        <button
+                          onClick={() => setStudentToDelete({ id: student.id, name: student.name })}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Remover matrícula do aluno"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedClassForStudents(null)}
+                className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold"
+              >
+                Concluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmação de Remoção de Matrícula */}
+      {studentToDelete && (
+        <ConfirmModal
+          isOpen={true}
+          title="Remover Matrícula de Aluno"
+          message={`Tem certeza que deseja desmatricular o aluno "${studentToDelete.name}" da sala "${selectedClassForStudents?.name}"?`}
+          confirmLabel="Remover Matrícula"
+          confirmVariant="danger"
+          onConfirm={handleRemoveStudentConfirm}
+          onCancel={() => setStudentToDelete(null)}
         />
       )}
     </div>

@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
-import { HeartHandshake, Plus, Users, User, Baby, Heart, MapPin, X, Save, Sparkles, Trash2 } from 'lucide-react';
+import { 
+  HeartHandshake, 
+  Plus, 
+  Users, 
+  User, 
+  Baby, 
+  Heart, 
+  MapPin, 
+  X, 
+  Save, 
+  Trash2, 
+  Edit3, 
+  Calendar, 
+  Phone 
+} from 'lucide-react';
 import { Family, Member, Child } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -13,7 +27,8 @@ import {
   getChildren, 
   getWeddingAnniversaries,
   getMessageTemplates,
-  formatWhatsAppMessage 
+  formatWhatsAppMessage,
+  logAction 
 } from '../../services/storage';
 
 export const FamilyList: React.FC = () => {
@@ -22,17 +37,18 @@ export const FamilyList: React.FC = () => {
 
   const [families, setFamilies] = useState<Family[]>(() => getFamilies(currentChurch.id));
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingFamilyId, setEditingFamilyId] = useState<string | null>(null);
   const [selectedFamilyTree, setSelectedFamilyTree] = useState<Family | null>(null);
   const [familyToDelete, setFamilyToDelete] = useState<Family | null>(null);
 
-  const members = getMembers(currentChurch.id);
-  const children = getChildren(currentChurch.id);
   const { today: weddingsToday, upcoming: weddingsUpcoming } = getWeddingAnniversaries(currentChurch.id);
 
   const [formData, setFormData] = useState<Partial<Family>>({
     familyName: '',
     fatherName: '',
     motherName: '',
+    weddingDate: '',
+    whatsapp: '',
     children: [],
     address: '',
     notes: ''
@@ -47,14 +63,34 @@ export const FamilyList: React.FC = () => {
   };
 
   const handleOpenNewFamily = () => {
+    setEditingFamilyId(null);
     setFormData({
       churchId: currentChurch.id,
       familyName: '',
       fatherName: '',
       motherName: '',
+      weddingDate: '',
+      whatsapp: '',
       children: [],
       address: '',
       notes: ''
+    });
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEditFamily = (fam: Family) => {
+    setEditingFamilyId(fam.id);
+    setFormData({
+      churchId: fam.churchId,
+      familyName: fam.familyName,
+      fatherName: fam.fatherName || '',
+      motherName: fam.motherName || '',
+      weddingDate: fam.weddingDate || '',
+      whatsapp: fam.whatsapp || '',
+      children: fam.children || [],
+      address: fam.address || '',
+      notes: fam.notes || '',
+      createdAt: fam.createdAt
     });
     setIsFormOpen(true);
   };
@@ -67,26 +103,37 @@ export const FamilyList: React.FC = () => {
     }
 
     const saved: Family = {
-      id: 'fam_' + Date.now(),
+      id: editingFamilyId || ('fam_' + Date.now()),
       churchId: currentChurch.id,
-      familyName: formData.familyName,
-      fatherName: formData.fatherName,
-      motherName: formData.motherName,
+      familyName: formData.familyName.trim(),
+      fatherName: formData.fatherName?.trim() || '',
+      motherName: formData.motherName?.trim() || '',
+      weddingDate: formData.weddingDate || '',
+      whatsapp: formData.whatsapp?.trim() || '',
       children: formData.children || [],
-      address: formData.address,
-      notes: formData.notes,
-      createdAt: new Date().toISOString()
+      address: formData.address?.trim() || '',
+      notes: formData.notes?.trim() || '',
+      createdAt: formData.createdAt || new Date().toISOString()
     };
 
     saveFamily(saved);
-    showToast('Família cadastrada com sucesso!', 'success');
+    logAction(
+      currentChurch.id,
+      'Secretaria',
+      'SECRETARIA',
+      editingFamilyId ? 'Edição de Família' : 'Cadastro de Família',
+      `${saved.familyName} (Casamento: ${saved.weddingDate || 'Não inf.'})`
+    );
+    showToast(editingFamilyId ? 'Família atualizada com sucesso!' : 'Família cadastrada com sucesso!', 'success');
     setIsFormOpen(false);
+    setEditingFamilyId(null);
     refreshList();
   };
 
   const handleDeleteConfirm = () => {
     if (familyToDelete) {
       deleteFamily(familyToDelete.id);
+      logAction(currentChurch.id, 'Secretaria', 'SECRETARIA', 'Exclusão de Família', familyToDelete.familyName);
       showToast('Família excluída com sucesso!', 'success');
       setFamilyToDelete(null);
       refreshList();
@@ -103,7 +150,7 @@ export const FamilyList: React.FC = () => {
             <span>Famílias & Casamentos</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            {currentChurch.name} • Gestão familiar e acompanhamento matrimonial
+            {currentChurch.name} • Gestão familiar, aniversários matrimoniais e acompanhamento
           </p>
         </div>
 
@@ -130,7 +177,7 @@ export const FamilyList: React.FC = () => {
 
         {weddingsToday.length === 0 && weddingsUpcoming.length === 0 ? (
           <p className="text-xs text-slate-400 py-4 text-center">
-            Nenhuma comemoração de casamento registrada para os próximos dias.
+            Nenhuma comemoração de casamento registrada para os próximos dias. Ao cadastrar a data de casamento das famílias, os casais aparecerão aqui e no Dashboard com opção de felicitação via WhatsApp.
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -192,7 +239,7 @@ export const FamilyList: React.FC = () => {
           <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-base font-bold text-slate-700">Nenhum núcleo familiar cadastrado ainda</h3>
           <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-            Utilize o botão acima "+ Cadastrar Família" para estruturar lares e árvores genealógicas da igreja.
+            Utilize o botão acima "+ Cadastrar Família" para registrar os lares da igreja com data de casamento para felicitações automáticas.
           </p>
         </div>
       ) : (
@@ -200,12 +247,12 @@ export const FamilyList: React.FC = () => {
         {families.map(fam => (
           <div
             key={fam.id}
-            className="p-6 rounded-3xl bg-white border border-slate-200/90 hover:border-sky-300 hover:shadow-md transition-all shadow-sm flex flex-col justify-between"
+            className="p-6 rounded-3xl bg-white border border-slate-200/90 hover:border-pink-300 hover:shadow-md transition-all shadow-sm flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-200 flex items-center justify-center font-bold text-sm">
+                  <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 border border-pink-200 flex items-center justify-center font-bold text-sm">
                     👨‍👩‍👧
                   </div>
                   <div>
@@ -216,10 +263,17 @@ export const FamilyList: React.FC = () => {
 
                 <div className="flex items-center gap-1.5">
                   <button
+                    onClick={() => handleOpenEditFamily(fam)}
+                    title="Editar Família e Data de Casamento"
+                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-pink-50 text-slate-400 hover:text-pink-600 transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     onClick={() => setSelectedFamilyTree(fam)}
                     className="text-xs text-sky-600 hover:text-sky-700 font-semibold px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200 hover:bg-sky-100 transition-colors"
                   >
-                    Árvore Familiar
+                    Árvore
                   </button>
                   <button
                     onClick={() => setFamilyToDelete(fam)}
@@ -236,7 +290,7 @@ export const FamilyList: React.FC = () => {
                 {fam.fatherName && (
                   <div className="flex items-center gap-2 text-slate-700">
                     <User className="w-4 h-4 text-sky-600 shrink-0" />
-                    <span className="font-bold text-slate-400">Pai:</span>
+                    <span className="font-bold text-slate-400">Pai / Esposo:</span>
                     <span>{fam.fatherName}</span>
                   </div>
                 )}
@@ -244,8 +298,23 @@ export const FamilyList: React.FC = () => {
                 {fam.motherName && (
                   <div className="flex items-center gap-2 text-slate-700">
                     <User className="w-4 h-4 text-pink-600 shrink-0" />
-                    <span className="font-bold text-slate-400">Mãe:</span>
+                    <span className="font-bold text-slate-400">Mãe / Esposa:</span>
                     <span>{fam.motherName}</span>
+                  </div>
+                )}
+
+                {/* Destaque Data de Casamento */}
+                {fam.weddingDate && (
+                  <div className="flex items-center gap-2 text-pink-700 font-medium bg-pink-50/70 p-2 rounded-xl border border-pink-200/60">
+                    <span className="text-sm">💍</span>
+                    <span className="font-bold">Casamento:</span>
+                    <span>{fam.weddingDate.split('-').reverse().join('/')}</span>
+                    {fam.whatsapp && (
+                      <span className="text-[11px] text-slate-500 ml-auto flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-emerald-600" />
+                        {fam.whatsapp}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -261,6 +330,9 @@ export const FamilyList: React.FC = () => {
                         {ch.name}
                       </span>
                     ))}
+                    {fam.children.length === 0 && (
+                      <span className="text-[11px] text-slate-400 italic">Sem filhos cadastrados no momento</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -276,7 +348,7 @@ export const FamilyList: React.FC = () => {
       </div>
       )}
 
-      {/* Modal da Árvore Familiar (Item 17 do Prompt) */}
+      {/* Modal da Árvore Familiar */}
       {selectedFamilyTree && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
@@ -288,12 +360,12 @@ export const FamilyList: React.FC = () => {
             </button>
 
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 border border-sky-200 flex items-center justify-center font-bold text-lg">
+              <div className="w-12 h-12 rounded-2xl bg-pink-50 text-pink-600 border border-pink-200 flex items-center justify-center font-bold text-lg">
                 👨‍👩‍👧
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">{selectedFamilyTree.familyName}</h3>
-                <p className="text-xs text-sky-600 font-medium">Estrutura e Árvore Familiar</p>
+                <p className="text-xs text-pink-600 font-medium">Estrutura e Árvore Familiar</p>
               </div>
             </div>
 
@@ -308,6 +380,17 @@ export const FamilyList: React.FC = () => {
                 <span>👩 Mãe:</span>
                 <span className="text-slate-900">{selectedFamilyTree.motherName || 'Não informada'}</span>
               </div>
+
+              {selectedFamilyTree.weddingDate && (
+                <>
+                  <div className="text-slate-400 pl-2">│</div>
+                  <div className="flex items-center gap-2 text-rose-700 font-bold">
+                    <span>💍 Casamento:</span>
+                    <span className="text-slate-900">{selectedFamilyTree.weddingDate.split('-').reverse().join('/')}</span>
+                  </div>
+                </>
+              )}
+
               <div className="text-slate-400 pl-2">│</div>
 
               {selectedFamilyTree.children.map((ch, idx) => {
@@ -334,20 +417,26 @@ export const FamilyList: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Cadastro de Família */}
+      {/* Modal Cadastro / Edição de Família */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800 max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setIsFormOpen(false)}
+              onClick={() => {
+                setIsFormOpen(false);
+                setEditingFamilyId(null);
+              }}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-base font-bold text-slate-900 mb-4">Nova Família Eclesiástica</h3>
+            <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <HeartHandshake className="w-5 h-5 text-pink-600" />
+              <span>{editingFamilyId ? 'Editar Família Eclesiástica' : 'Nova Família Eclesiástica'}</span>
+            </h3>
 
-            <form onSubmit={handleSaveFamily} className="space-y-3">
+            <form onSubmit={handleSaveFamily} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Nome da Família *</label>
                 <input
@@ -360,35 +449,80 @@ export const FamilyList: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nome do Pai</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nome do Pai / Esposo</label>
+                  <input
+                    type="text"
+                    placeholder="Nome completo do esposo"
+                    value={formData.fatherName || ''}
+                    onChange={e => setFormData({ ...formData, fatherName: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-pink-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nome da Mãe / Esposa</label>
+                  <input
+                    type="text"
+                    placeholder="Nome completo da esposa"
+                    value={formData.motherName || ''}
+                    onChange={e => setFormData({ ...formData, motherName: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-pink-500"
+                  />
+                </div>
+              </div>
+
+              {/* Data do Casamento (Solicitado pelo usuário para aparecer no Dashboard para mandar mensagem) */}
+              <div className="p-3.5 rounded-2xl bg-pink-50/70 border border-pink-200/80 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">💍</span>
+                  <label className="text-xs font-bold text-pink-900">
+                    Data do Casamento (Bodas Matrimoniais)
+                  </label>
+                </div>
                 <input
-                  type="text"
-                  placeholder="Nome completo do pai"
-                  value={formData.fatherName || ''}
-                  onChange={e => setFormData({ ...formData, fatherName: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-pink-500"
+                  type="date"
+                  value={formData.weddingDate || ''}
+                  onChange={e => setFormData({ ...formData, weddingDate: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-pink-300 text-slate-900 text-sm outline-none focus:ring-2 focus:ring-pink-500/20 font-semibold"
                 />
+                <p className="text-[11px] text-pink-700 leading-relaxed">
+                  Ao cadastrar a data do casamento, o casal aparecerá automaticamente no <strong>Dashboard</strong> na data das bodas, permitindo o envio da bênção personalizada via WhatsApp com o tempo de união.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp de Contato do Casal</label>
+                  <input
+                    type="text"
+                    placeholder="(DDD) 99999-9999"
+                    value={formData.whatsapp || ''}
+                    onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-pink-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Endereço da Família</label>
+                  <input
+                    type="text"
+                    placeholder="Bairro, Rua, Cidade..."
+                    value={formData.address || ''}
+                    onChange={e => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-pink-500"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nome da Mãe</label>
-                <input
-                  type="text"
-                  placeholder="Nome completo da mãe"
-                  value={formData.motherName || ''}
-                  onChange={e => setFormData({ ...formData, motherName: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-pink-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Endereço da Família</label>
-                <input
-                  type="text"
-                  placeholder="Rua, número, bairro..."
-                  value={formData.address || ''}
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Observações da Família</label>
+                <textarea
+                  rows={2}
+                  placeholder="Informações adicionais do lar..."
+                  value={formData.notes || ''}
+                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-pink-500"
                 />
               </div>
@@ -396,7 +530,10 @@ export const FamilyList: React.FC = () => {
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsFormOpen(false)}
+                  onClick={() => {
+                    setIsFormOpen(false);
+                    setEditingFamilyId(null);
+                  }}
                   className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-semibold"
                 >
                   Cancelar
@@ -406,7 +543,7 @@ export const FamilyList: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
                 >
                   <Save className="w-4 h-4" />
-                  Salvar Família
+                  <span>{editingFamilyId ? 'Salvar Alterações' : 'Cadastrar Família'}</span>
                 </button>
               </div>
             </form>

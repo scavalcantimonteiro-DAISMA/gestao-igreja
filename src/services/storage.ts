@@ -870,6 +870,7 @@ export interface WeddingAnniversaryItem {
 
 export function getWeddingAnniversaries(churchId: string): { today: WeddingAnniversaryItem[]; upcoming: WeddingAnniversaryItem[] } {
   const members = getMembers(churchId);
+  const families = getFamilies(churchId);
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentDay = today.getDate();
@@ -885,6 +886,9 @@ export function getWeddingAnniversaries(churchId: string): { today: WeddingAnniv
     if (pairsSeen.has(pairKey)) return;
     pairsSeen.add(pairKey);
 
+    const nameKey = [m.name.trim().toLowerCase(), (m.spouseName || '').trim().toLowerCase()].sort().join('_');
+    pairsSeen.add(nameKey);
+
     const parts = m.weddingDate.split('-');
     if (parts.length < 3) return;
     const wedYear = parseInt(parts[0], 10);
@@ -897,7 +901,7 @@ export function getWeddingAnniversaries(churchId: string): { today: WeddingAnniv
     }
 
     const diffDays = Math.round((wedDateThisYear.getTime() - new Date(today.getFullYear(), currentMonth, currentDay).getTime()) / (1000 * 60 * 60 * 24));
-    const yearsMarried = today.getFullYear() - wedYear;
+    const yearsMarried = Math.max(1, today.getFullYear() - wedYear);
     const isToday = currentMonth === wedMonth && currentDay === wedDay;
 
     let husband = m.gender === 'M' ? m.name : (m.spouseName || 'Esposo');
@@ -911,6 +915,48 @@ export function getWeddingAnniversaries(churchId: string): { today: WeddingAnniv
       yearsMarried,
       weddingDate: m.weddingDate,
       whatsapp: m.whatsapp,
+      isToday,
+      daysRemaining: diffDays,
+      formattedDate: `${String(wedDay).padStart(2, '0')}/${String(wedMonth + 1).padStart(2, '0')}`
+    });
+  });
+
+  // Também inclui celebrações registradas na aba Famílias & Casamentos
+  families.forEach(f => {
+    if (!f.weddingDate) return;
+
+    const husband = f.fatherName?.trim() || 'Esposo';
+    const wife = f.motherName?.trim() || 'Esposa';
+    const coupleName = f.fatherName && f.motherName ? `${husband} e ${wife}` : f.familyName;
+
+    const nameKey = [husband.toLowerCase(), wife.toLowerCase()].sort().join('_');
+    if (pairsSeen.has(f.id) || (f.fatherName && f.motherName && pairsSeen.has(nameKey))) return;
+    pairsSeen.add(f.id);
+    pairsSeen.add(nameKey);
+
+    const parts = f.weddingDate.split('-');
+    if (parts.length < 3) return;
+    const wedYear = parseInt(parts[0], 10);
+    const wedMonth = parseInt(parts[1], 10) - 1;
+    const wedDay = parseInt(parts[2], 10);
+
+    const wedDateThisYear = new Date(today.getFullYear(), wedMonth, wedDay);
+    if (wedDateThisYear.getTime() < new Date(today.getFullYear(), currentMonth, currentDay).getTime()) {
+      wedDateThisYear.setFullYear(today.getFullYear() + 1);
+    }
+
+    const diffDays = Math.round((wedDateThisYear.getTime() - new Date(today.getFullYear(), currentMonth, currentDay).getTime()) / (1000 * 60 * 60 * 24));
+    const yearsMarried = Math.max(1, today.getFullYear() - wedYear);
+    const isToday = currentMonth === wedMonth && currentDay === wedDay;
+
+    results.push({
+      id: f.id,
+      husbandName: husband,
+      wifeName: wife,
+      coupleName,
+      yearsMarried,
+      weddingDate: f.weddingDate,
+      whatsapp: f.whatsapp || f.phone || '',
       isToday,
       daysRemaining: diffDays,
       formattedDate: `${String(wedDay).padStart(2, '0')}/${String(wedMonth + 1).padStart(2, '0')}`
