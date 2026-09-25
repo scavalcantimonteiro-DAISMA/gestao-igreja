@@ -141,23 +141,63 @@ export function importFullSystemBackup(payload: SystemBackupPayload): boolean {
   }
 }
 
-// Inicializa dados de forma 100% não-destrutiva (NUNCA apaga dados cadastrados pelo usuário)
+export function markChurchDeleted(id: string): void {
+  const deleted = getLocal<string[]>('gi_deleted_church_ids', []);
+  if (!deleted.includes(id)) {
+    deleted.push(id);
+    setLocal('gi_deleted_church_ids', deleted);
+  }
+}
+
+export function isChurchDeleted(id: string): boolean {
+  const deleted = getLocal<string[]>('gi_deleted_church_ids', []);
+  return deleted.includes(id);
+}
+
+// Inicializa dados de forma segura, garantindo dados demonstrativos fictícios e sincronia de exclusões
 export function initializeStorage(): void {
+  // 0. Purga de segurança de dados reais legados e remoção de congregações excluídas
+  const PURGE_KEY = 'gi_purged_legacy_real_data_v3';
+  if (typeof localStorage !== 'undefined' && localStorage.getItem(PURGE_KEY) !== 'true') {
+    markChurchDeleted('church_cba_maceio');
+    markChurchDeleted('church_ib_capunga_parnamirim');
+
+    // Purga congregações legadas
+    const rawChurches = getLocal<Church[]>('churches', []);
+    const filteredChurches = rawChurches.filter(c => c.id !== 'church_cba_maceio' && c.id !== 'church_ib_capunga_parnamirim');
+    setLocal('churches', filteredChurches);
+
+    // Purga membros legados
+    const rawMembers = getLocal<Member[]>('members', []);
+    const filteredMembers = rawMembers.filter(m => m.churchId !== 'church_cba_maceio' && m.churchId !== 'church_ib_capunga_parnamirim');
+    setLocal('members', filteredMembers);
+
+    // Purga ministérios e liderança legados
+    const rawMin = getLocal<Ministry[]>('ministries', []);
+    setLocal('ministries', rawMin.filter(m => m.churchId !== 'church_cba_maceio' && m.churchId !== 'church_ib_capunga_parnamirim'));
+
+    const rawLead = getLocal<Leadership[]>('leadership', []);
+    setLocal('leadership', rawLead.filter(l => l.churchId !== 'church_cba_maceio' && l.churchId !== 'church_ib_capunga_parnamirim'));
+
+    localStorage.setItem(PURGE_KEY, 'true');
+  }
+
   // 1. Cria backup instantâneo de segurança do estado atual
   createAutoSafetyBackup();
 
-  // 2. Congregações: Preserva TODAS as congregações cadastradas pelo usuário e adiciona igrejas iniciais (CBA e Capunga)
-  const storedChurches = getLocal<Church[]>('churches', INITIAL_CHURCHES);
+  // 2. Congregações: Garante que congregações excluídas NUNCA sejam recriadas
+  const deletedIds = getLocal<string[]>('gi_deleted_church_ids', []);
+  const storedChurches = getLocal<Church[]>('churches', INITIAL_CHURCHES).filter(c => !deletedIds.includes(c.id));
+
   INITIAL_CHURCHES.forEach(initChurch => {
+    if (deletedIds.includes(initChurch.id)) return;
     const existingIndex = storedChurches.findIndex(c => 
       c.id === initChurch.id || 
       (c.loginUser && c.loginUser.toLowerCase() === initChurch.loginUser.toLowerCase()) ||
       (c.slug && c.slug.toLowerCase() === initChurch.slug.toLowerCase())
     );
     if (existingIndex >= 0) {
-      // Preserva alterações locais e vindas da nuvem (não sobrescreve)
       const existing = storedChurches[existingIndex];
-      // Garante que campos essenciais existam se novos
       if (!existing.pastorName && initChurch.pastorName) existing.pastorName = initChurch.pastorName;
     } else {
       storedChurches.push(initChurch);
@@ -165,10 +205,10 @@ export function initializeStorage(): void {
   });
   setLocal('churches', storedChurches);
 
-  // 3. Membros: Garante os 140 membros da CBA sem apagar membros de nenhuma congregação cadastrada
+  // 3. Membros: Garante membros demonstrativos fictícios
   const storedMembers = getLocal<Member[]>('members', INITIAL_MEMBERS);
-  const hasCbaMembers = storedMembers.some(m => m.churchId === 'church_cba_maceio');
-  if (!hasCbaMembers) {
+  const hasDemoMembers = storedMembers.some(m => m.churchId === 'church_demo');
+  if (!hasDemoMembers) {
     const merged = [...storedMembers, ...INITIAL_MEMBERS];
     setLocal('members', merged);
   }
@@ -185,18 +225,10 @@ export function initializeStorage(): void {
     setLocal('leadership', INITIAL_LEADERSHIP);
   }
 
-  // 6. Programação / Escalas (Garante EBD aos domingos às 17h para a CBA)
+  // 6. Programação / Escalas
   const storedSchedules = getLocal<Schedule[]>('schedules', INITIAL_SCHEDULES);
-  let schedulesModified = false;
-  const updatedSchedules = storedSchedules.map(s => {
-    if (s.id === 'sched_cba_dom_ebd' && s.time !== '17:00') {
-      schedulesModified = true;
-      return { ...s, time: '17:00', description: 'Estudos bíblicos temáticos aos domingos às 17h para todas as faixas etárias, preparando para a celebração das 18h30.' };
-    }
-    return s;
-  });
-  if (schedulesModified) {
-    setLocal('schedules', updatedSchedules);
+  if (storedSchedules.length === 0 && INITIAL_SCHEDULES.length > 0) {
+    setLocal('schedules', INITIAL_SCHEDULES);
   }
 
   // 7. Eventos
@@ -300,19 +332,48 @@ export function saveChurch(church: Church): void {
 }
 
 export function deleteChurch(id: string): void {
+  // 1. Registra tombstone para nunca mais ressuscitar em nenhum dispositivo
+  markChurchDeleted(id);
+
+  // 2. Remove da lista de igrejas
   const churches = getChurches();
-  if (churches.length <= 1) return;
   setLocal('churches', churches.filter(c => c.id !== id));
 
-  // Limpa dados associados à igreja excluída
-  if (id !== 'church_cba_maceio') {
-    const members = getLocal<Member[]>('members', INITIAL_MEMBERS).filter(m => m.churchId !== id);
-    setLocal('members', members);
-    const children = getLocal<Child[]>('children', []).filter(c => c.churchId !== id);
-    setLocal('children', children);
-    const schedules = getLocal<Schedule[]>('schedules', []).filter(s => s.churchId !== id);
-    setLocal('schedules', schedules);
-  }
+  // 3. Limpa todos os dados associados à igreja excluída
+  const members = getLocal<Member[]>('members', []).filter(m => m.churchId !== id);
+  setLocal('members', members);
+  const children = getLocal<Child[]>('children', []).filter(c => c.churchId !== id);
+  setLocal('children', children);
+  const families = getLocal<Family[]>('families', []).filter(f => f.churchId !== id);
+  setLocal('families', families);
+  const smallGroups = getLocal<SmallGroup[]>('small_groups', []).filter(g => g.churchId !== id);
+  setLocal('small_groups', smallGroups);
+  const ministries = getLocal<Ministry[]>('ministries', []).filter(m => m.churchId !== id);
+  setLocal('ministries', ministries);
+  const leadership = getLocal<Leadership[]>('leadership', []).filter(l => l.churchId !== id);
+  setLocal('leadership', leadership);
+  const schedules = getLocal<Schedule[]>('schedules', []).filter(s => s.churchId !== id);
+  setLocal('schedules', schedules);
+  const events = getLocal<ChurchEvent[]>('events', []).filter(e => e.churchId !== id);
+  setLocal('events', events);
+  const appointments = getLocal<PastoralAppointment[]>('appointments', []).filter(a => a.churchId !== id);
+  setLocal('appointments', appointments);
+  const visits = getLocal<PastoralVisit[]>('visits', []).filter(v => v.churchId !== id);
+  setLocal('visits', visits);
+  const prayerRequests = getLocal<PrayerRequest[]>('prayer_requests', []).filter(p => p.churchId !== id);
+  setLocal('prayer_requests', prayerRequests);
+  const visitors = getLocal<Visitor[]>('visitors', []).filter(v => v.churchId !== id);
+  setLocal('visitors', visitors);
+  const bibleClasses = getLocal<BibleClass[]>('bible_classes', []).filter(b => b.churchId !== id);
+  setLocal('bible_classes', bibleClasses);
+  const financialEntries = getLocal<FinancialEntry[]>('financial_entries', []).filter(f => f.churchId !== id);
+  setLocal('financial_entries', financialEntries);
+  const financialExpenses = getLocal<FinancialExpense[]>('financial_expenses', []).filter(f => f.churchId !== id);
+  setLocal('financial_expenses', financialExpenses);
+  const fixedExpenses = getLocal<FixedExpense[]>('fixed_expenses', []).filter(f => f.churchId !== id);
+  setLocal('fixed_expenses', fixedExpenses);
+  const messageTemplates = getLocal<MessageTemplate[]>('message_templates', []).filter(t => t.churchId !== id);
+  setLocal('message_templates', messageTemplates);
 }
 
 // ==========================================
@@ -321,8 +382,8 @@ export function deleteChurch(id: string): void {
 
 export function getMembers(churchId: string): Member[] {
   let members = getLocal<Member[]>('members', INITIAL_MEMBERS);
-  const hasCbaMembers = members.some(m => m.churchId === 'church_cba_maceio');
-  if (churchId === 'church_cba_maceio' && !hasCbaMembers) {
+  const hasDemoMembers = members.some(m => m.churchId === 'church_demo');
+  if (churchId === 'church_demo' && !hasDemoMembers) {
     members = [...members, ...INITIAL_MEMBERS];
     setLocal('members', members);
   }

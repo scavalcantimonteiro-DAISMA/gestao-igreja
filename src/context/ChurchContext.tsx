@@ -38,7 +38,7 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (saved && getChurchById(saved)) {
       return saved;
     }
-    return 'church_cba_maceio'; // Comunidade Batista Acolher como padrão
+    return 'church_demo'; // Igreja Demonstrativa como padrão
   });
 
   const [isFinancialUnlocked, setIsFinancialUnlocked] = useState<boolean>(false);
@@ -49,6 +49,14 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     syncChurchesFromCloud().then((cloudChurches) => {
       if (cloudChurches && cloudChurches.length > 0) {
         setChurches(cloudChurches);
+        setActiveChurchId(prevActive => {
+          if (!cloudChurches.some(c => c.id === prevActive)) {
+            const nextActive = cloudChurches[0]?.id || 'church_demo';
+            localStorage.setItem(ACTIVE_CHURCH_KEY, nextActive);
+            return nextActive;
+          }
+          return prevActive;
+        });
       }
     });
 
@@ -56,6 +64,14 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const unsubscribe = subscribeToChurches((updatedChurches) => {
       if (updatedChurches && updatedChurches.length > 0) {
         setChurches(updatedChurches);
+        setActiveChurchId(prevActive => {
+          if (!updatedChurches.some(c => c.id === prevActive)) {
+            const nextActive = updatedChurches[0]?.id || 'church_demo';
+            localStorage.setItem(ACTIVE_CHURCH_KEY, nextActive);
+            return nextActive;
+          }
+          return prevActive;
+        });
       }
     });
 
@@ -65,20 +81,20 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   const currentChurch = churches.find(c => c.id === activeChurchId) || churches[0] || {
-    id: 'church_cba_maceio',
-    name: 'Comunidade Batista Acolher',
-    slug: 'cbacolher',
-    address: 'Avenida Júlio Marquez luz, 1408',
-    neighborhood: 'Jatiúca',
-    city: 'Maceió',
-    state: 'AL',
-    instagram: '@cbacolher',
-    phone: '(82) 3325-1408',
-    whatsapp: '5582997861774',
-    pastorName: 'Pr. Saulo Cavalcanti Monteiro',
-    pastorPhone: '(82) 99786-1774',
-    pastorWhatsapp: '5582997861774',
-    dailyReportHour: '07:30',
+    id: 'church_demo',
+    name: 'Igreja Batista Betel (Demonstração)',
+    slug: 'beteldemo',
+    address: 'Av. das Nações, 1000 - Centro',
+    neighborhood: 'Centro',
+    city: 'São Paulo',
+    state: 'SP',
+    instagram: '@beteldemo',
+    phone: '(11) 3333-5555',
+    whatsapp: '5511988880000',
+    pastorName: 'Pr. Marcos Aurélio Silveira',
+    pastorPhone: '(11) 98888-0001',
+    pastorWhatsapp: '5511988880001',
+    dailyReportHour: '08:00',
     financialPin: '0000',
     financialPinChanged: false,
     isActive: true,

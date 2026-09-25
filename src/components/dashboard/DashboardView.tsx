@@ -279,7 +279,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                         phone={person.whatsapp || person.phone}
                         isChild={person.isChild}
                         variant="button"
-                        label="Felicitações (Pr. Tércio)"
+                        label={`Felicitações (${currentChurch.pastorName || 'Pastor'})`}
                       />
                     </div>
                   </div>
