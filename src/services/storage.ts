@@ -15,6 +15,7 @@ import {
   BibleClass, 
   FinancialEntry, 
   FinancialExpense, 
+  FixedExpense, 
   MessageTemplate, 
   AuditLog 
 } from '../types';
@@ -35,6 +36,7 @@ import {
   INITIAL_BIBLE_CLASSES, 
   INITIAL_FINANCIAL_ENTRIES, 
   INITIAL_FINANCIAL_EXPENSES, 
+  INITIAL_FIXED_EXPENSES, 
   INITIAL_MESSAGE_TEMPLATES, 
   INITIAL_AUDIT_LOGS 
 } from './seedData';
@@ -679,6 +681,27 @@ export function saveFinancialExpense(expense: FinancialExpense): void {
 export function deleteFinancialExpense(id: string): void {
   const list = getLocal<FinancialExpense[]>('financial_expenses', INITIAL_FINANCIAL_EXPENSES);
   setLocal('financial_expenses', list.filter(f => f.id !== id));
+}
+
+export function getFixedExpenses(churchId: string): FixedExpense[] {
+  const list = getLocal<FixedExpense[]>('fixed_expenses', INITIAL_FIXED_EXPENSES);
+  return list.filter(f => f.churchId === churchId);
+}
+
+export function saveFixedExpense(expense: FixedExpense): void {
+  const list = getLocal<FixedExpense[]>('fixed_expenses', INITIAL_FIXED_EXPENSES);
+  const index = list.findIndex(f => f.id === expense.id);
+  if (index >= 0) {
+    list[index] = expense;
+  } else {
+    list.push({ ...expense, createdAt: new Date().toISOString() });
+  }
+  setLocal('fixed_expenses', list);
+}
+
+export function deleteFixedExpense(id: string): void {
+  const list = getLocal<FixedExpense[]>('fixed_expenses', INITIAL_FIXED_EXPENSES);
+  setLocal('fixed_expenses', list.filter(f => f.id !== id));
 }
 
 // ==========================================

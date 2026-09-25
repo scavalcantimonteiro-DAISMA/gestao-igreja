@@ -448,6 +448,20 @@ export interface FinancialExpense {
   createdAt: string;
 }
 
+export interface FixedExpense {
+  id: string;
+  churchId: string;
+  description: string;
+  category: FinancialExpenseCategory;
+  amount: number;
+  dueDay: number; // Dia de vencimento (1 a 31)
+  beneficiary?: string; // Favorecido / Empresa
+  paymentMethod: PaymentMethod;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface MessageTemplate {
   id: string;
   churchId: string;

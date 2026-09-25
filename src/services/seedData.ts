@@ -15,6 +15,7 @@ import {
   BibleClass, 
   FinancialEntry, 
   FinancialExpense, 
+  FixedExpense, 
   MessageTemplate, 
   AuditLog 
 } from '../types';
@@ -164,9 +165,286 @@ export const INITIAL_BIBLE_CLASSES: BibleClass[] = [
   }
 ];
 
-export const INITIAL_FINANCIAL_ENTRIES: FinancialEntry[] = [];
+export const INITIAL_FINANCIAL_ENTRIES: FinancialEntry[] = [
+  {
+    id: 'ent_1',
+    churchId: 'church_cba_maceio',
+    date: '2026-01-18',
+    description: 'Dízimos e Ofertas - Culto da Família',
+    category: 'dízimos',
+    amount: 14500,
+    paymentMethod: 'PIX',
+    notes: 'Arrecadação semanal de Janeiro',
+    createdAt: '2026-01-18T12:00:00Z'
+  },
+  {
+    id: 'ent_2',
+    churchId: 'church_cba_maceio',
+    date: '2026-02-15',
+    description: 'Dízimos e Ofertas - Culto de Celebração',
+    category: 'dízimos',
+    amount: 15200,
+    paymentMethod: 'PIX',
+    notes: 'Arrecadação de Fevereiro',
+    createdAt: '2026-02-15T12:00:00Z'
+  },
+  {
+    id: 'ent_3',
+    churchId: 'church_cba_maceio',
+    date: '2026-03-22',
+    description: 'Dízimos, Ofertas e Campanha de Missões',
+    category: 'ofertas',
+    amount: 16800,
+    paymentMethod: 'PIX',
+    notes: 'Campanha de Missões Estaduais',
+    createdAt: '2026-03-22T12:00:00Z'
+  },
+  {
+    id: 'ent_4',
+    churchId: 'church_cba_maceio',
+    date: '2026-04-19',
+    description: 'Dízimos e Ofertas de Celebração',
+    category: 'dízimos',
+    amount: 15900,
+    paymentMethod: 'PIX',
+    notes: 'Culto de Páscoa e Gratidão',
+    createdAt: '2026-04-19T12:00:00Z'
+  },
+  {
+    id: 'ent_5',
+    churchId: 'church_cba_maceio',
+    date: '2026-05-17',
+    description: 'Dízimos e Ofertas - Mês da Família',
+    category: 'dízimos',
+    amount: 17400,
+    paymentMethod: 'PIX',
+    notes: 'Culto Especial das Mães e Famílias',
+    createdAt: '2026-05-17T12:00:00Z'
+  },
+  {
+    id: 'ent_6',
+    churchId: 'church_cba_maceio',
+    date: '2026-06-21',
+    description: 'Dízimos e Ofertas Dominicais',
+    category: 'dízimos',
+    amount: 16100,
+    paymentMethod: 'PIX',
+    notes: 'Mês de Junho',
+    createdAt: '2026-06-21T12:00:00Z'
+  },
+  {
+    id: 'ent_7',
+    churchId: 'church_cba_maceio',
+    date: '2026-07-19',
+    description: 'Dízimos e Ofertas de Gratidão',
+    category: 'dízimos',
+    amount: 18200,
+    paymentMethod: 'PIX',
+    notes: 'Arrecadação de Julho',
+    createdAt: '2026-07-19T12:00:00Z'
+  },
+  {
+    id: 'ent_8',
+    churchId: 'church_cba_maceio',
+    date: '2026-08-16',
+    description: 'Dízimos e Ofertas - Dia dos Pais',
+    category: 'dízimos',
+    amount: 17900,
+    paymentMethod: 'PIX',
+    notes: 'Culto de Celebração Especial',
+    createdAt: '2026-08-16T12:00:00Z'
+  },
+  {
+    id: 'ent_9',
+    churchId: 'church_cba_maceio',
+    date: '2026-09-20',
+    description: 'Dízimos e Ofertas de Celebração',
+    category: 'dízimos',
+    amount: 19350,
+    paymentMethod: 'PIX',
+    notes: 'Culto de Celebração de Setembro',
+    createdAt: '2026-09-20T12:00:00Z'
+  }
+];
 
-export const INITIAL_FINANCIAL_EXPENSES: FinancialExpense[] = [];
+export const INITIAL_FINANCIAL_EXPENSES: FinancialExpense[] = [
+  {
+    id: 'exp_1',
+    churchId: 'church_cba_maceio',
+    date: '2026-01-10',
+    description: 'Aluguel do Templo e Manutenção',
+    category: 'aluguel',
+    amount: 9200,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas correntes de Janeiro',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'exp_2',
+    churchId: 'church_cba_maceio',
+    date: '2026-02-10',
+    description: 'Aluguel, Energia e Internet',
+    category: 'aluguel',
+    amount: 8900,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas correntes de Fevereiro',
+    createdAt: '2026-02-10T10:00:00Z'
+  },
+  {
+    id: 'exp_3',
+    churchId: 'church_cba_maceio',
+    date: '2026-03-10',
+    description: 'Aluguel, Energia e Repasse Missionário',
+    category: 'aluguel',
+    amount: 9850,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas correntes de Março',
+    createdAt: '2026-03-10T10:00:00Z'
+  },
+  {
+    id: 'exp_4',
+    churchId: 'church_cba_maceio',
+    date: '2026-04-10',
+    description: 'Aluguel do Templo e Custos Operacionais',
+    category: 'aluguel',
+    amount: 9100,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas de Abril',
+    createdAt: '2026-04-10T10:00:00Z'
+  },
+  {
+    id: 'exp_5',
+    churchId: 'church_cba_maceio',
+    date: '2026-05-10',
+    description: 'Aluguel, Manutenção e Evento das Mães',
+    category: 'aluguel',
+    amount: 10300,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas de Maio',
+    createdAt: '2026-05-10T10:00:00Z'
+  },
+  {
+    id: 'exp_6',
+    churchId: 'church_cba_maceio',
+    date: '2026-06-10',
+    description: 'Aluguel do Templo e Manutenção Som',
+    category: 'aluguel',
+    amount: 9400,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas de Junho',
+    createdAt: '2026-06-10T10:00:00Z'
+  },
+  {
+    id: 'exp_7',
+    churchId: 'church_cba_maceio',
+    date: '2026-07-10',
+    description: 'Aluguel, Energia e Reforma Anexo Infantil',
+    category: 'manutenção',
+    amount: 10800,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas de Julho',
+    createdAt: '2026-07-10T10:00:00Z'
+  },
+  {
+    id: 'exp_8',
+    churchId: 'church_cba_maceio',
+    date: '2026-08-10',
+    description: 'Aluguel do Templo e Contas Públicas',
+    category: 'aluguel',
+    amount: 9950,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas de Agosto',
+    createdAt: '2026-08-10T10:00:00Z'
+  },
+  {
+    id: 'exp_9',
+    churchId: 'church_cba_maceio',
+    date: '2026-09-10',
+    description: 'Aluguel do Templo, Prebenda e Operacional',
+    category: 'aluguel',
+    amount: 10200,
+    paymentMethod: 'Transferência',
+    responsible: 'Tesouraria',
+    notes: 'Despesas correntes de Setembro',
+    createdAt: '2026-09-10T10:00:00Z'
+  }
+];
+
+export const INITIAL_FIXED_EXPENSES: FixedExpense[] = [
+  {
+    id: 'fix_1',
+    churchId: 'church_cba_maceio',
+    description: 'Aluguel do Templo Principal',
+    category: 'aluguel',
+    amount: 3500,
+    dueDay: 10,
+    beneficiary: 'Locador do Imóvel',
+    paymentMethod: 'Transferência',
+    isActive: true,
+    notes: 'Vencimento todo dia 10',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'fix_2',
+    churchId: 'church_cba_maceio',
+    description: 'Energia Elétrica (Equatorial)',
+    category: 'energia',
+    amount: 850,
+    dueDay: 15,
+    beneficiary: 'Equatorial Energia AL',
+    paymentMethod: 'Boleto',
+    isActive: true,
+    notes: 'Conta de luz do templo',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'fix_3',
+    churchId: 'church_cba_maceio',
+    description: 'Internet Fibra Óptica Alta Velocidade',
+    category: 'internet',
+    amount: 180,
+    dueDay: 20,
+    beneficiary: 'Provedor Fibra',
+    paymentMethod: 'PIX',
+    isActive: true,
+    notes: 'Transmissão ao vivo dos cultos e secretaria',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'fix_4',
+    churchId: 'church_cba_maceio',
+    description: 'Prebenda Pastoral (Pastor Titular)',
+    category: 'salários',
+    amount: 4500,
+    dueDay: 5,
+    beneficiary: 'Pr. Tércio Ribeiro',
+    paymentMethod: 'PIX',
+    isActive: true,
+    notes: 'Sustento pastoral mensal',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'fix_5',
+    churchId: 'church_cba_maceio',
+    description: 'Repasse Missionário e Ação Social',
+    category: 'missões',
+    amount: 1000,
+    dueDay: 25,
+    beneficiary: 'Junta de Missões',
+    paymentMethod: 'PIX',
+    isActive: true,
+    notes: 'Sustento de missionários no campo',
+    createdAt: '2026-01-10T10:00:00Z'
+  }
+];
 
 export const INITIAL_MESSAGE_TEMPLATES: MessageTemplate[] = [
   {
