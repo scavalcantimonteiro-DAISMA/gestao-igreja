@@ -147,6 +147,16 @@ export interface Child {
   createdAt: string;
 }
 
+export interface FamilyChild {
+  id: string;
+  name: string;
+  birthDate?: string;
+  age?: number | string;
+  phone?: string;
+  gender?: 'M' | 'F';
+  isChildRegistration?: boolean;
+}
+
 export interface Family {
   id: string;
   churchId: string;
@@ -159,7 +169,8 @@ export interface Family {
   weddingPlace?: string;
   whatsapp?: string; // Telefone/WhatsApp do casal para felicitações
   phone?: string;
-  children: { id: string; name: string; isChildRegistration?: boolean }[];
+  hasChildren?: boolean;
+  children: FamilyChild[];
   address?: string;
   notes?: string;
   createdAt: string;

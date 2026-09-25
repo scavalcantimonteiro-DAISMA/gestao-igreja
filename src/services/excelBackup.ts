@@ -122,7 +122,11 @@ export function exportFamiliesToExcel(church: Church, families: Family[], weddin
     'Telefone / WhatsApp': f.whatsapp || f.phone || '',
     'Data de Casamento': formatDate(f.weddingDate),
     'Local do Casamento': f.weddingPlace || '',
-    'Filhos Cadastrados': f.children?.length || 0,
+    'Possui Filhos?': (f.children && f.children.length > 0) || f.hasChildren ? 'Sim' : 'Não',
+    'Qtd. Filhos': f.children?.length || 0,
+    'Relação de Filhos': f.children && f.children.length > 0 
+      ? f.children.map(c => `${c.name}${c.age ? ` (${c.age})` : (c.birthDate ? ` (${formatDate(c.birthDate)})` : '')}`).join(', ')
+      : 'Nenhum',
     'Observações': f.notes || ''
   }));
   const wsFam = XLSX.utils.json_to_sheet(famRows.length > 0 ? famRows : [{ Aviso: 'Nenhuma família cadastrada.' }]);
@@ -138,6 +142,29 @@ export function exportFamiliesToExcel(church: Church, families: Family[], weddin
     }));
     const wsWed = XLSX.utils.json_to_sheet(wedRows);
     XLSX.utils.book_append_sheet(wb, wsWed, 'Bodas e Casamentos');
+  }
+
+  // Sheet 3: Filhos Cadastrados das Famílias
+  const allKids: any[] = [];
+  families.forEach(f => {
+    if (f.children && f.children.length > 0) {
+      f.children.forEach(c => {
+        allKids.push({
+          'Família': f.familyName,
+          'Nome do Filho(a)': c.name,
+          'Gênero': c.gender === 'F' ? 'Feminino' : 'Masculino',
+          'Data Nasc.': formatDate(c.birthDate),
+          'Idade': c.age || '',
+          'Telefone / Contato': c.phone || '',
+          'Pai': f.fatherName || '',
+          'Mãe': f.motherName || ''
+        });
+      });
+    }
+  });
+  if (allKids.length > 0) {
+    const wsKids = XLSX.utils.json_to_sheet(allKids);
+    XLSX.utils.book_append_sheet(wb, wsKids, 'Filhos das Famílias');
   }
 
   XLSX.writeFile(wb, `Familias_e_Casamentos_${sanitize(church.name)}_${getTodayString()}.xlsx`);

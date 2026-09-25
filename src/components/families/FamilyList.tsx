@@ -14,7 +14,7 @@ import {
   Calendar, 
   Phone 
 } from 'lucide-react';
-import { Family, Member, Child } from '../../types';
+import { Family, FamilyChild, Member, Child } from '../../types';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
@@ -51,9 +51,24 @@ export const FamilyList: React.FC = () => {
     motherName: '',
     weddingDate: '',
     whatsapp: '',
+    hasChildren: false,
     children: [],
     address: '',
     notes: ''
+  });
+
+  const [newChildData, setNewChildData] = useState<{
+    name: string;
+    birthDate: string;
+    age: string;
+    phone: string;
+    gender: 'M' | 'F';
+  }>({
+    name: '',
+    birthDate: '',
+    age: '',
+    phone: '',
+    gender: 'M'
   });
 
   const templates = getMessageTemplates(currentChurch.id);
@@ -75,15 +90,18 @@ export const FamilyList: React.FC = () => {
       motherName: '',
       weddingDate: '',
       whatsapp: '',
+      hasChildren: false,
       children: [],
       address: '',
       notes: ''
     });
+    setNewChildData({ name: '', birthDate: '', age: '', phone: '', gender: 'M' });
     setIsFormOpen(true);
   };
 
   const handleOpenEditFamily = (fam: Family) => {
     setEditingFamilyId(fam.id);
+    const hasKids = (fam.children && fam.children.length > 0) || fam.hasChildren || false;
     setFormData({
       churchId: fam.churchId,
       familyName: fam.familyName,
@@ -91,12 +109,54 @@ export const FamilyList: React.FC = () => {
       motherName: fam.motherName || '',
       weddingDate: fam.weddingDate || '',
       whatsapp: fam.whatsapp || '',
+      hasChildren: hasKids,
       children: fam.children || [],
       address: fam.address || '',
       notes: fam.notes || '',
       createdAt: fam.createdAt
     });
+    setNewChildData({ name: '', birthDate: '', age: '', phone: '', gender: 'M' });
     setIsFormOpen(true);
+  };
+
+  const handleAddChildToFamily = () => {
+    if (!newChildData.name.trim()) {
+      showToast('Informe o nome do filho(a).', 'error');
+      return;
+    }
+
+    const newChild: FamilyChild = {
+      id: 'fchild_' + Date.now(),
+      name: newChildData.name.trim(),
+      birthDate: newChildData.birthDate || undefined,
+      age: newChildData.age ? newChildData.age.trim() : undefined,
+      phone: newChildData.phone ? newChildData.phone.trim() : undefined,
+      gender: newChildData.gender
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      hasChildren: true,
+      children: [...(prev.children || []), newChild]
+    }));
+
+    setNewChildData({
+      name: '',
+      birthDate: '',
+      age: '',
+      phone: '',
+      gender: 'M'
+    });
+
+    showToast(`Filho(a) "${newChild.name}" adicionado(a) com sucesso!`, 'success');
+  };
+
+  const handleRemoveChildFromFamily = (childId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      children: (prev.children || []).filter(c => c.id !== childId)
+    }));
+    showToast('Filho(a) removido(a) da lista.', 'info');
   };
 
   const handleSaveFamily = (e: React.FormEvent) => {
@@ -106,6 +166,8 @@ export const FamilyList: React.FC = () => {
       return;
     }
 
+    const finalChildren = formData.hasChildren ? (formData.children || []) : [];
+
     const saved: Family = {
       id: editingFamilyId || ('fam_' + Date.now()),
       churchId: currentChurch.id,
@@ -114,7 +176,8 @@ export const FamilyList: React.FC = () => {
       motherName: formData.motherName?.trim() || '',
       weddingDate: formData.weddingDate || '',
       whatsapp: formData.whatsapp?.trim() || '',
-      children: formData.children || [],
+      hasChildren: formData.hasChildren ?? finalChildren.length > 0,
+      children: finalChildren,
       address: formData.address?.trim() || '',
       notes: formData.notes?.trim() || '',
       createdAt: formData.createdAt || new Date().toISOString()
@@ -126,7 +189,7 @@ export const FamilyList: React.FC = () => {
       'Secretaria',
       'SECRETARIA',
       editingFamilyId ? 'Edição de Família' : 'Cadastro de Família',
-      `${saved.familyName} (Casamento: ${saved.weddingDate || 'Não inf.'})`
+      `${saved.familyName} (Casamento: ${saved.weddingDate || 'Não inf.'}, Filhos: ${saved.children.length})`
     );
     showToast(editingFamilyId ? 'Família atualizada com sucesso!' : 'Família cadastrada com sucesso!', 'success');
     setIsFormOpen(false);
@@ -342,10 +405,14 @@ export const FamilyList: React.FC = () => {
                     {fam.children.map(ch => (
                       <span
                         key={ch.id}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 font-medium"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 font-medium"
                       >
                         <Baby className="w-3 h-3 text-sky-600" />
-                        {ch.name}
+                        <span>{ch.name}</span>
+                        {ch.age && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">{ch.age}</span>}
+                        {ch.birthDate && !ch.age && (
+                          <span className="text-[10px] text-slate-400">({ch.birthDate.split('-').reverse().slice(0, 2).join('/')})</span>
+                        )}
                       </span>
                     ))}
                     {fam.children.length === 0 && (
@@ -532,6 +599,186 @@ export const FamilyList: React.FC = () => {
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-pink-500"
                   />
                 </div>
+              </div>
+
+              {/* Opção: Perguntar se tem filhos e adicionar dados dos filhos */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-50/70 via-blue-50/50 to-indigo-50/50 border border-sky-200/80 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <Baby className="w-4 h-4 text-sky-600" />
+                      <span>A família possui filhos?</span>
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      Selecione "Sim" para cadastrar nome, idade e contato dos filhos
+                    </p>
+                  </div>
+
+                  {/* Seletor Sim / Não */}
+                  <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200 shadow-xs shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, hasChildren: false, children: [] })}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        !formData.hasChildren 
+                          ? 'bg-slate-800 text-white shadow-xs' 
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Não
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, hasChildren: true })}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        formData.hasChildren 
+                          ? 'bg-sky-600 text-white shadow-xs' 
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Sim, possui filhos
+                    </button>
+                  </div>
+                </div>
+
+                {/* Se Possui Filhos: Formulário para Adicionar Filhos e Lista de Cadastrados */}
+                {formData.hasChildren && (
+                  <div className="pt-3 border-t border-sky-200/70 space-y-3">
+                    <div className="p-3.5 bg-white rounded-xl border border-sky-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                          <Plus className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Cadastrar Filho(a):</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400">Preencha e clique em "Adicionar Filho"</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                        <div className="sm:col-span-6">
+                          <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Nome do Filho(a) *</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Matheus Oliveira"
+                            value={newChildData.name}
+                            onChange={e => setNewChildData({ ...newChildData, name: e.target.value })}
+                            className="w-full px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 outline-none focus:bg-white focus:border-sky-500"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-3">
+                          <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Data Nasc.</label>
+                          <input
+                            type="date"
+                            value={newChildData.birthDate}
+                            onChange={e => setNewChildData({ ...newChildData, birthDate: e.target.value })}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 outline-none focus:bg-white focus:border-sky-500"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-3">
+                          <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Idade / Faixa</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: 9 anos"
+                            value={newChildData.age}
+                            onChange={e => setNewChildData({ ...newChildData, age: e.target.value })}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 outline-none focus:bg-white focus:border-sky-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                        <div className="sm:col-span-4">
+                          <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Gênero</label>
+                          <select
+                            value={newChildData.gender}
+                            onChange={e => setNewChildData({ ...newChildData, gender: e.target.value as 'M' | 'F' })}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 font-medium outline-none focus:border-sky-500"
+                          >
+                            <option value="M">Masculino</option>
+                            <option value="F">Feminino</option>
+                          </select>
+                        </div>
+
+                        <div className="sm:col-span-5">
+                          <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Telefone / WhatsApp (se houver)</label>
+                          <input
+                            type="text"
+                            placeholder="(DDD) 99999-9999"
+                            value={newChildData.phone}
+                            onChange={e => setNewChildData({ ...newChildData, phone: e.target.value })}
+                            className="w-full px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 outline-none focus:bg-white focus:border-sky-500"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-3 flex items-end">
+                          <button
+                            type="button"
+                            onClick={handleAddChildToFamily}
+                            className="w-full px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1 active:scale-95 transition-all whitespace-nowrap"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Adicionar Filho</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lista dos Filhos Adicionados */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[11px] font-bold text-slate-700">
+                          Filhos Vinculados à Família ({formData.children?.length || 0}):
+                        </label>
+                      </div>
+
+                      {(!formData.children || formData.children.length === 0) ? (
+                        <p className="text-xs text-slate-400 italic bg-white p-3 rounded-xl border border-dashed border-slate-200 text-center">
+                          Nenhum filho adicionado ainda. Preencha os dados acima e clique em "Adicionar Filho".
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                          {formData.children.map((child, idx) => (
+                            <div 
+                              key={child.id || idx}
+                              className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-xs"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center font-bold text-xs shrink-0">
+                                  <Baby className="w-3.5 h-3.5" />
+                                </div>
+                                <div>
+                                  <h5 className="text-xs font-bold text-slate-900">{child.name}</h5>
+                                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+                                    <span>{child.gender === 'F' ? 'Feminino' : 'Masculino'}</span>
+                                    {child.birthDate && (
+                                      <span>• Nasc: {child.birthDate.split('-').reverse().join('/')}</span>
+                                    )}
+                                    {child.age && (
+                                      <span className="font-semibold text-amber-700">• {child.age}</span>
+                                    )}
+                                    {child.phone && (
+                                      <span>• Tel: {child.phone}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveChildFromFamily(child.id)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                title="Remover filho da família"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
