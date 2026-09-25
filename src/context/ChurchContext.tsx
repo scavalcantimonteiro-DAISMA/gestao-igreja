@@ -1,11 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Church } from '../types';
 import { getChurches, getChurchById, saveChurch, deleteChurch, initializeStorage } from '../services/storage';
-import { syncChurchesFromCloud, saveChurchToCloud, deleteChurchFromCloud, subscribeToChurches } from '../services/cloudSync';
+import { 
+  syncChurchesFromCloud, 
+  saveChurchToCloud, 
+  deleteChurchFromCloud, 
+  subscribeToChurches,
+  syncAllChurchDataFromCloud,
+  subscribeToAllChurchData,
+  useDataSync
+} from '../services/cloudSync';
+
+export { useDataSync };
 
 interface ChurchContextType {
   currentChurch: Church;
   allChurches: Church[];
+  dataSyncCount: number;
   selectChurch: (churchId: string) => void;
   updateCurrentChurch: (updated: Partial<Church>) => Promise<void> | void;
   updateChurchData: (church: Church) => Promise<void> | void;
@@ -79,6 +90,27 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       unsubscribe();
     };
   }, []);
+
+  const [dataSyncCount, setDataSyncCount] = useState<number>(0);
+
+  // Sincroniza em tempo real TODOS os módulos (Membros, Financeiro, EBD, Gabinete, etc.) da congregação ativa
+  useEffect(() => {
+    if (!activeChurchId) return;
+
+    // 1. Sincronização inicial pontual de todos os módulos
+    syncAllChurchDataFromCloud(activeChurchId).then(() => {
+      setDataSyncCount(c => c + 1);
+    });
+
+    // 2. Listener contínuo em tempo real de todos os módulos
+    const unsubscribeAllData = subscribeToAllChurchData(activeChurchId, () => {
+      setDataSyncCount(c => c + 1);
+    });
+
+    return () => {
+      unsubscribeAllData();
+    };
+  }, [activeChurchId]);
 
   const currentChurch = churches.find(c => c.id === activeChurchId) || churches[0] || {
     id: 'church_demo',
@@ -306,6 +338,7 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     <ChurchContext.Provider value={{
       currentChurch,
       allChurches: churches,
+      dataSyncCount,
       selectChurch,
       updateCurrentChurch,
       updateChurchData,

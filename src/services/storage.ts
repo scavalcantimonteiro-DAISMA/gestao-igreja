@@ -44,7 +44,24 @@ import {
 // Prefixo para chaves de armazenamento local
 const PREFIX = 'gi_';
 
-function getLocal<T>(key: string, defaultValue: T): T {
+export type CloudSyncHandler = (action: 'save' | 'delete', collection: string, dataOrId: any) => void;
+let cloudSyncHandler: CloudSyncHandler | null = null;
+
+export function registerCloudSyncHandler(handler: CloudSyncHandler): void {
+  cloudSyncHandler = handler;
+}
+
+export function notifyCloudSync(action: 'save' | 'delete', collection: string, dataOrId: any): void {
+  if (cloudSyncHandler) {
+    try {
+      cloudSyncHandler(action, collection, dataOrId);
+    } catch (e) {
+      console.warn(`Falha ao despachar sincronização em nuvem (${action} em ${collection}):`, e);
+    }
+  }
+}
+
+export function getLocal<T>(key: string, defaultValue: T): T {
   try {
     const raw = localStorage.getItem(PREFIX + key);
     if (!raw) {
@@ -58,9 +75,12 @@ function getLocal<T>(key: string, defaultValue: T): T {
   }
 }
 
-function setLocal<T>(key: string, value: T): void {
+export function setLocal<T>(key: string, value: T, silent = false): void {
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify(value));
+    if (!silent && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('gi_storage_changed', { detail: { key, value } }));
+    }
   } catch (e) {
     console.error(`Erro ao salvar chave ${key}:`, e);
   }
@@ -401,17 +421,22 @@ export function reloadSpreadsheetMembers(churchId: string): Member[] {
 export function saveMember(member: Member): void {
   const members = getLocal<Member[]>('members', INITIAL_MEMBERS);
   const index = members.findIndex(m => m.id === member.id);
+  const updated = index >= 0 
+    ? { ...member, updatedAt: new Date().toISOString() }
+    : { ...member, createdAt: member.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    members[index] = { ...member, updatedAt: new Date().toISOString() };
+    members[index] = updated;
   } else {
-    members.push({ ...member, createdAt: new Date().toISOString() });
+    members.push(updated);
   }
   setLocal('members', members);
+  notifyCloudSync('save', 'members', updated);
 }
 
 export function deleteMember(id: string): void {
   const members = getLocal<Member[]>('members', INITIAL_MEMBERS);
   setLocal('members', members.filter(m => m.id !== id));
+  notifyCloudSync('delete', 'members', id);
 }
 
 // ==========================================
@@ -426,17 +451,22 @@ export function getChildren(churchId: string): Child[] {
 export function saveChild(child: Child): void {
   const children = getLocal<Child[]>('children', INITIAL_CHILDREN);
   const index = children.findIndex(c => c.id === child.id);
+  const updated = index >= 0 
+    ? { ...child, updatedAt: new Date().toISOString() }
+    : { ...child, createdAt: child.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    children[index] = child;
+    children[index] = updated;
   } else {
-    children.push({ ...child, createdAt: new Date().toISOString() });
+    children.push(updated);
   }
   setLocal('children', children);
+  notifyCloudSync('save', 'children', updated);
 }
 
 export function deleteChild(id: string): void {
   const children = getLocal<Child[]>('children', INITIAL_CHILDREN);
   setLocal('children', children.filter(c => c.id !== id));
+  notifyCloudSync('delete', 'children', id);
 }
 
 // ==========================================
@@ -451,17 +481,22 @@ export function getFamilies(churchId: string): Family[] {
 export function saveFamily(family: Family): void {
   const families = getLocal<Family[]>('families', INITIAL_FAMILIES);
   const index = families.findIndex(f => f.id === family.id);
+  const updated = index >= 0 
+    ? { ...family, updatedAt: new Date().toISOString() }
+    : { ...family, createdAt: family.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    families[index] = family;
+    families[index] = updated;
   } else {
-    families.push({ ...family, createdAt: new Date().toISOString() });
+    families.push(updated);
   }
   setLocal('families', families);
+  notifyCloudSync('save', 'families', updated);
 }
 
 export function deleteFamily(id: string): void {
   const families = getLocal<Family[]>('families', INITIAL_FAMILIES);
   setLocal('families', families.filter(f => f.id !== id));
+  notifyCloudSync('delete', 'families', id);
 }
 
 // ==========================================
@@ -476,17 +511,22 @@ export function getSmallGroups(churchId: string): SmallGroup[] {
 export function saveSmallGroup(pg: SmallGroup): void {
   const pgs = getLocal<SmallGroup[]>('small_groups', INITIAL_SMALL_GROUPS);
   const index = pgs.findIndex(p => p.id === pg.id);
+  const updated = index >= 0 
+    ? { ...pg, updatedAt: new Date().toISOString() }
+    : { ...pg, createdAt: pg.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    pgs[index] = pg;
+    pgs[index] = updated;
   } else {
-    pgs.push({ ...pg, createdAt: new Date().toISOString() });
+    pgs.push(updated);
   }
   setLocal('small_groups', pgs);
+  notifyCloudSync('save', 'small_groups', updated);
 }
 
 export function deleteSmallGroup(id: string): void {
   const pgs = getLocal<SmallGroup[]>('small_groups', INITIAL_SMALL_GROUPS);
   setLocal('small_groups', pgs.filter(p => p.id !== id));
+  notifyCloudSync('delete', 'small_groups', id);
 }
 
 // ==========================================
@@ -501,17 +541,22 @@ export function getMinistries(churchId: string): Ministry[] {
 export function saveMinistry(min: Ministry): void {
   const list = getLocal<Ministry[]>('ministries', INITIAL_MINISTRIES);
   const index = list.findIndex(m => m.id === min.id);
+  const updated = index >= 0 
+    ? { ...min, updatedAt: new Date().toISOString() }
+    : { ...min, createdAt: min.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = min;
+    list[index] = updated;
   } else {
-    list.push({ ...min, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('ministries', list);
+  notifyCloudSync('save', 'ministries', updated);
 }
 
 export function deleteMinistry(id: string): void {
   const list = getLocal<Ministry[]>('ministries', INITIAL_MINISTRIES);
   setLocal('ministries', list.filter(m => m.id !== id));
+  notifyCloudSync('delete', 'ministries', id);
 }
 
 export function getLeadership(churchId: string): Leadership[] {
@@ -522,17 +567,22 @@ export function getLeadership(churchId: string): Leadership[] {
 export function saveLeadership(lead: Leadership): void {
   const list = getLocal<Leadership[]>('leadership', INITIAL_LEADERSHIP);
   const index = list.findIndex(l => l.id === lead.id);
+  const updated = index >= 0 
+    ? { ...lead, updatedAt: new Date().toISOString() }
+    : { ...lead, createdAt: lead.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = lead;
+    list[index] = updated;
   } else {
-    list.push({ ...lead, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('leadership', list);
+  notifyCloudSync('save', 'leadership', updated);
 }
 
 export function deleteLeadership(id: string): void {
   const list = getLocal<Leadership[]>('leadership', INITIAL_LEADERSHIP);
   setLocal('leadership', list.filter(l => l.id !== id));
+  notifyCloudSync('delete', 'leadership', id);
 }
 
 // ==========================================
@@ -547,17 +597,22 @@ export function getSchedules(churchId: string): Schedule[] {
 export function saveSchedule(item: Schedule): void {
   const list = getLocal<Schedule[]>('schedules', INITIAL_SCHEDULES);
   const index = list.findIndex(s => s.id === item.id);
+  const updated = index >= 0 
+    ? { ...item, updatedAt: new Date().toISOString() }
+    : { ...item, createdAt: item.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = item;
+    list[index] = updated;
   } else {
-    list.push({ ...item, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('schedules', list);
+  notifyCloudSync('save', 'schedules', updated);
 }
 
 export function deleteSchedule(id: string): void {
   const list = getLocal<Schedule[]>('schedules', INITIAL_SCHEDULES);
   setLocal('schedules', list.filter(s => s.id !== id));
+  notifyCloudSync('delete', 'schedules', id);
 }
 
 export function getEvents(churchId: string): ChurchEvent[] {
@@ -568,17 +623,22 @@ export function getEvents(churchId: string): ChurchEvent[] {
 export function saveEvent(ev: ChurchEvent): void {
   const list = getLocal<ChurchEvent[]>('events', INITIAL_EVENTS);
   const index = list.findIndex(e => e.id === ev.id);
+  const updated = index >= 0 
+    ? { ...ev, updatedAt: new Date().toISOString() }
+    : { ...ev, createdAt: ev.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = ev;
+    list[index] = updated;
   } else {
-    list.push({ ...ev, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('events', list);
+  notifyCloudSync('save', 'events', updated);
 }
 
 export function deleteEvent(id: string): void {
   const list = getLocal<ChurchEvent[]>('events', INITIAL_EVENTS);
   setLocal('events', list.filter(e => e.id !== id));
+  notifyCloudSync('delete', 'events', id);
 }
 
 // ==========================================
@@ -593,17 +653,22 @@ export function getPastoralAppointments(churchId: string): PastoralAppointment[]
 export function savePastoralAppointment(appt: PastoralAppointment): void {
   const list = getLocal<PastoralAppointment[]>('appointments', INITIAL_APPOINTMENTS);
   const index = list.findIndex(a => a.id === appt.id);
+  const updated = index >= 0 
+    ? { ...appt, updatedAt: new Date().toISOString() }
+    : { ...appt, createdAt: appt.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = appt;
+    list[index] = updated;
   } else {
-    list.push({ ...appt, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('appointments', list);
+  notifyCloudSync('save', 'appointments', updated);
 }
 
 export function deletePastoralAppointment(id: string): void {
   const list = getLocal<PastoralAppointment[]>('appointments', INITIAL_APPOINTMENTS);
   setLocal('appointments', list.filter(a => a.id !== id));
+  notifyCloudSync('delete', 'appointments', id);
 }
 
 export function getPastoralVisits(churchId: string): PastoralVisit[] {
@@ -614,17 +679,22 @@ export function getPastoralVisits(churchId: string): PastoralVisit[] {
 export function savePastoralVisit(visit: PastoralVisit): void {
   const list = getLocal<PastoralVisit[]>('visits', INITIAL_VISITS);
   const index = list.findIndex(v => v.id === visit.id);
+  const updated = index >= 0 
+    ? { ...visit, updatedAt: new Date().toISOString() }
+    : { ...visit, createdAt: visit.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = visit;
+    list[index] = updated;
   } else {
-    list.push({ ...visit, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('visits', list);
+  notifyCloudSync('save', 'visits', updated);
 }
 
 export function deletePastoralVisit(id: string): void {
   const list = getLocal<PastoralVisit[]>('visits', INITIAL_VISITS);
   setLocal('visits', list.filter(v => v.id !== id));
+  notifyCloudSync('delete', 'visits', id);
 }
 
 export function getPrayerRequests(churchId: string): PrayerRequest[] {
@@ -635,17 +705,22 @@ export function getPrayerRequests(churchId: string): PrayerRequest[] {
 export function savePrayerRequest(req: PrayerRequest): void {
   const list = getLocal<PrayerRequest[]>('prayer_requests', INITIAL_PRAYER_REQUESTS);
   const index = list.findIndex(p => p.id === req.id);
+  const updated = index >= 0 
+    ? { ...req, updatedAt: new Date().toISOString() }
+    : { ...req, createdAt: req.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = req;
+    list[index] = updated;
   } else {
-    list.push({ ...req, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('prayer_requests', list);
+  notifyCloudSync('save', 'prayer_requests', updated);
 }
 
 export function deletePrayerRequest(id: string): void {
   const list = getLocal<PrayerRequest[]>('prayer_requests', INITIAL_PRAYER_REQUESTS);
   setLocal('prayer_requests', list.filter(p => p.id !== id));
+  notifyCloudSync('delete', 'prayer_requests', id);
 }
 
 // ==========================================
@@ -660,17 +735,22 @@ export function getVisitors(churchId: string): Visitor[] {
 export function saveVisitor(vis: Visitor): void {
   const list = getLocal<Visitor[]>('visitors', INITIAL_VISITORS);
   const index = list.findIndex(v => v.id === vis.id);
+  const updated = index >= 0 
+    ? { ...vis, updatedAt: new Date().toISOString() }
+    : { ...vis, createdAt: vis.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = vis;
+    list[index] = updated;
   } else {
-    list.push({ ...vis, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('visitors', list);
+  notifyCloudSync('save', 'visitors', updated);
 }
 
 export function deleteVisitor(id: string): void {
   const list = getLocal<Visitor[]>('visitors', INITIAL_VISITORS);
   setLocal('visitors', list.filter(v => v.id !== id));
+  notifyCloudSync('delete', 'visitors', id);
 }
 
 // ==========================================
@@ -685,17 +765,22 @@ export function getBibleClasses(churchId: string): BibleClass[] {
 export function saveBibleClass(bibleClass: BibleClass): void {
   const list = getLocal<BibleClass[]>('bible_classes', INITIAL_BIBLE_CLASSES);
   const index = list.findIndex(b => b.id === bibleClass.id);
+  const updated = index >= 0 
+    ? { ...bibleClass, updatedAt: new Date().toISOString() }
+    : { ...bibleClass, createdAt: bibleClass.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = bibleClass;
+    list[index] = updated;
   } else {
-    list.push({ ...bibleClass, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('bible_classes', list);
+  notifyCloudSync('save', 'bible_classes', updated);
 }
 
 export function deleteBibleClass(id: string): void {
   const list = getLocal<BibleClass[]>('bible_classes', INITIAL_BIBLE_CLASSES);
   setLocal('bible_classes', list.filter(b => b.id !== id));
+  notifyCloudSync('delete', 'bible_classes', id);
 }
 
 // ==========================================
@@ -710,17 +795,22 @@ export function getFinancialEntries(churchId: string): FinancialEntry[] {
 export function saveFinancialEntry(entry: FinancialEntry): void {
   const list = getLocal<FinancialEntry[]>('financial_entries', INITIAL_FINANCIAL_ENTRIES);
   const index = list.findIndex(f => f.id === entry.id);
+  const updated = index >= 0 
+    ? { ...entry, updatedAt: new Date().toISOString() }
+    : { ...entry, createdAt: entry.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = entry;
+    list[index] = updated;
   } else {
-    list.push({ ...entry, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('financial_entries', list);
+  notifyCloudSync('save', 'financial_entries', updated);
 }
 
 export function deleteFinancialEntry(id: string): void {
   const list = getLocal<FinancialEntry[]>('financial_entries', INITIAL_FINANCIAL_ENTRIES);
   setLocal('financial_entries', list.filter(f => f.id !== id));
+  notifyCloudSync('delete', 'financial_entries', id);
 }
 
 export function getFinancialExpenses(churchId: string): FinancialExpense[] {
@@ -731,17 +821,22 @@ export function getFinancialExpenses(churchId: string): FinancialExpense[] {
 export function saveFinancialExpense(expense: FinancialExpense): void {
   const list = getLocal<FinancialExpense[]>('financial_expenses', INITIAL_FINANCIAL_EXPENSES);
   const index = list.findIndex(f => f.id === expense.id);
+  const updated = index >= 0 
+    ? { ...expense, updatedAt: new Date().toISOString() }
+    : { ...expense, createdAt: expense.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = expense;
+    list[index] = updated;
   } else {
-    list.push({ ...expense, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('financial_expenses', list);
+  notifyCloudSync('save', 'financial_expenses', updated);
 }
 
 export function deleteFinancialExpense(id: string): void {
   const list = getLocal<FinancialExpense[]>('financial_expenses', INITIAL_FINANCIAL_EXPENSES);
   setLocal('financial_expenses', list.filter(f => f.id !== id));
+  notifyCloudSync('delete', 'financial_expenses', id);
 }
 
 export function getFixedExpenses(churchId: string): FixedExpense[] {
@@ -752,17 +847,22 @@ export function getFixedExpenses(churchId: string): FixedExpense[] {
 export function saveFixedExpense(expense: FixedExpense): void {
   const list = getLocal<FixedExpense[]>('fixed_expenses', INITIAL_FIXED_EXPENSES);
   const index = list.findIndex(f => f.id === expense.id);
+  const updated = index >= 0 
+    ? { ...expense, updatedAt: new Date().toISOString() }
+    : { ...expense, createdAt: expense.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = expense;
+    list[index] = updated;
   } else {
-    list.push({ ...expense, createdAt: new Date().toISOString() });
+    list.push(updated);
   }
   setLocal('fixed_expenses', list);
+  notifyCloudSync('save', 'fixed_expenses', updated);
 }
 
 export function deleteFixedExpense(id: string): void {
   const list = getLocal<FixedExpense[]>('fixed_expenses', INITIAL_FIXED_EXPENSES);
   setLocal('fixed_expenses', list.filter(f => f.id !== id));
+  notifyCloudSync('delete', 'fixed_expenses', id);
 }
 
 // ==========================================
@@ -777,12 +877,16 @@ export function getMessageTemplates(churchId: string): MessageTemplate[] {
 export function saveMessageTemplate(tpl: MessageTemplate): void {
   const list = getLocal<MessageTemplate[]>('message_templates', INITIAL_MESSAGE_TEMPLATES);
   const index = list.findIndex(t => t.id === tpl.id);
+  const updated = index >= 0 
+    ? { ...tpl, updatedAt: new Date().toISOString() }
+    : { ...tpl, createdAt: (tpl as any).createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (index >= 0) {
-    list[index] = { ...tpl, updatedAt: new Date().toISOString() };
+    list[index] = updated;
   } else {
-    list.push(tpl);
+    list.push(updated);
   }
   setLocal('message_templates', list);
+  notifyCloudSync('save', 'message_templates', updated);
 }
 
 // ==========================================

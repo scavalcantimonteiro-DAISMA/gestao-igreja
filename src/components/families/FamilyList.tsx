@@ -15,7 +15,7 @@ import {
   Phone 
 } from 'lucide-react';
 import { Family, Member, Child } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -56,11 +56,13 @@ export const FamilyList: React.FC = () => {
 
   const templates = getMessageTemplates(currentChurch.id);
   const weddingTemplate = templates.find(t => t.type === 'aniversario_casamento')?.text || 
-    'Olá! Hoje celebramos com vocês mais um ano de casamento abençoado por Deus ({anos_casamento} anos!). "A chama que nos move é o amor". Parabéns! 💍✨';
+    'Olá! Hoje celebramos com vocês mais um ano de casamento abençoado por Deus ({anos_casamento} anos!). Parabéns! 💍✨';
 
   const refreshList = () => {
     setFamilies(getFamilies(currentChurch.id));
   };
+
+  useDataSync(refreshList, [currentChurch.id]);
 
   const handleOpenNewFamily = () => {
     setEditingFamilyId(null);

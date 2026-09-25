@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Sparkles, Plus, Clock, MapPin, User, X, Save, Tag, Trash2 } from 'lucide-react';
 import { Schedule, ChurchEvent } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { 
@@ -40,7 +40,7 @@ export const ScheduleAndEventsView: React.FC = () => {
   const [eventForm, setEventForm] = useState<Partial<ChurchEvent>>({
     startDate: '2026-10-16',
     time: '19:30',
-    location: 'Templo CBA - Maceió',
+    location: 'Templo Principal',
     registrationOpen: true,
     maxSpots: 200,
     spotsTaken: 0
@@ -50,6 +50,8 @@ export const ScheduleAndEventsView: React.FC = () => {
     setSchedules(getSchedules(currentChurch.id));
     setEvents(getEvents(currentChurch.id));
   };
+
+  useDataSync(refreshAll, [currentChurch.id]);
 
   const handleDeleteScheduleConfirm = () => {
     if (scheduleToDelete) {

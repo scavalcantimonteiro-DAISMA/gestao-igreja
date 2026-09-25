@@ -1,33 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function para verificar se o usuário é o Master Admin (Saulo Monteiro)
-    function isMasterAdmin() {
-      return request.auth != null && (
-        request.auth.token.email == 'saulo@smdesenvolvimento.com.br' ||
-        request.auth.token.role == 'SUPERADMIN'
-      );
-    }
-
-    // Helper para verificar tenant (pertence à mesma igreja)
-    function belongsToChurch(churchId) {
-      return isMasterAdmin() || (
-        request.auth != null && request.auth.token.churchId == churchId
-      );
-    }
-
-    // Regras para congregações / igrejas
-    match /churches/{churchId} {
-      allow read: if true; // Leitura pública dos dados cadastrais básicos da igreja
-      allow write: if isMasterAdmin() || (request.auth != null && request.auth.token.churchId == churchId && request.auth.token.role == 'ADMIN');
-    }
-
-    // Regras de isolamento multi-tenant por churchId
-    match /{collectionName}/{docId} {
-      allow read, write: if isMasterAdmin() || 
-        (resource == null && belongsToChurch(request.resource.data.churchId)) ||
-        (resource != null && belongsToChurch(resource.data.churchId));
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

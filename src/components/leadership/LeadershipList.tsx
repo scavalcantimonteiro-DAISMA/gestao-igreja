@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Plus, Phone, Mail, Calendar, X, Save, Edit2, Trash2 } from 'lucide-react';
 import { Leadership } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -23,6 +23,8 @@ export const LeadershipList: React.FC = () => {
   const refreshList = () => {
     setLeaders(getLeadership(currentChurch.id));
   };
+
+  useDataSync(refreshList, [currentChurch.id]);
 
   const handleOpenForm = (lead?: Leadership) => {
     if (lead) {

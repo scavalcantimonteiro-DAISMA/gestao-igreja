@@ -15,7 +15,7 @@ import {
   FileText,
   DollarSign
 } from 'lucide-react';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
 import { ChurchBrandLogo } from '../common/ChurchBrandLogo';
 import { WhatsAppButton } from '../common/WhatsAppButton';
@@ -44,6 +44,9 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const { currentChurch } = useChurch();
   const [showDailyReport, setShowDailyReport] = useState(false);
+  const [, setLastSyncTick] = useState(0);
+
+  useDataSync(() => setLastSyncTick(Date.now()), [currentChurch.id]);
 
   // Dados calculados em tempo real
   const members = getMembers(currentChurch.id);

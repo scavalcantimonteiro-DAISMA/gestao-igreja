@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Flame, Plus, Users, MapPin, Clock, Calendar, UserCheck, X, Save, BookOpen, CheckSquare, Trash2 } from 'lucide-react';
 import { SmallGroup, SmallGroupParticipant } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -48,6 +48,8 @@ export const SmallGroupList: React.FC = () => {
   const refreshList = () => {
     setPgs(getSmallGroups(currentChurch.id));
   };
+
+  useDataSync(refreshList, [currentChurch.id]);
 
   const handleDeleteConfirm = () => {
     if (pgToDelete) {

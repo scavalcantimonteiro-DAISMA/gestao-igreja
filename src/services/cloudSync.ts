@@ -1,7 +1,44 @@
-import { collection, getDocs, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  query, 
+  where 
+} from 'firebase/firestore';
+import { useEffect } from 'react';
 import { db } from '../firebase/config';
 import { Church } from '../types';
-import { saveChurch, deleteChurch, getChurches, isChurchDeleted } from './storage';
+import { 
+  saveChurch, 
+  deleteChurch, 
+  getChurches, 
+  isChurchDeleted, 
+  registerCloudSyncHandler,
+  getLocal,
+  setLocal
+} from './storage';
+import {
+  INITIAL_MEMBERS,
+  INITIAL_CHILDREN,
+  INITIAL_FAMILIES,
+  INITIAL_SMALL_GROUPS,
+  INITIAL_MINISTRIES,
+  INITIAL_LEADERSHIP,
+  INITIAL_SCHEDULES,
+  INITIAL_EVENTS,
+  INITIAL_APPOINTMENTS,
+  INITIAL_VISITS,
+  INITIAL_PRAYER_REQUESTS,
+  INITIAL_VISITORS,
+  INITIAL_BIBLE_CLASSES,
+  INITIAL_FINANCIAL_ENTRIES,
+  INITIAL_FINANCIAL_EXPENSES,
+  INITIAL_FIXED_EXPENSES,
+  INITIAL_MESSAGE_TEMPLATES
+} from './seedData';
 
 /**
  * Remove recursivamente todas as propriedades com valor 'undefined' para que
@@ -22,13 +59,226 @@ export function sanitizeForFirestore<T>(data: T): any {
   return cleaned;
 }
 
+// =========================================================================
+// COLEÇÕES OPERACIONAIS SINCRONIZADAS EM TEMPO REAL
+// =========================================================================
+
+export interface SyncCollectionConfig {
+  name: string;
+  key: string;
+  initial: any[];
+}
+
+export const SYNC_COLLECTIONS: SyncCollectionConfig[] = [
+  { name: 'members', key: 'members', initial: INITIAL_MEMBERS },
+  { name: 'children', key: 'children', initial: INITIAL_CHILDREN },
+  { name: 'families', key: 'families', initial: INITIAL_FAMILIES },
+  { name: 'small_groups', key: 'small_groups', initial: INITIAL_SMALL_GROUPS },
+  { name: 'ministries', key: 'ministries', initial: INITIAL_MINISTRIES },
+  { name: 'leadership', key: 'leadership', initial: INITIAL_LEADERSHIP },
+  { name: 'schedules', key: 'schedules', initial: INITIAL_SCHEDULES },
+  { name: 'events', key: 'events', initial: INITIAL_EVENTS },
+  { name: 'appointments', key: 'appointments', initial: INITIAL_APPOINTMENTS },
+  { name: 'visits', key: 'visits', initial: INITIAL_VISITS },
+  { name: 'prayer_requests', key: 'prayer_requests', initial: INITIAL_PRAYER_REQUESTS },
+  { name: 'visitors', key: 'visitors', initial: INITIAL_VISITORS },
+  { name: 'bible_classes', key: 'bible_classes', initial: INITIAL_BIBLE_CLASSES },
+  { name: 'financial_entries', key: 'financial_entries', initial: INITIAL_FINANCIAL_ENTRIES },
+  { name: 'financial_expenses', key: 'financial_expenses', initial: INITIAL_FINANCIAL_EXPENSES },
+  { name: 'fixed_expenses', key: 'fixed_expenses', initial: INITIAL_FIXED_EXPENSES },
+  { name: 'message_templates', key: 'message_templates', initial: INITIAL_MESSAGE_TEMPLATES }
+];
+
 /**
- * Sincronização inicial por busca pontual (one-time fetch)
- * Garante que igrejas excluídas na nuvem sejam apagadas do storage local.
+ * Salva entidade de qualquer módulo na nuvem (Firestore)
  */
+export async function saveEntityToCloud(collectionName: string, item: any): Promise<void> {
+  try {
+    if (!item || !item.id) return;
+    const sanitized = sanitizeForFirestore({
+      ...item,
+      updatedAt: item.updatedAt || new Date().toISOString()
+    });
+    const itemDoc = doc(db, collectionName, item.id);
+    await setDoc(itemDoc, sanitized, { merge: true });
+  } catch (err) {
+    console.warn(`Falha ao salvar ${collectionName}/${item?.id} na nuvem:`, err);
+  }
+}
+
+/**
+ * Exclui entidade de qualquer módulo na nuvem e registra tombstone
+ */
+export async function deleteEntityFromCloud(collectionName: string, id: string): Promise<void> {
+  try {
+    if (!id) return;
+    const itemDoc = doc(db, collectionName, id);
+    await deleteDoc(itemDoc);
+
+    const tombstoneDoc = doc(db, 'deleted_records', `${collectionName}_${id}`);
+    await setDoc(tombstoneDoc, {
+      collection: collectionName,
+      id,
+      deletedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn(`Falha ao excluir ${collectionName}/${id} na nuvem:`, err);
+  }
+}
+
+// Registra despachador automático conectado ao storage local
+registerCloudSyncHandler((action, collectionName, dataOrId) => {
+  if (action === 'save') {
+    saveEntityToCloud(collectionName, dataOrId);
+  } else if (action === 'delete') {
+    deleteEntityFromCloud(collectionName, dataOrId);
+  }
+});
+
+/**
+ * Sincronização inicial completa dos dados operacionais da igreja ativa.
+ * Faz merge bidirecional: dados existentes na nuvem vêm para o aparelho;
+ * dados locais existentes no aparelho sobem para a nuvem.
+ */
+export async function syncAllChurchDataFromCloud(churchId: string): Promise<void> {
+  if (!churchId) return;
+
+  for (const col of SYNC_COLLECTIONS) {
+    try {
+      const q = query(collection(db, col.name), where('churchId', '==', churchId));
+      const snap = await getDocs(q);
+      const localAll = getLocal<any[]>(col.key, col.initial);
+      const otherChurches = localAll.filter(item => item.churchId !== churchId);
+      const thisChurchLocal = localAll.filter(item => item.churchId === churchId);
+
+      if (!snap.empty) {
+        // Nuvem tem dados: consolida
+        const cloudItems: any[] = [];
+        snap.forEach(d => {
+          cloudItems.push(d.data());
+        });
+        const merged = [...otherChurches, ...cloudItems];
+        setLocal(col.key, merged, true);
+      } else if (thisChurchLocal.length > 0) {
+        // Nuvem estava vazia mas temos dados locais: sobe para a nuvem imediatamente
+        for (const item of thisChurchLocal) {
+          saveEntityToCloud(col.name, item);
+        }
+      }
+    } catch (err) {
+      console.warn(`Sincronização inicial pontual de ${col.name} em modo offline:`, err);
+    }
+  }
+
+  // Notifica o aplicativo da conclusão da sincronização
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('gi_data_synced', { detail: { churchId } }));
+  }
+}
+
+/**
+ * Listener em tempo real contínuo via onSnapshot para TODOS os módulos da igreja ativa.
+ * Quando qualquer dado mudar no site (PC) ou no app (Celular), o outro aparelho
+ * é atualizado instantaneamente em fração de segundo.
+ */
+export function subscribeToAllChurchData(churchId: string, onUpdate: () => void): () => void {
+  if (!churchId) return () => {};
+
+  const unsubs: (() => void)[] = [];
+
+  SYNC_COLLECTIONS.forEach(col => {
+    try {
+      const q = query(collection(db, col.name), where('churchId', '==', churchId));
+      const unsub = onSnapshot(
+        q,
+        (snapshot) => {
+          let currentAll = getLocal<any[]>(col.key, col.initial);
+          let modified = false;
+
+          // 1. Processa remoções
+          snapshot.docChanges().forEach(change => {
+            if (change.type === 'removed') {
+              const removedId = change.doc.id;
+              const prevLen = currentAll.length;
+              currentAll = currentAll.filter(item => item.id !== removedId);
+              if (currentAll.length !== prevLen) {
+                modified = true;
+              }
+            }
+          });
+
+          // 2. Processa adições e modificações
+          snapshot.docs.forEach(docSnap => {
+            const cloudData = docSnap.data();
+            if (cloudData && cloudData.id) {
+              const idx = currentAll.findIndex(item => item.id === cloudData.id);
+              if (idx >= 0) {
+                if (JSON.stringify(currentAll[idx]) !== JSON.stringify(cloudData)) {
+                  currentAll[idx] = cloudData;
+                  modified = true;
+                }
+              } else {
+                currentAll.push(cloudData);
+                modified = true;
+              }
+            }
+          });
+
+          if (modified) {
+            setLocal(col.key, [...currentAll], false);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('gi_data_synced', { 
+                detail: { collection: col.key, churchId } 
+              }));
+            }
+            onUpdate();
+          }
+        },
+        (err) => {
+          console.warn(`Listener de ${col.name} desconectado:`, err);
+        }
+      );
+      unsubs.push(unsub);
+    } catch (err) {
+      console.warn(`Falha ao registrar listener de ${col.name}:`, err);
+    }
+  });
+
+  return () => {
+    unsubs.forEach(unsub => {
+      try {
+        unsub();
+      } catch (e) {
+        // ignore
+      }
+    });
+  };
+}
+
+/**
+ * Hook utilitário para que qualquer tela do sistema recarregue seus dados
+ * automaticamente assim que receber atualizações em tempo real do Firestore.
+ */
+export function useDataSync(refreshFn: () => void, deps: any[] = []): void {
+  useEffect(() => {
+    const handler = () => {
+      refreshFn();
+    };
+    window.addEventListener('gi_data_synced', handler);
+    window.addEventListener('gi_storage_changed', handler);
+    return () => {
+      window.removeEventListener('gi_data_synced', handler);
+      window.removeEventListener('gi_storage_changed', handler);
+    };
+  }, deps);
+}
+
+// =========================================================================
+// SINCRONIZAÇÃO DE IGREJAS (MULTI-TENANCY)
+// =========================================================================
+
 export async function syncChurchesFromCloud(): Promise<Church[]> {
   try {
-    // 1. Sincroniza congregações marcadas como excluídas no Firestore
     try {
       const deletedSnap = await getDocs(collection(db, 'deleted_churches'));
       if (!deletedSnap.empty) {
@@ -37,10 +287,9 @@ export async function syncChurchesFromCloud(): Promise<Church[]> {
         });
       }
     } catch (e) {
-      // Ignora erro se coleção de tombstone estiver vazia
+      // Ignora erro se coleção estiver vazia
     }
 
-    // 2. Busca congregações ativas no Firestore
     const churchesCol = collection(db, 'churches');
     const snapshot = await getDocs(churchesCol);
     const cloudIds = new Set<string>();
@@ -57,8 +306,6 @@ export async function syncChurchesFromCloud(): Promise<Church[]> {
       });
     }
 
-    // 3. Reconciliação: se existem igrejas no Firestore, qualquer congregação
-    // local não-demo que não exista mais na nuvem deve ser removida
     if (cloudIds.size > 0) {
       const localChurches = getChurches();
       localChurches.forEach(localC => {
@@ -75,16 +322,10 @@ export async function syncChurchesFromCloud(): Promise<Church[]> {
   }
 }
 
-/**
- * Listener em tempo real contínuo via onSnapshot do Firestore:
- * Garante sincronização bidirecional instantânea entre Web (Site) e Mobile (App/PWA).
- * Escuta tanto adições/alterações quanto remoções ('removed') e tombstones.
- */
 export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () => void {
   try {
     const churchesCol = collection(db, 'churches');
 
-    // Listener de exclusões na nuvem (tombstones)
     let unsubDeleted: (() => void) | null = null;
     try {
       unsubDeleted = onSnapshot(collection(db, 'deleted_churches'), (delSnap) => {
@@ -110,14 +351,12 @@ export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () 
     const unsubscribeChurches = onSnapshot(
       churchesCol,
       (snapshot) => {
-        // 1. Processa remoções explícitas de documentos
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'removed') {
             deleteChurch(change.doc.id);
           }
         });
 
-        // 2. Processa congregações ativas recebidas
         const cloudIds = new Set<string>();
         snapshot.docs.forEach(docSnap => {
           const cloudData = docSnap.data() as Church;
@@ -127,7 +366,6 @@ export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () 
           }
         });
 
-        // 3. Reconcilia congregações ausentes na nuvem (exceto demo)
         if (cloudIds.size > 0) {
           const localChurches = getChurches();
           localChurches.forEach(localC => {
@@ -154,9 +392,6 @@ export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () 
   }
 }
 
-/**
- * Salva e propaga alterações de uma congregação no Firestore
- */
 export async function saveChurchToCloud(church: Church): Promise<{ success: boolean; error?: string }> {
   try {
     const churchWithTimestamp: Church = {
@@ -173,20 +408,12 @@ export async function saveChurchToCloud(church: Church): Promise<{ success: bool
   }
 }
 
-/**
- * Exclui congregação no Firestore e registra tombstone para sincronização
- * em todos os navegadores, apps e PWAs conectados.
- */
 export async function deleteChurchFromCloud(churchId: string): Promise<void> {
   try {
-    // 1. Remove localmente de imediato
     deleteChurch(churchId);
-
-    // 2. Remove da coleção 'churches' no Firestore
     const churchDoc = doc(db, 'churches', churchId);
     await deleteDoc(churchDoc);
 
-    // 3. Registra tombstone na coleção 'deleted_churches'
     const tombstoneDoc = doc(db, 'deleted_churches', churchId);
     await setDoc(tombstoneDoc, {
       id: churchId,

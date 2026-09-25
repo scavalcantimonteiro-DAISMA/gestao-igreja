@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, Calendar, Clock, Plus, Phone, Heart, HomeIcon, CheckCircle2, X, Save, Eye, MapPin, Trash2 } from 'lucide-react';
 import { PastoralAppointment, PastoralVisit, PrayerRequest } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -77,6 +77,8 @@ export const PastoralCabinetView: React.FC<PastoralCabinetViewProps> = ({
     setVisits(getPastoralVisits(currentChurch.id));
     setPrayers(getPrayerRequests(currentChurch.id));
   };
+
+  useDataSync(refreshAll, [currentChurch.id]);
 
   const handleDeleteApptConfirm = () => {
     if (apptToDelete) {

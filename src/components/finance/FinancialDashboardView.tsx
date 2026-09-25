@@ -30,7 +30,7 @@ import {
   PaymentMethod,
   FixedExpense 
 } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { FinancialPinModal } from '../common/FinancialPinModal';
 import { 
@@ -127,6 +127,8 @@ export const FinancialDashboardView: React.FC = () => {
     setExpenses(getFinancialExpenses(currentChurch.id));
     setFixedExpenses(getFixedExpenses(currentChurch.id));
   };
+
+  useDataSync(refreshAll, [currentChurch.id]);
 
   const totalEntries = entries.reduce((acc, curr) => acc + curr.amount, 0);
   const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Church as ChurchIcon, Plus, Users, Calendar, MapPin, X, Save, Trash2, Heart, MessageCircle } from 'lucide-react';
 import { Ministry } from '../../types';
 
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { getMinistries, saveMinistry, deleteMinistry, logAction } from '../../services/storage';
@@ -20,24 +20,24 @@ export const MinistriesList: React.FC = () => {
   });
 
   const handleShareScale = (m: Ministry) => {
-    let text = `*ESCALA & COMUNICAÇÃO DE MINISTÉRIO*\\n`;
-    text += `*${currentChurch.name.toUpperCase()}*\\n`;
-    text += `*Ministério:* ${m.name}\\n`;
-    text += `*Líder Responsável:* ${m.leaderName}${m.viceLeaderName ? ` / ${m.viceLeaderName}` : ''}\\n`;
+    let text = `*ESCALA & COMUNICAÇÃO DE MINISTÉRIO*\n`;
+    text += `*${currentChurch.name.toUpperCase()}*\n`;
+    text += `*Ministério:* ${m.name}\n`;
+    text += `*Líder Responsável:* ${m.leaderName}${m.viceLeaderName ? ` / ${m.viceLeaderName}` : ''}\n`;
     if (m.meetingDay || m.meetingTime) {
-      text += `*Horário/Encontro:* ${m.meetingDay || 'Conforme escala'} às ${m.meetingTime || '18:30'}\\n`;
+      text += `*Horário/Encontro:* ${m.meetingDay || 'Conforme escala'} às ${m.meetingTime || '18:30'}\n`;
     }
     if (m.location) {
-      text += `*Local:* ${m.location}\\n`;
+      text += `*Local:* ${m.location}\n`;
     }
-    text += `\\n👥 *EQUIPE ESCALADA / INTEGRANTES ATIVOS (${m.members.length}):*\\n`;
+    text += `\n👥 *EQUIPE ESCALADA / INTEGRANTES ATIVOS (${m.members.length}):*\n`;
     m.members.forEach((name, idx) => {
-      text += `${idx + 1}. ${name}\\n`;
+      text += `${idx + 1}. ${name}\n`;
     });
     if (m.volunteers && m.volunteers.length > 0) {
-      text += `\\n🌱 *Voluntários:* ${m.volunteers.join(', ')}\\n`;
+      text += `\n🌱 *Voluntários:* ${m.volunteers.join(', ')}\n`;
     }
-    text += `\\n"A chama que nos move é o amor! ❤️‍🔥"\\n_Coordenação Geral CBAcolher_`;
+    text += `\n_Coordenação Ministerial - ${currentChurch.name}_`;
 
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
@@ -47,6 +47,8 @@ export const MinistriesList: React.FC = () => {
   const refreshList = () => {
     setMinistries(getMinistries(currentChurch.id));
   };
+
+  useDataSync(refreshList, [currentChurch.id]);
 
   const handleDeleteConfirm = () => {
     if (ministryToDelete) {

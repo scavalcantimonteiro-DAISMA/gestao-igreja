@@ -13,7 +13,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { Member, MemberStatus } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { MemberFormModal } from './MemberFormModal';
 import { WhatsAppButton } from '../common/WhatsAppButton';
@@ -49,11 +49,13 @@ export const MemberList: React.FC = () => {
   const ministries = getMinistries(currentChurch.id);
   const templates = getMessageTemplates(currentChurch.id);
   const followUpTemplate = templates.find(t => t.type === 'acompanhamento')?.text || 
-    'Olá, {nome}! A Comunidade Batista Acolher está sempre em oração pela sua vida. Como podemos orar por você hoje? 🙏';
+    `Olá, {nome}! A ${currentChurch.name} está sempre em oração pela sua vida. Como podemos orar por você hoje? 🙏`;
 
   const refreshList = () => {
     setMembers(getMembers(currentChurch.id));
   };
+
+  useDataSync(refreshList, [currentChurch.id]);
 
   const handleReloadSpreadsheet = () => {
     const reloaded = reloadSpreadsheetMembers(currentChurch.id);

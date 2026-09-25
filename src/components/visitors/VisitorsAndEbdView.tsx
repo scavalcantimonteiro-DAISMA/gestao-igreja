@@ -20,7 +20,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { Visitor, BibleClass, BibleClassStudent, BaptismRecord } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -107,10 +107,15 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
     setBibleClasses(getBibleClasses(currentChurch.id));
   };
 
+  useDataSync(() => {
+    refreshVisitors();
+    refreshBibleClasses();
+  }, [currentChurch.id]);
+
   const handleDeleteVisitorConfirm = () => {
     if (visitorToDelete) {
       deleteVisitor(visitorToDelete.id);
-      logAction(currentChurch.id, 'Recepção CBA', 'SECRETARIA', 'Exclusão de Visitante', visitorToDelete.name);
+      logAction(currentChurch.id, 'Recepção', 'SECRETARIA', 'Exclusão de Visitante', visitorToDelete.name);
       showToast('Visitante excluído com sucesso.', 'success');
       setVisitorToDelete(null);
       refreshVisitors();

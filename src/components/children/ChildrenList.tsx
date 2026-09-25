@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Baby, Plus, Search, Cake, School, Phone, Trash2, Edit2, X, Save } from 'lucide-react';
 import { Child } from '../../types';
-import { useChurch } from '../../context/ChurchContext';
+import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
@@ -32,6 +32,8 @@ export const ChildrenList: React.FC = () => {
   const refreshList = () => {
     setChildren(getChildren(currentChurch.id));
   };
+
+  useDataSync(refreshList, [currentChurch.id]);
 
   const handleOpenForm = (child?: Child) => {
     if (child) {
