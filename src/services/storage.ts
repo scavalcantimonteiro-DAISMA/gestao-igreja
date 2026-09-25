@@ -13,6 +13,7 @@ import {
   PrayerRequest, 
   Visitor, 
   BibleClass, 
+  BaptismRecord,
   FinancialEntry, 
   FinancialExpense, 
   FixedExpense, 
@@ -907,6 +908,36 @@ export function deleteBibleClass(id: string): void {
   const list = getLocal<BibleClass[]>('bible_classes', INITIAL_BIBLE_CLASSES);
   setLocal('bible_classes', list.filter(b => b.id !== id));
   notifyCloudSync('delete', 'bible_classes', id);
+}
+
+// ==========================================
+// BATISMOS
+// ==========================================
+
+export function getBaptismRecords(churchId: string): BaptismRecord[] {
+  const list = getLocal<BaptismRecord[]>('baptism_records', []);
+  return list.filter(b => b.churchId === churchId);
+}
+
+export function saveBaptismRecord(record: BaptismRecord): void {
+  const list = getLocal<BaptismRecord[]>('baptism_records', []);
+  const index = list.findIndex(b => b.id === record.id);
+  const updated = index >= 0 
+    ? { ...record }
+    : { ...record, createdAt: record.createdAt || new Date().toISOString() };
+  if (index >= 0) {
+    list[index] = updated;
+  } else {
+    list.push(updated);
+  }
+  setLocal('baptism_records', list);
+  notifyCloudSync('save', 'baptism_records', updated);
+}
+
+export function deleteBaptismRecord(id: string): void {
+  const list = getLocal<BaptismRecord[]>('baptism_records', []);
+  setLocal('baptism_records', list.filter(b => b.id !== id));
+  notifyCloudSync('delete', 'baptism_records', id);
 }
 
 // ==========================================

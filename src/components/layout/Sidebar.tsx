@@ -49,7 +49,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'members', label: 'Cadastro de Membros', icon: Users },
     { id: 'children', label: 'Departamento Infantil', icon: Baby },
-    { id: 'families', label: 'Famílias & Casamentos', icon: HeartHandshake },
     { id: 'schedules', label: 'Programação', icon: Calendar },
     { id: 'events', label: 'Eventos Especiais', icon: Sparkles },
     { id: 'smallgroups', label: 'Pequenos Grupos (PG)', icon: Flame },

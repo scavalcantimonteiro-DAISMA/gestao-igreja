@@ -8,7 +8,6 @@ import { Sidebar } from './components/layout/Sidebar';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { MemberList } from './components/members/MemberList';
 import { ChildrenList } from './components/children/ChildrenList';
-import { FamilyList } from './components/families/FamilyList';
 import { ScheduleAndEventsView } from './components/schedule/ScheduleAndEventsView';
 import { SmallGroupList } from './components/smallgroups/SmallGroupList';
 import { LeadershipList } from './components/leadership/LeadershipList';
@@ -113,7 +112,6 @@ const MainLayout: React.FC = () => {
           {activeTab === 'dashboard' && <DashboardView onNavigate={handleNavigate} />}
           {activeTab === 'members' && <MemberList />}
           {activeTab === 'children' && <ChildrenList />}
-          {activeTab === 'families' && <FamilyList />}
           {activeTab === 'schedules' && <ScheduleAndEventsView />}
           {activeTab === 'events' && <ScheduleAndEventsView />}
           {activeTab === 'smallgroups' && <SmallGroupList />}

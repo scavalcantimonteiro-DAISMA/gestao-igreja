@@ -14,6 +14,7 @@ import {
   PrayerRequest, 
   Visitor, 
   BibleClass, 
+  BaptismRecord,
   FinancialEntry, 
   FinancialExpense, 
   FixedExpense 
@@ -25,7 +26,8 @@ import {
   getMinistries, 
   getFinancialEntries, 
   getFinancialExpenses,
-  getWeddingAnniversaries 
+  getWeddingAnniversaries,
+  getBaptismRecords 
 } from './storage';
 
 function sanitize(name: string): string {
@@ -598,8 +600,42 @@ export function exportChurchToExcel(church: Church): void {
     ...entries.map(e => ({ Tipo: 'Entrada / Dízimo / Oferta', Data: formatDate(e.date), Categoria: e.category, Descricao: e.description, Valor: Number(e.amount), FormaPagamento: e.paymentMethod })),
     ...expenses.map(ex => ({ Tipo: 'Despesa / Saída', Data: formatDate(ex.date), Categoria: ex.category, Descricao: ex.description, Valor: -Number(ex.amount), FormaPagamento: ex.paymentMethod }))
   ];
-  const wsFinance = XLSX.utils.json_to_sheet(financeData.length > 0 ? financeData : [{ Mensagem: 'Sem movimentações financeiras registradas.' }]);
-  XLSX.utils.book_append_sheet(wb, wsFinance, 'Financeiro');
+  // 8. BATISMOS
+  const baptisms = getBaptismRecords(church.id);
+  const baptismsData = baptisms.map(b => ({
+    Candidato: b.personName,
+    Telefone: b.phone || '',
+    DataConversao: formatDate(b.conversionDate),
+    Discipulado: b.didDiscipleship ? 'Sim' : 'Não',
+    DataPrevista: formatDate(b.scheduledDate),
+    Status: b.status === 'batizado' ? 'Batizado' : 'Aguardando Batismo',
+    DataBatismo: formatDate(b.baptismDate),
+    Observacoes: b.notes || ''
+  }));
+  const wsBaptisms = XLSX.utils.json_to_sheet(baptismsData.length > 0 ? baptismsData : [{ Mensagem: 'Sem registros de batismos.' }]);
+  XLSX.utils.book_append_sheet(wb, wsBaptisms, 'Batismos');
 
   XLSX.writeFile(wb, `Backup_${sanitize(church.name)}_${getTodayString()}.xlsx`);
 }
+
+// =========================================================================
+// 8. EXPORTAÇÃO INDIVIDUAL DE BATISMOS
+// =========================================================================
+export function exportBaptismsToExcel(church: Church, baptisms: BaptismRecord[]): void {
+  const wb = XLSX.utils.book_new();
+  const rows = baptisms.map((b, index) => ({
+    'Nº': index + 1,
+    'Candidato ao Batismo': b.personName,
+    'Telefone / WhatsApp': b.phone || '',
+    'Data de Conversão': formatDate(b.conversionDate),
+    'Fez Discipulado': b.didDiscipleship ? 'Sim' : 'Não',
+    'Data Prevista do Batismo': formatDate(b.scheduledDate),
+    'Status': b.status === 'batizado' ? 'Batismo Realizado' : 'Aguardando Batismo',
+    'Data da Realização do Batismo': formatDate(b.baptismDate),
+    'Observações': b.notes || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ 'Aviso': 'Nenhum candidato a batismo cadastrado.' }]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Batismos');
+  XLSX.writeFile(wb, `${sanitize(church.name)}_Batismos_${getTodayString()}.xlsx`);
+}
+

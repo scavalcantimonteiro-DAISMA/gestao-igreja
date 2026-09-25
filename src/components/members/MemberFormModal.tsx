@@ -546,16 +546,13 @@ export const MemberFormModal: React.FC<MemberFormModalProps> = ({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Ministério de Atuação
                   </label>
-                  <select
+                  <input
+                    type="text"
+                    placeholder="Ex: Louvor, Acolhimento, Mídia, Infantil..."
                     value={formData.ministry || ''}
                     onChange={e => setFormData({ ...formData, ministry: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
-                  >
-                    <option value="">Nenhum / Não vinculado</option>
-                    {ministries.map(m => (
-                      <option key={m.id} value={m.name}>{m.name}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div>

@@ -132,7 +132,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
         {/* Casamentos Hoje */}
         <div 
-          onClick={() => onNavigate('families')}
+          onClick={() => onNavigate('members')}
           className="col-span-1 p-4 rounded-2xl bg-white border border-pink-200 hover:border-pink-400 transition-all cursor-pointer group shadow-sm hover:shadow-md"
         >
           <div className="flex items-center justify-between text-pink-600 mb-2">

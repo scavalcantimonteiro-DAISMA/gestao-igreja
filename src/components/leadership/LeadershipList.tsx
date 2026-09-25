@@ -40,7 +40,7 @@ export const LeadershipList: React.FC = () => {
         whatsapp: '',
         email: '',
         ministry: '',
-        startDate: '2026-01-01',
+        startDate: '',
         observations: ''
       });
     }
@@ -155,13 +155,6 @@ export const LeadershipList: React.FC = () => {
                     <p className="text-slate-600">
                       <span className="font-semibold text-slate-700">Ministério:</span> {lead.ministry}
                     </p>
-                  )}
-
-                  {lead.startDate && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Início do mandato: {lead.startDate.split('-').reverse().join('/')}</span>
-                    </div>
                   )}
 
                   {lead.observations && (

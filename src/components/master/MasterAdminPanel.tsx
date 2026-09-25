@@ -868,7 +868,8 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Cidade</label>
                   <input
                     type="text"
-                    value={newChurchData.city || 'Maceió'}
+                    placeholder="Ex: Maceió, São Paulo, Salvador..."
+                    value={newChurchData.city || ''}
                     onChange={e => setNewChurchData({ ...newChurchData, city: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
                   />
@@ -878,7 +879,8 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   <input
                     type="text"
                     maxLength={2}
-                    value={newChurchData.state || 'AL'}
+                    placeholder="Ex: AL"
+                    value={newChurchData.state || ''}
                     onChange={e => setNewChurchData({ ...newChurchData, state: e.target.value.toUpperCase() })}
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 uppercase transition-colors"
                   />

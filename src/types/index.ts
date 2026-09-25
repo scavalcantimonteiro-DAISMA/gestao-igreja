@@ -226,7 +226,9 @@ export interface Ministry {
   churchId: string;
   name: string;
   leaderName: string;
+  leaderPhone?: string;
   viceLeaderName?: string;
+  viceLeaderPhone?: string;
   meetingDay?: string;
   meetingTime?: string;
   location?: string;
@@ -279,6 +281,8 @@ export interface ChurchEvent {
   location: string;
   description: string;
   responsible: string;
+  organizer?: string;
+  team?: string;
   registrationOpen: boolean;
   maxSpots?: number;
   spotsTaken: number;
@@ -405,8 +409,10 @@ export interface BaptismRecord {
   churchId: string;
   personName: string;
   memberId?: string;
+  phone?: string;
   conversionDate?: string;
   baptismDate?: string;
+  didDiscipleship?: boolean;
   prepClass?: string;
   teacher?: string;
   scheduledDate?: string;

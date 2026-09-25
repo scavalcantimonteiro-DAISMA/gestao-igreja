@@ -22,8 +22,8 @@ export const ChildrenList: React.FC = () => {
 
   const [formData, setFormData] = useState<Partial<Child>>({
     gender: 'M',
-    childrenMinistry: 'Departamento Infantil',
-    ebdClass: 'Turma Samuel'
+    childrenMinistry: '',
+    ebdClass: ''
   });
 
   const templates = getMessageTemplates(currentChurch.id);
@@ -50,8 +50,8 @@ export const ChildrenList: React.FC = () => {
         guardianName: '',
         guardianPhone: '',
         guardianWhatsapp: '',
-        childrenMinistry: 'Departamento Infantil',
-        ebdClass: 'Turma Samuel',
+        childrenMinistry: '',
+        ebdClass: '',
         school: '',
         schoolGrade: '',
         notes: ''
