@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save, User, MapPin, Cross, Heart, AlertCircle } from 'lucide-react';
 import { Member, MemberStatus } from '../../types';
 import { MaskedInput } from '../common/MaskedInput';
@@ -66,6 +66,80 @@ export const MemberFormModal: React.FC<MemberFormModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Sincroniza e preenche o formulário sempre que o membro a ser editado ou a modal for aberta
+  useEffect(() => {
+    if (memberToEdit) {
+      setFormData({
+        ...memberToEdit,
+        churchId: memberToEdit.churchId || currentChurch.id,
+        name: memberToEdit.name || '',
+        gender: memberToEdit.gender || 'M',
+        birthDate: memberToEdit.birthDate || '',
+        cpf: memberToEdit.cpf || '',
+        rg: memberToEdit.rg || '',
+        maritalStatus: memberToEdit.maritalStatus || 'Solteiro(a)',
+        profession: memberToEdit.profession || '',
+        education: memberToEdit.education || 'Ensino Superior',
+        email: memberToEdit.email || '',
+        phone: memberToEdit.phone || '',
+        whatsapp: memberToEdit.whatsapp || '',
+        cep: memberToEdit.cep || '',
+        street: memberToEdit.street || '',
+        number: memberToEdit.number || '',
+        complement: memberToEdit.complement || '',
+        neighborhood: memberToEdit.neighborhood || '',
+        city: memberToEdit.city || currentChurch.city || 'Maceió',
+        state: memberToEdit.state || currentChurch.state || 'AL',
+        status: memberToEdit.status || 'Ativo',
+        conversionDate: memberToEdit.conversionDate || '',
+        baptismDate: memberToEdit.baptismDate || '',
+        baptismChurch: memberToEdit.baptismChurch || currentChurch.name,
+        ministry: memberToEdit.ministry || '',
+        smallGroupId: memberToEdit.smallGroupId || '',
+        churchRole: memberToEdit.churchRole || 'Membro',
+        talents: memberToEdit.talents || '',
+        spouseName: memberToEdit.spouseName || '',
+        weddingDate: memberToEdit.weddingDate || '',
+        weddingPlace: memberToEdit.weddingPlace || ''
+      });
+    } else {
+      setFormData({
+        churchId: currentChurch.id,
+        name: '',
+        gender: 'M',
+        birthDate: '',
+        cpf: '',
+        rg: '',
+        maritalStatus: 'Solteiro(a)',
+        profession: '',
+        education: 'Ensino Superior',
+        email: '',
+        phone: '',
+        whatsapp: '',
+        cep: '',
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: currentChurch.city || 'Maceió',
+        state: currentChurch.state || 'AL',
+        status: 'Ativo',
+        conversionDate: '',
+        baptismDate: '',
+        baptismChurch: currentChurch.name,
+        ministry: '',
+        smallGroupId: '',
+        churchRole: 'Membro',
+        talents: '',
+        spouseName: '',
+        weddingDate: '',
+        weddingPlace: ''
+      });
+    }
+    setActiveTab('pessoal');
+    setErrors({});
+  }, [memberToEdit, isOpen, currentChurch.id]);
 
   if (!isOpen) return null;
 

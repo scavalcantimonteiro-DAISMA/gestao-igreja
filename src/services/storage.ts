@@ -529,7 +529,8 @@ export function getMembers(churchId: string): Member[] {
     members = [...members, ...INITIAL_MEMBERS];
     setLocal('members', members);
   }
-  return members.filter(m => m.churchId === churchId);
+  const filtered = members.filter(m => m.churchId === churchId);
+  return filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
 }
 
 export function reloadSpreadsheetMembers(churchId: string): Member[] {
@@ -537,7 +538,9 @@ export function reloadSpreadsheetMembers(churchId: string): Member[] {
   const otherChurches = current.filter(m => m.churchId !== churchId);
   const updated = [...otherChurches, ...INITIAL_MEMBERS.filter(m => m.churchId === churchId)];
   setLocal('members', updated);
-  return updated.filter(m => m.churchId === churchId);
+  return updated
+    .filter(m => m.churchId === churchId)
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
 }
 
 export function saveMember(member: Member): void {
@@ -551,6 +554,7 @@ export function saveMember(member: Member): void {
   } else {
     members.push(updated);
   }
+  members.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
   setLocal('members', members);
   notifyCloudSync('save', 'members', updated);
 }

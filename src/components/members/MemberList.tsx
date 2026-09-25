@@ -84,21 +84,23 @@ export const MemberList: React.FC = () => {
     }
   };
 
-  const filteredMembers = members.filter(m => {
-    const matchesSearch = 
-      searchTerm === '' ||
-      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.cpf?.includes(searchTerm) ||
-      m.whatsapp?.includes(searchTerm) ||
-      m.street?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredMembers = members
+    .filter(m => {
+      const matchesSearch = 
+        searchTerm === '' ||
+        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.cpf?.includes(searchTerm) ||
+        m.whatsapp?.includes(searchTerm) ||
+        m.street?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'todos' || m.status === statusFilter;
-    const matchesMinistry = ministryFilter === 'todos' || m.ministry === ministryFilter;
-    const matchesPg = pgFilter === 'todos' || m.smallGroupId === pgFilter;
+      const matchesStatus = statusFilter === 'todos' || m.status === statusFilter;
+      const matchesMinistry = ministryFilter === 'todos' || m.ministry === ministryFilter;
+      const matchesPg = pgFilter === 'todos' || m.smallGroupId === pgFilter;
 
-    return matchesSearch && matchesStatus && matchesMinistry && matchesPg;
-  });
+      return matchesSearch && matchesStatus && matchesMinistry && matchesPg;
+    })
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
 
   const getStatusBadge = (status: MemberStatus) => {
     switch (status) {
@@ -354,12 +356,18 @@ export const MemberList: React.FC = () => {
       )}
 
       {/* Modal de Formulário */}
-      <MemberFormModal
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        memberToEdit={memberToEdit}
-        onSaved={refreshList}
-      />
+      {isFormOpen && (
+        <MemberFormModal
+          key={memberToEdit ? `edit_${memberToEdit.id}` : 'new_member'}
+          isOpen={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false);
+            setMemberToEdit(null);
+          }}
+          memberToEdit={memberToEdit}
+          onSaved={refreshList}
+        />
+      )}
 
       {/* Modal de Ficha Detalhada */}
       {selectedMemberDetail && (
