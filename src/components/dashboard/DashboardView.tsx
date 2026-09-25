@@ -36,7 +36,8 @@ import {
   getMessageTemplates,
   formatWhatsAppMessage,
   getFinancialEntries,
-  getFinancialExpenses
+  getFinancialExpenses,
+  getBaptismRecords
 } from '../../services/storage';
 
 interface DashboardViewProps {
@@ -58,7 +59,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const visitors = getVisitors(currentChurch.id);
   const schedules = getSchedules(currentChurch.id);
   const events = getEvents(currentChurch.id);
-  const appointments = getPastoralAppointments(currentChurch.id).filter(a => a.date === '2026-09-21' || a.date === new Date().toISOString().split('T')[0]);
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const appointments = getPastoralAppointments(currentChurch.id).filter(a => a.date === todayDateStr);
+  const baptisms = getBaptismRecords(currentChurch.id);
+  const pendingBaptismsCount = baptisms.filter(b => b.status !== 'batizado' && !b.baptismDate).length;
 
   // Aniversários & Casamentos
   const { today: bdaysToday, upcoming: bdaysUpcoming } = getBirthdays(currentChurch.id);
@@ -200,7 +204,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           <div className="flex items-center justify-between text-cyan-600 mb-2">
             <Droplet className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900">4</div>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900">{pendingBaptismsCount}</div>
           <div className="text-[11px] font-medium text-slate-500 truncate">Batismos Prev.</div>
         </div>
 
