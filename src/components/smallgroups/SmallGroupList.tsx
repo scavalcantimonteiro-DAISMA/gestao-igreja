@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Flame, Plus, Users, MapPin, Clock, Calendar, UserCheck, X, Save, BookOpen, CheckSquare, Trash2 } from 'lucide-react';
+import { Flame, Plus, Users, MapPin, Clock, Calendar, UserCheck, X, Save, BookOpen, CheckSquare, Trash2, FileSpreadsheet } from 'lucide-react';
 import { SmallGroup, SmallGroupParticipant } from '../../types';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { getSmallGroups, saveSmallGroup, deleteSmallGroup, logAction } from '../../services/storage';
+import { exportSmallGroupsToExcel } from '../../services/excelBackup';
 
 export const SmallGroupList: React.FC = () => {
   const { currentChurch } = useChurch();
@@ -184,13 +185,27 @@ export const SmallGroupList: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs sm:text-sm font-bold shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Novo Pequeno Grupo</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              exportSmallGroupsToExcel(currentChurch, pgs);
+              showToast('Pequenos grupos exportados em Excel com sucesso!', 'success');
+            }}
+            title="Baixar lista em planilha Excel"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
+          </button>
+
+          <button
+            onClick={handleOpenNew}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs sm:text-sm font-bold shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Novo Pequeno Grupo</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid de PGs ou Estado Vazio */}

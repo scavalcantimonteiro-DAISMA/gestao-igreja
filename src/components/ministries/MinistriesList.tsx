@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Church as ChurchIcon, Plus, Users, Calendar, MapPin, X, Save, Trash2, Heart, MessageCircle } from 'lucide-react';
+import { Church as ChurchIcon, Plus, Users, Calendar, MapPin, X, Save, Trash2, Heart, MessageCircle, FileSpreadsheet } from 'lucide-react';
 import { Ministry } from '../../types';
 
 import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { getMinistries, saveMinistry, deleteMinistry, logAction } from '../../services/storage';
+import { exportMinistriesToExcel } from '../../services/excelBackup';
 
 export const MinistriesList: React.FC = () => {
   const { currentChurch } = useChurch();
@@ -102,27 +103,41 @@ export const MinistriesList: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setFormData({
-              churchId: currentChurch.id,
-              name: '',
-              leaderName: '',
-              viceLeaderName: '',
-              meetingDay: 'Sábado',
-              meetingTime: '16:00',
-              location: 'Templo Principal',
-              description: '',
-              membersCount: 6,
-              members: []
-            });
-            setIsFormOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/20 active:scale-95 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Novo Ministério</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              exportMinistriesToExcel(currentChurch, ministries);
+              showToast('Ministérios exportados em Excel com sucesso!', 'success');
+            }}
+            title="Baixar lista em planilha Excel"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setFormData({
+                churchId: currentChurch.id,
+                name: '',
+                leaderName: '',
+                viceLeaderName: '',
+                meetingDay: 'Sábado',
+                meetingTime: '16:00',
+                location: 'Templo Principal',
+                description: '',
+                membersCount: 6,
+                members: []
+              });
+              setIsFormOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/20 active:scale-95 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Novo Ministério</span>
+          </button>
+        </div>
       </div>
 
       {ministries.length === 0 ? (

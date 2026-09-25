@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
-import { BarChart3, Download, Printer, Users, Cake, HeartHandshake, DollarSign, Flame, FileText } from 'lucide-react';
+import { BarChart3, FileSpreadsheet, Printer, Users, Cake, HeartHandshake, Flame, Baby } from 'lucide-react';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { 
   getMembers, 
   getChildren, 
   getSmallGroups, 
-  getFinancialEntries, 
-  getFinancialExpenses,
   getBirthdays,
   getWeddingAnniversaries 
 } from '../../services/storage';
 import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
+import { 
+  exportMembersToExcel, 
+  exportChildrenToExcel, 
+  exportSmallGroupsToExcel, 
+  exportEcclesiasticalReportToExcel 
+} from '../../services/excelBackup';
 
 export const ReportsView: React.FC = () => {
   const { currentChurch } = useChurch();
   const { showToast } = useNotification();
 
-  const [selectedReport, setSelectedReport] = useState<'membros' | 'aniversariantes' | 'casamentos' | 'pgs' | 'financeiro'>('membros');
+  const [selectedReport, setSelectedReport] = useState<'membros' | 'aniversariantes' | 'casamentos' | 'pgs' | 'infantil'>('membros');
   const [bdayFilter, setBdayFilter] = useState<'geral' | 'mes' | 'hoje_7dias'>('geral');
   const currentMonthNumber = (new Date().getMonth() + 1).toString().padStart(2, '0');
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthNumber);
@@ -25,8 +29,6 @@ export const ReportsView: React.FC = () => {
   const members = getMembers(currentChurch.id);
   const children = getChildren(currentChurch.id);
   const pgs = getSmallGroups(currentChurch.id);
-  const entries = getFinancialEntries(currentChurch.id);
-  const expenses = getFinancialExpenses(currentChurch.id);
   const { today: bToday, upcoming: bUpcoming, all: bAll = [] } = getBirthdays(currentChurch.id);
   const { today: wToday, upcoming: wUpcoming } = getWeddingAnniversaries(currentChurch.id);
 
@@ -34,42 +36,42 @@ export const ReportsView: React.FC = () => {
     window.print();
   };
 
-  const handleExportCSV = () => {
-    let csvContent = 'data:text/csv;charset=utf-8,';
-    
-    if (selectedReport === 'membros') {
-      csvContent += 'Nome;WhatsApp;Status;Cargo;Ministerio;DataNasc\n';
-      members.forEach(m => {
-        csvContent += `"${m.name}";"${m.whatsapp}";"${m.status}";"${m.churchRole || ''}";"${m.ministry || ''}";"${m.birthDate}"\n`;
-      });
-    } else if (selectedReport === 'financeiro') {
-      csvContent += 'Data;Tipo;Descricao;Categoria;Valor;Pagamento\n';
-      entries.forEach(e => {
-        csvContent += `"${e.date}";"Entrada";"${e.description}";"${e.category}";"${e.amount}";"${e.paymentMethod}"\n`;
-      });
-      expenses.forEach(x => {
-        csvContent += `"${x.date}";"Saida";"${x.description}";"${x.category}";"${x.amount}";"${x.paymentMethod}"\n`;
-      });
-    } else if (selectedReport === 'aniversariantes') {
-      csvContent += 'Data;Nome;Idade;WhatsApp;Tipo\n';
-      bAll.forEach(b => {
-        csvContent += `"${b.formattedDate}";"${b.name}";"${b.age} anos";"${b.whatsapp}";"${b.isChild ? 'Departamento Infantil' : 'Adulto'}"\n`;
-      });
-    } else {
-      csvContent += 'Nome;Telefone;Info\n';
-      bToday.concat(bUpcoming).forEach(b => {
-        csvContent += `"${b.name}";"${b.whatsapp}";"${b.age} anos"\n`;
-      });
+  const handleExportExcel = () => {
+    try {
+      if (selectedReport === 'membros') {
+        exportMembersToExcel(currentChurch, members);
+      } else if (selectedReport === 'infantil') {
+        exportChildrenToExcel(currentChurch, children);
+      } else if (selectedReport === 'pgs') {
+        exportSmallGroupsToExcel(currentChurch, pgs);
+      } else if (selectedReport === 'aniversariantes') {
+        const list = bdayFilter === 'hoje_7dias' 
+          ? bToday.concat(bUpcoming) 
+          : bdayFilter === 'mes' 
+            ? bAll.filter(b => b.formattedDate.endsWith(`/${selectedMonth}`)) 
+            : bAll;
+        const rows = list.map(b => ({
+          'Data': b.formattedDate,
+          'Nome': b.name,
+          'Idade': `${b.age} anos`,
+          'WhatsApp': b.whatsapp || 'Não informado',
+          'Tipo': b.isChild ? 'Departamento Infantil' : 'Adulto'
+        }));
+        exportEcclesiasticalReportToExcel(currentChurch, 'Aniversariantes', rows);
+      } else if (selectedReport === 'casamentos') {
+        const rows = wToday.concat(wUpcoming).map(w => ({
+          'Data do Casamento': w.formattedDate,
+          'Casal': w.coupleName,
+          'Anos de União': `${w.yearsMarried} anos`,
+          'WhatsApp': w.whatsapp || 'Não informado'
+        }));
+        exportEcclesiasticalReportToExcel(currentChurch, 'Bodas_Casamentos', rows);
+      }
+      showToast('Relatório exportado em Excel (.xlsx) com sucesso!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao exportar relatório em Excel.', 'error');
     }
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `relatorio_${selectedReport}_${currentChurch.slug}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Relatório exportado em CSV com sucesso!', 'success');
   };
 
   return (
@@ -87,11 +89,11 @@ export const ReportsView: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 shadow-sm text-xs font-bold transition-all"
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 active:scale-95 text-xs font-bold transition-all"
           >
-            <Download className="w-4 h-4 text-sky-600" />
-            <span>Exportar CSV / Excel</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
           </button>
 
           <button
@@ -114,6 +116,16 @@ export const ReportsView: React.FC = () => {
         >
           <Users className="w-4 h-4" />
           <span>Membros ({members.length})</span>
+        </button>
+
+        <button
+          onClick={() => setSelectedReport('infantil')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            selectedReport === 'infantil' ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
+          }`}
+        >
+          <Baby className="w-4 h-4" />
+          <span>Crianças ({children.length})</span>
         </button>
 
         <button
@@ -143,17 +155,7 @@ export const ReportsView: React.FC = () => {
           }`}
         >
           <Flame className="w-4 h-4" />
-          <span>Pequenos Grupos</span>
-        </button>
-
-        <button
-          onClick={() => setSelectedReport('financeiro')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            selectedReport === 'financeiro' ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
-          }`}
-        >
-          <DollarSign className="w-4 h-4" />
-          <span>Financeiro Consolidado</span>
+          <span>Pequenos Grupos ({pgs.length})</span>
         </button>
       </div>
 
@@ -413,28 +415,41 @@ export const ReportsView: React.FC = () => {
           </div>
         )}
 
-        {selectedReport === 'financeiro' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-              <div>
-                <span className="text-xs text-slate-500 font-medium">Total Entradas</span>
-                <p className="text-lg font-bold text-emerald-600">
-                  {entries.reduce((a, c) => a + c.amount, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-slate-500 font-medium">Total Saídas</span>
-                <p className="text-lg font-bold text-rose-600">
-                  {expenses.reduce((a, c) => a + c.amount, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-slate-500 font-medium">Saldo Atual</span>
-                <p className="text-lg font-bold text-sky-600">
-                  {(entries.reduce((a, c) => a + c.amount, 0) - expenses.reduce((a, c) => a + c.amount, 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </p>
-              </div>
-            </div>
+        {selectedReport === 'infantil' && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold border-b border-slate-200">
+                <tr>
+                  <th className="p-3">Nome da Criança</th>
+                  <th className="p-3">Data Nasc.</th>
+                  <th className="p-3">Idade</th>
+                  <th className="p-3">Responsáveis</th>
+                  <th className="p-3">WhatsApp Responsável</th>
+                  <th className="p-3">Sala / Turma</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {children.map(c => {
+                  const birthYear = c.birthDate ? parseInt(c.birthDate.split('-')[0]) : null;
+                  const currentYear = new Date().getFullYear();
+                  const age = birthYear && !isNaN(birthYear) ? `${currentYear - birthYear} anos` : '-';
+                  return (
+                    <tr key={c.id} className="hover:bg-sky-50/40 transition-colors">
+                      <td className="p-3 font-semibold text-slate-900">{c.name}</td>
+                      <td className="p-3 text-slate-600">{c.birthDate}</td>
+                      <td className="p-3 text-slate-600 font-bold">{age}</td>
+                      <td className="p-3 text-slate-600">{c.guardianName || '-'}</td>
+                      <td className="p-3 text-slate-600">{c.guardianWhatsapp || c.guardianPhone || '-'}</td>
+                      <td className="p-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800">
+                          {c.ebdClass || c.childrenMinistry || 'Infantil'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

@@ -29,6 +29,7 @@ import {
   getMessageTemplates,
   formatWhatsAppMessage 
 } from '../../services/storage';
+import { exportMembersToExcel } from '../../services/excelBackup';
 
 export const MemberList: React.FC = () => {
   const { currentChurch } = useChurch();
@@ -131,7 +132,19 @@ export const MemberList: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              exportMembersToExcel(currentChurch, filteredMembers);
+              showToast('Membros exportados em Excel com sucesso!', 'success');
+            }}
+            title="Baixar lista de membros em planilha Excel"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
+          </button>
+
           <button
             onClick={handleReloadSpreadsheet}
             title="Restaura os 140 membros originais da planilha oficial"

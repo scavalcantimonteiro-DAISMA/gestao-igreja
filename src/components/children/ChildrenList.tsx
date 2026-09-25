@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Baby, Plus, Search, Cake, School, Phone, Trash2, Edit2, X, Save } from 'lucide-react';
+import { Baby, Plus, Search, Cake, School, Phone, Trash2, Edit2, X, Save, FileSpreadsheet } from 'lucide-react';
 import { Child } from '../../types';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -8,6 +8,7 @@ import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
 import { MaskedInput } from '../common/MaskedInput';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { getChildren, saveChild, deleteChild, logAction, getMessageTemplates, formatWhatsAppMessage } from '../../services/storage';
+import { exportChildrenToExcel } from '../../services/excelBackup';
 
 export const ChildrenList: React.FC = () => {
   const { currentChurch } = useChurch();
@@ -121,13 +122,27 @@ export const ChildrenList: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => handleOpenForm()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/20 transition-all active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Cadastrar Criança</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              exportChildrenToExcel(currentChurch, filtered);
+              showToast('Crianças exportadas em Excel com sucesso!', 'success');
+            }}
+            title="Baixar lista em planilha Excel"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
+          </button>
+
+          <button
+            onClick={() => handleOpenForm()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/20 transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Cadastrar Criança</span>
+          </button>
+        </div>
       </div>
 
       {/* Busca */}

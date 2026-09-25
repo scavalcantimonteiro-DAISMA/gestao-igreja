@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Calendar, Clock, Plus, Phone, Heart, HomeIcon, CheckCircle2, X, Save, Eye, MapPin, Trash2 } from 'lucide-react';
+import { BookOpen, Calendar, Clock, Plus, Phone, Heart, HomeIcon, CheckCircle2, X, Save, Eye, MapPin, Trash2, FileSpreadsheet } from 'lucide-react';
 import { PastoralAppointment, PastoralVisit, PrayerRequest } from '../../types';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -17,6 +17,7 @@ import {
   deletePrayerRequest,
   logAction 
 } from '../../services/storage';
+import { exportPastoralToExcel } from '../../services/excelBackup';
 
 interface PastoralCabinetViewProps {
   initialTab?: 'gabinete' | 'visitas' | 'oracao';
@@ -217,35 +218,57 @@ export const PastoralCabinetView: React.FC<PastoralCabinetViewProps> = ({
           </p>
         </div>
 
-        {/* Alternador de Abas - Oculto quando isolado */}
-        {!isolated && (
-          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
-            <button
-              onClick={() => setActiveSubTab('gabinete')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeSubTab === 'gabinete' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Gabinete ({appointments.length})
-            </button>
-            <button
-              onClick={() => setActiveSubTab('visitas')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeSubTab === 'visitas' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Visitas ({visits.length})
-            </button>
-            <button
-              onClick={() => setActiveSubTab('oracao')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeSubTab === 'oracao' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Oração ({prayers.length})
-            </button>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              if (activeSubTab === 'gabinete') {
+                exportPastoralToExcel(currentChurch, 'gabinete', appointments);
+                showToast('Agenda do gabinete exportada em Excel com sucesso!', 'success');
+              } else if (activeSubTab === 'visitas') {
+                exportPastoralToExcel(currentChurch, 'visitas', visits);
+                showToast('Visitas pastorais exportadas em Excel com sucesso!', 'success');
+              } else {
+                exportPastoralToExcel(currentChurch, 'oracao', prayers);
+                showToast('Pedidos de oração exportados em Excel com sucesso!', 'success');
+              }
+            }}
+            title="Baixar em planilha Excel"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
+          </button>
+
+          {/* Alternador de Abas - Oculto quando isolado */}
+          {!isolated && (
+            <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
+              <button
+                onClick={() => setActiveSubTab('gabinete')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeSubTab === 'gabinete' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Gabinete ({appointments.length})
+              </button>
+              <button
+                onClick={() => setActiveSubTab('visitas')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeSubTab === 'visitas' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Visitas ({visits.length})
+              </button>
+              <button
+                onClick={() => setActiveSubTab('oracao')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeSubTab === 'oracao' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Oração ({prayers.length})
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* SUB-ABA 1: GABINETE PASTORAL */}

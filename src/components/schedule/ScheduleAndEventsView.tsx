@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Sparkles, Plus, Clock, MapPin, User, X, Save, Tag, Trash2 } from 'lucide-react';
+import { Calendar, Sparkles, Plus, Clock, MapPin, User, X, Save, Tag, Trash2, FileSpreadsheet } from 'lucide-react';
 import { Schedule, ChurchEvent } from '../../types';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -13,6 +13,7 @@ import {
   deleteEvent, 
   logAction 
 } from '../../services/storage';
+import { exportSchedulesToExcel, exportEventsToExcel } from '../../services/excelBackup';
 
 export const ScheduleAndEventsView: React.FC = () => {
   const { currentChurch } = useChurch();
@@ -146,28 +147,47 @@ export const ScheduleAndEventsView: React.FC = () => {
           </p>
         </div>
 
-        {/* Alternador de Sub-aba */}
-        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setActiveSubTab('schedules')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeSubTab === 'schedules'
-                ? 'bg-white text-sky-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            onClick={() => {
+              if (activeSubTab === 'schedules') {
+                exportSchedulesToExcel(currentChurch, schedules);
+                showToast('Programação semanal exportada em Excel com sucesso!', 'success');
+              } else {
+                exportEventsToExcel(currentChurch, events);
+                showToast('Eventos exportados em Excel com sucesso!', 'success');
+              }
+            }}
+            title="Baixar em planilha Excel"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
           >
-            Programação Semanal ({schedules.length})
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
           </button>
-          <button
-            onClick={() => setActiveSubTab('events')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeSubTab === 'events'
-                ? 'bg-white text-sky-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Eventos Especiais ({events.length})
-          </button>
+
+          {/* Alternador de Sub-aba */}
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
+            <button
+              onClick={() => setActiveSubTab('schedules')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === 'schedules'
+                  ? 'bg-white text-sky-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Programação Semanal ({schedules.length})
+            </button>
+            <button
+              onClick={() => setActiveSubTab('events')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === 'events'
+                  ? 'bg-white text-sky-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Eventos Especiais ({events.length})
+            </button>
+          </div>
         </div>
       </div>
 

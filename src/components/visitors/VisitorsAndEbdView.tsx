@@ -17,7 +17,8 @@ import {
   MapPin,
   Edit3,
   Search,
-  UserCheck
+  UserCheck,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Visitor, BibleClass, BibleClassStudent, BaptismRecord } from '../../types';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
@@ -35,6 +36,7 @@ import {
   formatWhatsAppMessage, 
   logAction 
 } from '../../services/storage';
+import { exportVisitorsToExcel, exportEbdToExcel } from '../../services/excelBackup';
 
 interface VisitorsAndEbdViewProps {
   initialTab?: 'visitors' | 'ebd' | 'baptisms';
@@ -333,34 +335,55 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
           </p>
         </div>
 
-        {!isolated && (
-          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
-            <button
-              onClick={() => setActiveSubTab('visitors')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeSubTab === 'visitors' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Visitantes ({visitors.length})
-            </button>
-            <button
-              onClick={() => setActiveSubTab('ebd')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeSubTab === 'ebd' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              EBD ({bibleClasses.length})
-            </button>
-            <button
-              onClick={() => setActiveSubTab('baptisms')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeSubTab === 'baptisms' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Batismos
-            </button>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              if (activeSubTab === 'visitors') {
+                exportVisitorsToExcel(currentChurch, visitors);
+                showToast('Visitantes exportados em Excel com sucesso!', 'success');
+              } else if (activeSubTab === 'ebd') {
+                exportEbdToExcel(currentChurch, bibleClasses);
+                showToast('EBD e alunos matriculados exportados em Excel com sucesso!', 'success');
+              } else {
+                showToast('Exportação desta sub-aba não disponível.', 'info');
+              }
+            }}
+            title="Baixar em planilha Excel"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
+          </button>
+
+          {!isolated && (
+            <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
+              <button
+                onClick={() => setActiveSubTab('visitors')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeSubTab === 'visitors' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Visitantes ({visitors.length})
+              </button>
+              <button
+                onClick={() => setActiveSubTab('ebd')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeSubTab === 'ebd' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                EBD ({bibleClasses.length})
+              </button>
+              <button
+                onClick={() => setActiveSubTab('baptisms')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeSubTab === 'baptisms' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Batismos
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* SUB-ABA 1: VISITANTES */}

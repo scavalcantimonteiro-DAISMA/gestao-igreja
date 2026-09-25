@@ -30,6 +30,8 @@ import {
   formatWhatsAppMessage,
   logAction 
 } from '../../services/storage';
+import { exportFamiliesToExcel } from '../../services/excelBackup';
+import { FileSpreadsheet } from 'lucide-react';
 
 export const FamilyList: React.FC = () => {
   const { currentChurch } = useChurch();
@@ -156,13 +158,27 @@ export const FamilyList: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenNewFamily}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-pink-500/20 active:scale-95 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Cadastrar Família</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              exportFamiliesToExcel(currentChurch, families, weddingsToday.concat(weddingsUpcoming));
+              showToast('Famílias e casamentos exportados em Excel com sucesso!', 'success');
+            }}
+            title="Baixar lista em planilha Excel"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Baixar em Excel</span>
+          </button>
+
+          <button
+            onClick={handleOpenNewFamily}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-pink-500/20 active:scale-95 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Cadastrar Família</span>
+          </button>
+        </div>
       </div>
 
       {/* Destaque de Casamentos e Bodas do Mês */}

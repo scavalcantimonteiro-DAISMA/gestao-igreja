@@ -20,8 +20,11 @@ import {
   Clock,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart3
+  BarChart3,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
+import { exportFinanceToExcel } from '../../services/excelBackup';
 import { 
   FinancialEntry, 
   FinancialExpense, 
@@ -437,6 +440,11 @@ export const FinancialDashboardView: React.FC = () => {
     .filter(f => f.isActive)
     .reduce((acc, f) => acc + f.amount, 0);
 
+  const handleExportExcel = () => {
+    exportFinanceToExcel(currentChurch, entries, expenses, fixedExpenses, selectedYear);
+    showToast(`Planilha financeira de ${selectedYear} exportada com sucesso!`, 'success');
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* Topo com Botões de Ação */}
@@ -457,6 +465,16 @@ export const FinancialDashboardView: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs sm:text-sm font-bold shadow-xs active:scale-95 transition-all"
+            title="Baixar planilha Excel com fluxo de caixa, comparativo mensal e despesas fixas"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Baixar em Excel</span>
+          </button>
+
           <button
             onClick={() => {
               setEditingEntryId(null);

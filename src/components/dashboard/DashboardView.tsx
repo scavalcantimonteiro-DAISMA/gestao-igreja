@@ -13,7 +13,8 @@ import {
   Clock, 
   MapPin, 
   FileText,
-  DollarSign
+  DollarSign,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
@@ -21,6 +22,7 @@ import { ChurchBrandLogo } from '../common/ChurchBrandLogo';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
 import { DailyReportModal } from '../common/DailyReportModal';
+import { exportChurchToExcel } from '../../services/excelBackup';
 import { 
   getMembers, 
   getChildren, 
@@ -85,6 +87,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
           {/* Botões Rápidos */}
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <button
+              onClick={() => exportChurchToExcel(currentChurch)}
+              title="Baixa a congregação inteira com todas as abas em uma planilha Excel completa"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-950/20 active:scale-95 transition-all"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Baixar em Excel (Geral)</span>
+            </button>
+
             <button
               onClick={() => setShowDailyReport(true)}
               className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white text-sky-900 hover:bg-sky-50 text-xs sm:text-sm font-bold shadow-lg shadow-black/10 active:scale-95 transition-all"
