@@ -119,12 +119,12 @@ const MainLayout: React.FC = () => {
           {activeTab === 'smallgroups' && <SmallGroupList />}
           {activeTab === 'leadership' && <LeadershipList />}
           {activeTab === 'ministries' && <MinistriesList />}
-          {activeTab === 'cabinet' && <PastoralCabinetView />}
-          {activeTab === 'visits' && <PastoralCabinetView />}
-          {activeTab === 'prayers' && <PastoralCabinetView />}
-          {activeTab === 'visitors' && <VisitorsAndEbdView initialTab="visitors" />}
-          {activeTab === 'ebd' && <VisitorsAndEbdView initialTab="ebd" />}
-          {activeTab === 'baptisms' && <VisitorsAndEbdView initialTab="baptisms" />}
+          {activeTab === 'cabinet' && <PastoralCabinetView key="cabinet" initialTab="gabinete" isolated={true} />}
+          {activeTab === 'visits' && <PastoralCabinetView key="visits" initialTab="visitas" isolated={true} />}
+          {activeTab === 'prayers' && <PastoralCabinetView key="prayers" initialTab="oracao" isolated={true} />}
+          {activeTab === 'visitors' && <VisitorsAndEbdView key="visitors" initialTab="visitors" isolated={true} />}
+          {activeTab === 'ebd' && <VisitorsAndEbdView key="ebd" initialTab="ebd" isolated={true} />}
+          {activeTab === 'baptisms' && <VisitorsAndEbdView key="baptisms" initialTab="baptisms" isolated={true} />}
           {activeTab === 'reports' && <ReportsView />}
           {activeTab === 'finance' && <FinancialDashboardView />}
           {activeTab === 'settings' && <SettingsView />}

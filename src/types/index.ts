@@ -272,11 +272,14 @@ export interface ChurchEvent {
 
 export type PastoralAppointmentType = 
   | 'aconselhamento' 
-  | 'oração' 
-  | 'visita' 
+  | 'atendimento' 
+  | 'orientação' 
   | 'casamento' 
   | 'família' 
+  | 'liderança' 
   | 'batismo' 
+  | 'oração' 
+  | 'visita' 
   | 'membro' 
   | 'não membro' 
   | 'outro';
@@ -301,6 +304,7 @@ export interface PastoralVisit {
   churchId: string;
   personName: string;
   memberId?: string;
+  phone?: string;
   address: string;
   date: string;
   visitorName: string;
@@ -316,6 +320,8 @@ export interface PrayerRequest {
   id: string;
   churchId: string;
   personName: string;
+  phone?: string;
+  category?: string;
   request: string;
   date: string;
   responsible?: string;
@@ -348,11 +354,18 @@ export interface Visitor {
 export interface BibleClass {
   id: string;
   churchId: string;
-  name: string;
-  teacher: string;
-  schedule: string;
+  name: string; // Nome da Sala / Turma
+  room: string; // Sala / Local (Ex: Sala 01, Salão Principal)
+  scheduleTime: string; // Horário da Aula (Ex: 09:00 - 10:15)
+  schedule?: string;
+  teacher: string; // Professor Titular / Responsável
+  teacherPhone?: string; // WhatsApp do professor
+  assistantTeacher?: string; // Professor auxiliar
+  ageGroup?: string; // Faixa etária / Público
   enrolledStudentsCount: number;
-  attendanceHistory: {
+  notes?: string; // Tema, revista ou observações
+  status?: 'Ativa' | 'Inativa';
+  attendanceHistory?: {
     date: string;
     present: number;
     absent: number;

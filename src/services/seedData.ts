@@ -12,6 +12,7 @@ import {
   PastoralVisit, 
   PrayerRequest, 
   Visitor, 
+  BibleClass, 
   FinancialEntry, 
   FinancialExpense, 
   MessageTemplate, 
@@ -96,6 +97,72 @@ export const INITIAL_VISITS: PastoralVisit[] = [];
 export const INITIAL_PRAYER_REQUESTS: PrayerRequest[] = [];
 
 export const INITIAL_VISITORS: Visitor[] = [];
+
+export const INITIAL_BIBLE_CLASSES: BibleClass[] = [
+  {
+    id: 'ebd_1',
+    churchId: 'church_cba_maceio',
+    name: 'Classe Berçário e Maternal (Cordeirinhos de Cristo)',
+    room: 'Sala Infantil 01',
+    scheduleTime: '09:00 - 10:15',
+    schedule: 'Domingo às 09:00',
+    teacher: 'Sarah Monteiro',
+    teacherPhone: '(82) 99999-1111',
+    assistantTeacher: 'Ana Paula Cavalcanti',
+    ageGroup: '0 a 4 anos',
+    enrolledStudentsCount: 8,
+    notes: 'Revista Maternal: Deus Criou o Mundo. Material de pintura e brinquedos lúdicos.',
+    status: 'Ativa',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'ebd_2',
+    churchId: 'church_cba_maceio',
+    name: 'Classe Juniores (Soldados do Rei)',
+    room: 'Sala 02 (Piso Superior)',
+    scheduleTime: '09:00 - 10:15',
+    schedule: 'Domingo às 09:00',
+    teacher: 'Marcos Oliveira',
+    teacherPhone: '(82) 99999-2222',
+    assistantTeacher: 'Juliana Costa',
+    ageGroup: '9 a 12 anos',
+    enrolledStudentsCount: 15,
+    notes: 'Revista Juniores: Heróis da Fé e os Ensinamentos de Jesus.',
+    status: 'Ativa',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'ebd_3',
+    churchId: 'church_cba_maceio',
+    name: 'Classe Jovens (Geração Eleita)',
+    room: 'Salão Multiuso / Anexo',
+    scheduleTime: '09:00 - 10:15',
+    schedule: 'Domingo às 09:00',
+    teacher: 'Diác. Lucas Pereira',
+    teacherPhone: '(82) 99999-3333',
+    assistantTeacher: 'Beatriz Almeida',
+    ageGroup: '15 a 25 anos',
+    enrolledStudentsCount: 22,
+    notes: 'Estudos bíblicos temáticos sobre apologética, fé no mundo moderno e propósito.',
+    status: 'Ativa',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  {
+    id: 'ebd_4',
+    churchId: 'church_cba_maceio',
+    name: 'Classe Adultos & Famílias',
+    room: 'Templo Principal',
+    scheduleTime: '09:00 - 10:15',
+    schedule: 'Domingo às 09:00',
+    teacher: 'Pr. Tércio Ribeiro',
+    teacherPhone: '(82) 98225-9873',
+    ageGroup: 'Adultos e Casais',
+    enrolledStudentsCount: 36,
+    notes: 'Estudo das Epístolas Paulinas e fortalecimento da família cristã.',
+    status: 'Ativa',
+    createdAt: '2026-01-10T10:00:00Z'
+  }
+];
 
 export const INITIAL_FINANCIAL_ENTRIES: FinancialEntry[] = [];
 

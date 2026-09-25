@@ -12,6 +12,7 @@ import {
   PastoralVisit, 
   PrayerRequest, 
   Visitor, 
+  BibleClass, 
   FinancialEntry, 
   FinancialExpense, 
   MessageTemplate, 
@@ -31,6 +32,7 @@ import {
   INITIAL_VISITS, 
   INITIAL_PRAYER_REQUESTS, 
   INITIAL_VISITORS, 
+  INITIAL_BIBLE_CLASSES, 
   INITIAL_FINANCIAL_ENTRIES, 
   INITIAL_FINANCIAL_EXPENSES, 
   INITIAL_MESSAGE_TEMPLATES, 
@@ -606,6 +608,31 @@ export function saveVisitor(vis: Visitor): void {
 export function deleteVisitor(id: string): void {
   const list = getLocal<Visitor[]>('visitors', INITIAL_VISITORS);
   setLocal('visitors', list.filter(v => v.id !== id));
+}
+
+// ==========================================
+// ESCOLA BÍBLICA DOMINICAL (EBD)
+// ==========================================
+
+export function getBibleClasses(churchId: string): BibleClass[] {
+  const list = getLocal<BibleClass[]>('bible_classes', INITIAL_BIBLE_CLASSES);
+  return list.filter(b => b.churchId === churchId);
+}
+
+export function saveBibleClass(bibleClass: BibleClass): void {
+  const list = getLocal<BibleClass[]>('bible_classes', INITIAL_BIBLE_CLASSES);
+  const index = list.findIndex(b => b.id === bibleClass.id);
+  if (index >= 0) {
+    list[index] = bibleClass;
+  } else {
+    list.push({ ...bibleClass, createdAt: new Date().toISOString() });
+  }
+  setLocal('bible_classes', list);
+}
+
+export function deleteBibleClass(id: string): void {
+  const list = getLocal<BibleClass[]>('bible_classes', INITIAL_BIBLE_CLASSES);
+  setLocal('bible_classes', list.filter(b => b.id !== id));
 }
 
 // ==========================================

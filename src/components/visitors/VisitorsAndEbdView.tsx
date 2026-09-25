@@ -1,28 +1,85 @@
 import React, { useState } from 'react';
-import { UserPlus, GraduationCap, Droplet, Plus, Phone, Calendar, CheckCircle2, MessageCircle, X, Save, Users, BookOpen, Trash2 } from 'lucide-react';
+import { 
+  UserPlus, 
+  GraduationCap, 
+  Droplet, 
+  Plus, 
+  Phone, 
+  Calendar, 
+  CheckCircle2, 
+  MessageCircle, 
+  X, 
+  Save, 
+  Users, 
+  BookOpen, 
+  Trash2,
+  Clock,
+  MapPin,
+  Edit3,
+  Search
+} from 'lucide-react';
 import { Visitor, BibleClass, BaptismRecord } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { ConfirmModal } from '../common/ConfirmModal';
-import { getVisitors, saveVisitor, deleteVisitor, getMessageTemplates, formatWhatsAppMessage, logAction } from '../../services/storage';
+import { 
+  getVisitors, 
+  saveVisitor, 
+  deleteVisitor, 
+  getBibleClasses,
+  saveBibleClass,
+  deleteBibleClass,
+  getMessageTemplates, 
+  formatWhatsAppMessage, 
+  logAction 
+} from '../../services/storage';
 
 interface VisitorsAndEbdViewProps {
   initialTab?: 'visitors' | 'ebd' | 'baptisms';
+  isolated?: boolean;
 }
 
-export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialTab = 'visitors' }) => {
+export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ 
+  initialTab = 'visitors',
+  isolated = false
+}) => {
   const { currentChurch } = useChurch();
   const { showToast } = useNotification();
 
   const [activeSubTab, setActiveSubTab] = useState<'visitors' | 'ebd' | 'baptisms'>(initialTab);
+
+  React.useEffect(() => {
+    setActiveSubTab(initialTab);
+  }, [initialTab]);
+
   const [visitors, setVisitors] = useState<Visitor[]>(() => getVisitors(currentChurch.id));
+  const [bibleClasses, setBibleClasses] = useState<BibleClass[]>(() => getBibleClasses(currentChurch.id));
+
   const [isVisitorModalOpen, setIsVisitorModalOpen] = useState(false);
   const [visitorToDelete, setVisitorToDelete] = useState<Visitor | null>(null);
 
+  // Estados da EBD (Escola Bíblica Dominical)
+  const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+  const [classToEdit, setClassToEdit] = useState<BibleClass | null>(null);
+  const [classToDelete, setClassToDelete] = useState<BibleClass | null>(null);
+  const [ebdSearchTerm, setEbdSearchTerm] = useState('');
+
+  const [classForm, setClassForm] = useState<Partial<BibleClass>>({
+    name: '',
+    room: 'Sala 01',
+    scheduleTime: '09:00 - 10:15',
+    teacher: '',
+    teacherPhone: '',
+    assistantTeacher: '',
+    ageGroup: '',
+    enrolledStudentsCount: 0,
+    status: 'Ativa',
+    notes: ''
+  });
 
   const [visitorForm, setVisitorForm] = useState<Partial<Visitor>>({
-    firstVisitDate: '2026-09-20',
+    firstVisitDate: new Date().toISOString().split('T')[0],
     status: 'novo',
     touchpoints: []
   });
@@ -35,6 +92,10 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialT
     setVisitors(getVisitors(currentChurch.id));
   };
 
+  const refreshBibleClasses = () => {
+    setBibleClasses(getBibleClasses(currentChurch.id));
+  };
+
   const handleDeleteVisitorConfirm = () => {
     if (visitorToDelete) {
       deleteVisitor(visitorToDelete.id);
@@ -44,7 +105,6 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialT
       refreshVisitors();
     }
   };
-
 
   const handleSaveVisitor = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +118,7 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialT
       churchId: currentChurch.id,
       name: visitorForm.name,
       whatsapp: visitorForm.whatsapp,
-      firstVisitDate: visitorForm.firstVisitDate || '2026-09-20',
+      firstVisitDate: visitorForm.firstVisitDate || new Date().toISOString().split('T')[0],
       howMetChurch: visitorForm.howMetChurch || 'Convite de membro',
       notes: visitorForm.notes || '',
       status: 'novo',
@@ -80,6 +140,99 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialT
     refreshVisitors();
   };
 
+  // Funções da EBD
+  const handleOpenNewClassModal = () => {
+    setClassToEdit(null);
+    setClassForm({
+      name: '',
+      room: 'Sala 01',
+      scheduleTime: '09:00 - 10:15',
+      teacher: '',
+      teacherPhone: '',
+      assistantTeacher: '',
+      ageGroup: '',
+      enrolledStudentsCount: 0,
+      status: 'Ativa',
+      notes: ''
+    });
+    setIsClassModalOpen(true);
+  };
+
+  const handleOpenEditClassModal = (cls: BibleClass) => {
+    setClassToEdit(cls);
+    setClassForm({
+      name: cls.name,
+      room: cls.room,
+      scheduleTime: cls.scheduleTime || cls.schedule || '09:00 - 10:15',
+      teacher: cls.teacher,
+      teacherPhone: cls.teacherPhone || '',
+      assistantTeacher: cls.assistantTeacher || '',
+      ageGroup: cls.ageGroup || '',
+      enrolledStudentsCount: cls.enrolledStudentsCount || 0,
+      status: cls.status || 'Ativa',
+      notes: cls.notes || ''
+    });
+    setIsClassModalOpen(true);
+  };
+
+  const handleSaveClass = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!classForm.name?.trim() || !classForm.room?.trim() || !classForm.teacher?.trim()) {
+      showToast('Nome da Sala/Turma, Sala e Professor(a) Titular são obrigatórios.', 'error');
+      return;
+    }
+
+    const saved: BibleClass = {
+      id: classToEdit ? classToEdit.id : 'ebd_' + Date.now(),
+      churchId: currentChurch.id,
+      name: classForm.name.trim(),
+      room: classForm.room.trim(),
+      scheduleTime: classForm.scheduleTime?.trim() || '09:00 - 10:15',
+      schedule: classForm.scheduleTime?.trim() || '09:00 - 10:15',
+      teacher: classForm.teacher.trim(),
+      teacherPhone: classForm.teacherPhone?.trim() || '',
+      assistantTeacher: classForm.assistantTeacher?.trim() || '',
+      ageGroup: classForm.ageGroup?.trim() || '',
+      enrolledStudentsCount: Number(classForm.enrolledStudentsCount) || 0,
+      status: classForm.status || 'Ativa',
+      notes: classForm.notes?.trim() || '',
+      createdAt: classToEdit ? classToEdit.createdAt : new Date().toISOString()
+    };
+
+    saveBibleClass(saved);
+    logAction(
+      currentChurch.id,
+      'Coordenação EBD',
+      'ADMIN',
+      classToEdit ? 'Atualização de Sala EBD' : 'Cadastro de Sala EBD',
+      `${saved.name} (${saved.room})`
+    );
+    showToast(classToEdit ? 'Sala da EBD atualizada!' : 'Sala da EBD cadastrada com sucesso!', 'success');
+    setIsClassModalOpen(false);
+    refreshBibleClasses();
+  };
+
+  const handleDeleteClassConfirm = () => {
+    if (classToDelete) {
+      deleteBibleClass(classToDelete.id);
+      logAction(currentChurch.id, 'Coordenação EBD', 'ADMIN', 'Exclusão de Sala EBD', classToDelete.name);
+      showToast('Sala da EBD excluída com sucesso.', 'success');
+      setClassToDelete(null);
+      refreshBibleClasses();
+    }
+  };
+
+  const filteredClasses = bibleClasses.filter(c => {
+    if (!ebdSearchTerm.trim()) return true;
+    const term = ebdSearchTerm.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(term) ||
+      c.room.toLowerCase().includes(term) ||
+      c.teacher.toLowerCase().includes(term) ||
+      (c.ageGroup && c.ageGroup.toLowerCase().includes(term))
+    );
+  });
+
   return (
     <div className="space-y-6 animate-in fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -95,36 +248,40 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialT
             </span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            {currentChurch.name} • Integração, discipulado e crescimento espiritual
+            {activeSubTab === 'visitors' && `${currentChurch.name} • Acolhimento de novos visitantes e integração`}
+            {activeSubTab === 'ebd' && `${currentChurch.name} • Cadastro de horários, salas e professores da EBD`}
+            {activeSubTab === 'baptisms' && `${currentChurch.name} • Acompanhamento batismal e discipulado`}
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
-          <button
-            onClick={() => setActiveSubTab('visitors')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeSubTab === 'visitors' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Visitantes ({visitors.length})
-          </button>
-          <button
-            onClick={() => setActiveSubTab('ebd')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeSubTab === 'ebd' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            EBD
-          </button>
-          <button
-            onClick={() => setActiveSubTab('baptisms')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeSubTab === 'baptisms' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Batismos
-          </button>
-        </div>
+        {!isolated && (
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
+            <button
+              onClick={() => setActiveSubTab('visitors')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === 'visitors' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Visitantes ({visitors.length})
+            </button>
+            <button
+              onClick={() => setActiveSubTab('ebd')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === 'ebd' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              EBD ({bibleClasses.length})
+            </button>
+            <button
+              onClick={() => setActiveSubTab('baptisms')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === 'baptisms' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Batismos
+            </button>
+          </div>
+        )}
       </div>
 
       {/* SUB-ABA 1: VISITANTES */}
@@ -242,16 +399,186 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialT
         </div>
       )}
 
-      {/* SUB-ABA 2: EBD */}
+      {/* SUB-ABA 2: EBD - GESTÃO DE HORÁRIOS, SALAS E PROFESSORES */}
       {activeSubTab === 'ebd' && (
-        <div className="space-y-4">
-          <div className="p-12 text-center rounded-3xl bg-white border border-slate-200 shadow-sm">
-            <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-700">Escola Bíblica Dominical (EBD)</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-              Classes e turmas bíblicas da {currentChurch.name}. O acompanhamento de presença é habilitado aos domingos durante as aulas.
-            </p>
+        <div className="space-y-6">
+          {/* Métricas da EBD */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-semibold">Salas & Turmas Ativas</p>
+                <p className="text-lg font-black text-slate-900">{bibleClasses.length}</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-semibold">Alunos Matriculados</p>
+                <p className="text-lg font-black text-slate-900">
+                  {bibleClasses.reduce((acc, c) => acc + (c.enrolledStudentsCount || 0), 0)}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-semibold">Professores Registrados</p>
+                <p className="text-lg font-black text-slate-900">
+                  {new Set(bibleClasses.map(c => c.teacher).filter(Boolean)).size}
+                </p>
+              </div>
+            </div>
           </div>
+
+          {/* Barra de Busca e Botão de Ação */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Buscar por turma, professor ou sala..."
+                value={ebdSearchTerm}
+                onChange={e => setEbdSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-800 outline-none focus:border-sky-500 shadow-2xs"
+              />
+            </div>
+
+            <button
+              onClick={handleOpenNewClassModal}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-sky-500/20 active:scale-95 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Cadastrar Sala / Turma</span>
+            </button>
+          </div>
+
+          {/* Listagem de Classes e Turmas */}
+          {filteredClasses.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl bg-white border border-slate-200 shadow-sm">
+              <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-700">Nenhuma sala ou turma da EBD cadastrada</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                {ebdSearchTerm
+                  ? 'Nenhum resultado para os termos pesquisados.'
+                  : 'Cadastre horários, salas e seus respectivos professores para organizar a Escola Bíblica.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredClasses.map(cls => (
+                <div
+                  key={cls.id}
+                  className="p-5 rounded-3xl bg-white border border-slate-200/90 hover:border-sky-300 hover:shadow-md transition-all shadow-sm flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Header do Card */}
+                    <div className="flex items-start justify-between pb-3 mb-3 border-b border-slate-100 gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-sky-50 text-sky-700 font-bold text-xs border border-sky-200">
+                          <MapPin className="w-3.5 h-3.5 text-sky-500" />
+                          <span>{cls.room}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 font-mono font-bold text-xs border border-slate-200">
+                          <Clock className="w-3.5 h-3.5 text-slate-500" />
+                          <span>{cls.scheduleTime || cls.schedule || '09:00 - 10:15'}</span>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            cls.status === 'Ativa'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}
+                        >
+                          {cls.status || 'Ativa'}
+                        </span>
+                        <button
+                          onClick={() => handleOpenEditClassModal(cls)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors"
+                          title="Editar Sala / Turma"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setClassToDelete(cls)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Excluir Sala / Turma"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Identificação da Turma */}
+                    <div>
+                      <h3 className="font-black text-base text-slate-900 leading-snug">{cls.name}</h3>
+                      {cls.ageGroup && (
+                        <p className="text-xs text-sky-700 font-semibold mt-0.5">
+                          Público / Faixa: {cls.ageGroup}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Professores e Detalhes */}
+                    <div className="mt-3.5 p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5 text-xs">
+                      <div>
+                        <span className="text-slate-400 font-semibold">Professor(a) Titular:</span>{' '}
+                        <strong className="text-slate-800">{cls.teacher}</strong>
+                      </div>
+
+                      {cls.assistantTeacher && (
+                        <p>
+                          <span className="text-slate-400 font-semibold">Professor(a) Auxiliar:</span>{' '}
+                          <span className="text-slate-700 font-medium">{cls.assistantTeacher}</span>
+                        </p>
+                      )}
+
+                      <p>
+                        <span className="text-slate-400 font-semibold">Alunos Matriculados:</span>{' '}
+                        <span className="text-slate-700 font-bold">{cls.enrolledStudentsCount || 0} alunos</span>
+                      </p>
+
+                      {cls.notes && (
+                        <p className="pt-1.5 text-[11px] text-slate-600 italic border-t border-slate-200/60 mt-1.5">
+                          "{cls.notes}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Rodapé com botão de WhatsApp */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    {cls.teacherPhone ? (
+                      <WhatsAppButton
+                        phone={cls.teacherPhone}
+                        message={`Graça e Paz, Prof(a). ${cls.teacher}! Entrando em contato sobre a classe "${cls.name}" (${cls.room}) da EBD na ${currentChurch.name}.`}
+                        label="Falar com Professor"
+                        size="sm"
+                        variant="outline"
+                      />
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">WhatsApp não informado</span>
+                    )}
+
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      {cls.scheduleTime || cls.schedule || '09:00 - 10:15'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -356,6 +683,181 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({ initialT
           confirmVariant="danger"
           onConfirm={handleDeleteVisitorConfirm}
           onCancel={() => setVisitorToDelete(null)}
+        />
+      )}
+
+      {/* Modal Cadastrar / Editar Sala da EBD */}
+      {isClassModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setIsClassModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-base font-bold text-slate-900 mb-1">
+              {classToEdit ? 'Editar Sala / Turma da EBD' : 'Cadastrar Sala / Turma da EBD'}
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Defina a sala, horário da aula e os respectivos professores responsáveis.
+            </p>
+
+            <form onSubmit={handleSaveClass} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Nome da Sala / Turma *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Classe Berçário, Juniores, Jovens, Casais, Adultos..."
+                  value={classForm.name || ''}
+                  onChange={e => setClassForm({ ...classForm, name: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Sala / Local Físico *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Sala 01, Sala 02, Templo, Anexo..."
+                    value={classForm.room || ''}
+                    onChange={e => setClassForm({ ...classForm, room: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Horário da Aula *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: 09:00 - 10:15 ou 08:30 - 09:45"
+                    value={classForm.scheduleTime || ''}
+                    onChange={e => setClassForm({ ...classForm, scheduleTime: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Faixa Etária / Público</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 0 a 4 anos, 9 a 12 anos, Jovens, Adultos..."
+                    value={classForm.ageGroup || ''}
+                    onChange={e => setClassForm({ ...classForm, ageGroup: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Qtd. Alunos Matriculados</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={classForm.enrolledStudentsCount || 0}
+                    onChange={e => setClassForm({ ...classForm, enrolledStudentsCount: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Professor(a) Titular / Responsável *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nome completo do professor"
+                    value={classForm.teacher || ''}
+                    onChange={e => setClassForm({ ...classForm, teacher: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp do Professor</label>
+                  <input
+                    type="text"
+                    placeholder="(DDD) 99999-9999"
+                    value={classForm.teacherPhone || ''}
+                    onChange={e => setClassForm({ ...classForm, teacherPhone: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Professor(a) Auxiliar (Opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="Nome do professor auxiliar"
+                    value={classForm.assistantTeacher || ''}
+                    onChange={e => setClassForm({ ...classForm, assistantTeacher: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Status da Sala</label>
+                  <select
+                    value={classForm.status || 'Ativa'}
+                    onChange={e => setClassForm({ ...classForm, status: e.target.value as any })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  >
+                    <option value="Ativa">Ativa</option>
+                    <option value="Inativa">Em recesso / Inativa</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Observações / Tema da Revista</label>
+                <textarea
+                  rows={2}
+                  placeholder="Tema do trimestre, revista didática, objetivos pedagógicos..."
+                  value={classForm.notes || ''}
+                  onChange={e => setClassForm({ ...classForm, notes: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsClassModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm"
+                >
+                  {classToEdit ? 'Atualizar Sala' : 'Salvar Sala'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {classToDelete && (
+        <ConfirmModal
+          isOpen={true}
+          title="Excluir Sala da EBD"
+          message={`Tem certeza que deseja remover o cadastro da sala "${classToDelete.name}" (${classToDelete.room}) com professor ${classToDelete.teacher}? Esta ação não pode ser desfeita.`}
+          confirmLabel="Excluir Sala"
+          confirmVariant="danger"
+          onConfirm={handleDeleteClassConfirm}
+          onCancel={() => setClassToDelete(null)}
         />
       )}
     </div>
