@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (password === MASTER_PASSWORD || password === 'S@ulo160605') {
       const masterUser: User = {
         id: 'usr_saulo_master',
-        churchId: 'church_demo',
+        churchId: 'church_cba_maceio',
         name: 'Saulo Monteiro',
         email: 'saulo@smdesenvolvimento.com.br',
         role: 'SUPERADMIN',
@@ -138,8 +138,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const switchDemoRole = (role: UserRole, churchId: string) => {
-    let name = 'Usuário';
-    let email = 'usuario@igrejabetel.com.br';
+    const isCba = churchId === 'church_cba_maceio';
+    let name = isCba ? 'Membro CBA' : 'Usuário';
+    let email = isCba ? 'usuario@cbacolher.com.br' : 'usuario@igrejabetel.com.br';
 
     switch (role) {
       case 'SUPERADMIN':
@@ -147,24 +148,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email = 'saulo@smdesenvolvimento.com.br';
         break;
       case 'ADMIN':
-        name = 'Administração Betel';
-        email = 'admin@igrejabetel.com.br';
+        name = isCba ? 'Administração CBA' : 'Administração Betel';
+        email = isCba ? 'admin@cbacolher.com.br' : 'admin@igrejabetel.com.br';
         break;
       case 'PASTOR':
-        name = 'Pr. Marcos Aurélio Silveira';
-        email = 'pastor@igrejabetel.com.br';
+        name = isCba ? 'Pr. Saulo Cavalcanti' : 'Pr. Marcos Aurélio Silveira';
+        email = isCba ? 'pastor@cbacolher.com.br' : 'pastor@igrejabetel.com.br';
         break;
       case 'SECRETARIA':
-        name = 'Secretaria Betel';
-        email = 'secretaria@igrejabetel.com.br';
+        name = isCba ? 'Secretaria CBA' : 'Secretaria Betel';
+        email = isCba ? 'secretaria@cbacolher.com.br' : 'secretaria@igrejabetel.com.br';
         break;
       case 'TESOURARIA':
-        name = 'Tesouraria Betel';
-        email = 'tesouraria@igrejabetel.com.br';
+        name = isCba ? 'Tesouraria CBA' : 'Tesouraria Betel';
+        email = isCba ? 'tesouraria@cbacolher.com.br' : 'tesouraria@igrejabetel.com.br';
         break;
       case 'LIDER_PG':
-        name = 'Carlos Eduardo Oliveira (Líder PG)';
-        email = 'carlos.pg@igrejabetel.com.br';
+        name = isCba ? 'Líder Pequeno Grupo CBA' : 'Carlos Eduardo Oliveira (Líder PG)';
+        email = isCba ? 'liderpg@cbacolher.com.br' : 'carlos.pg@igrejabetel.com.br';
         break;
     }
 

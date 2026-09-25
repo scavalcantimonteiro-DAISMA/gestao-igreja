@@ -174,39 +174,79 @@ export function isChurchDeleted(id: string): boolean {
   return deleted.includes(id);
 }
 
-// Inicializa dados de forma segura, garantindo dados demonstrativos fictícios e sincronia de exclusões
+// Inicializa dados de forma segura, garantindo dados demonstrativos fictícios e a integridade da congregação oficial CBA
 export function initializeStorage(): void {
-  // 0. Purga de segurança de dados reais legados e remoção de congregações excluídas
-  const PURGE_KEY = 'gi_purged_legacy_real_data_v3';
-  if (typeof localStorage !== 'undefined' && localStorage.getItem(PURGE_KEY) !== 'true') {
-    markChurchDeleted('church_cba_maceio');
-    markChurchDeleted('church_ib_capunga_parnamirim');
+  // 0. Restauração emergencial e definitiva da congregação oficial Comunidade Batista Acolher
+  const RESTORE_CBA_KEY = 'gi_restored_cba_maceio_v1';
+  if (typeof localStorage !== 'undefined') {
+    // Remove church_cba_maceio da lista de deletados se foi inserida por engano
+    const deleted = getLocal<string[]>('gi_deleted_church_ids', []);
+    if (deleted.includes('church_cba_maceio')) {
+      setLocal('gi_deleted_church_ids', deleted.filter(id => id !== 'church_cba_maceio'));
+    }
 
-    // Purga congregações legadas
-    const rawChurches = getLocal<Church[]>('churches', []);
-    const filteredChurches = rawChurches.filter(c => c.id !== 'church_cba_maceio' && c.id !== 'church_ib_capunga_parnamirim');
-    setLocal('churches', filteredChurches);
+    if (localStorage.getItem(RESTORE_CBA_KEY) !== 'true') {
+      // 1. Garante a igreja CBA na lista de igrejas
+      const currentChurches = getLocal<Church[]>('churches', []);
+      const cbaChurch = INITIAL_CHURCHES.find(c => c.id === 'church_cba_maceio');
+      if (cbaChurch && !currentChurches.some(c => c.id === 'church_cba_maceio')) {
+        currentChurches.push(cbaChurch);
+        setLocal('churches', currentChurches);
+      }
 
-    // Purga membros legados
-    const rawMembers = getLocal<Member[]>('members', []);
-    const filteredMembers = rawMembers.filter(m => m.churchId !== 'church_cba_maceio' && m.churchId !== 'church_ib_capunga_parnamirim');
-    setLocal('members', filteredMembers);
+      // 2. Garante os 140 membros da CBA
+      const currentMembers = getLocal<Member[]>('members', []);
+      const cbaInitMembers = INITIAL_MEMBERS.filter(m => m.churchId === 'church_cba_maceio');
+      const existingCbaIds = new Set(currentMembers.filter(m => m.churchId === 'church_cba_maceio').map(m => m.id));
+      const missingMembers = cbaInitMembers.filter(m => !existingCbaIds.has(m.id));
+      if (missingMembers.length > 0) {
+        setLocal('members', [...currentMembers, ...missingMembers]);
+      }
 
-    // Purga ministérios e liderança legados
-    const rawMin = getLocal<Ministry[]>('ministries', []);
-    setLocal('ministries', rawMin.filter(m => m.churchId !== 'church_cba_maceio' && m.churchId !== 'church_ib_capunga_parnamirim'));
+      // 3. Garante ministérios da CBA
+      const currentMin = getLocal<Ministry[]>('ministries', []);
+      const cbaMin = INITIAL_MINISTRIES.filter(m => m.churchId === 'church_cba_maceio');
+      const existingMinIds = new Set(currentMin.map(m => m.id));
+      const missingMin = cbaMin.filter(m => !existingMinIds.has(m.id));
+      if (missingMin.length > 0) {
+        setLocal('ministries', [...currentMin, ...missingMin]);
+      }
 
-    const rawLead = getLocal<Leadership[]>('leadership', []);
-    setLocal('leadership', rawLead.filter(l => l.churchId !== 'church_cba_maceio' && l.churchId !== 'church_ib_capunga_parnamirim'));
+      // 4. Garante liderança da CBA
+      const currentLead = getLocal<Leadership[]>('leadership', []);
+      const cbaLead = INITIAL_LEADERSHIP.filter(l => l.churchId === 'church_cba_maceio');
+      const existingLeadIds = new Set(currentLead.map(l => l.id));
+      const missingLead = cbaLead.filter(l => !existingLeadIds.has(l.id));
+      if (missingLead.length > 0) {
+        setLocal('leadership', [...currentLead, ...missingLead]);
+      }
 
-    localStorage.setItem(PURGE_KEY, 'true');
+      // 5. Garante escalas e eventos da CBA
+      const currentSched = getLocal<Schedule[]>('schedules', []);
+      const cbaSched = INITIAL_SCHEDULES.filter(s => s.churchId === 'church_cba_maceio');
+      const existingSchedIds = new Set(currentSched.map(s => s.id));
+      const missingSched = cbaSched.filter(s => !existingSchedIds.has(s.id));
+      if (missingSched.length > 0) {
+        setLocal('schedules', [...currentSched, ...missingSched]);
+      }
+
+      const currentEvt = getLocal<ChurchEvent[]>('events', []);
+      const cbaEvt = INITIAL_EVENTS.filter(e => e.churchId === 'church_cba_maceio');
+      const existingEvtIds = new Set(currentEvt.map(e => e.id));
+      const missingEvt = cbaEvt.filter(e => !existingEvtIds.has(e.id));
+      if (missingEvt.length > 0) {
+        setLocal('events', [...currentEvt, ...missingEvt]);
+      }
+
+      localStorage.setItem(RESTORE_CBA_KEY, 'true');
+    }
   }
 
   // 1. Cria backup instantâneo de segurança do estado atual
   createAutoSafetyBackup();
 
-  // 2. Congregações: Garante que congregações excluídas NUNCA sejam recriadas
-  const deletedIds = getLocal<string[]>('gi_deleted_church_ids', []);
+  // 2. Congregações: Garante que congregações excluídas NUNCA sejam recriadas (exceto CBA que é protegida)
+  const deletedIds = getLocal<string[]>('gi_deleted_church_ids', []).filter(id => id !== 'church_cba_maceio');
   const storedChurches = getLocal<Church[]>('churches', INITIAL_CHURCHES).filter(c => !deletedIds.includes(c.id));
 
   INITIAL_CHURCHES.forEach(initChurch => {
@@ -225,12 +265,21 @@ export function initializeStorage(): void {
   });
   setLocal('churches', storedChurches);
 
-  // 3. Membros: Garante membros demonstrativos fictícios
+  // 3. Membros: Garante membros tanto da CBA (140 membros) quanto demonstrativos
   const storedMembers = getLocal<Member[]>('members', INITIAL_MEMBERS);
   const hasDemoMembers = storedMembers.some(m => m.churchId === 'church_demo');
+  const hasCbaMembers = storedMembers.some(m => m.churchId === 'church_cba_maceio');
+  let updatedMembers = [...storedMembers];
   if (!hasDemoMembers) {
-    const merged = [...storedMembers, ...INITIAL_MEMBERS];
-    setLocal('members', merged);
+    const demoMembers = INITIAL_MEMBERS.filter(m => m.churchId === 'church_demo');
+    updatedMembers = [...updatedMembers, ...demoMembers];
+  }
+  if (!hasCbaMembers) {
+    const cbaMembers = INITIAL_MEMBERS.filter(m => m.churchId === 'church_cba_maceio');
+    updatedMembers = [...updatedMembers, ...cbaMembers];
+  }
+  if (updatedMembers.length !== storedMembers.length) {
+    setLocal('members', updatedMembers);
   }
 
   // 4. Ministérios
@@ -352,6 +401,12 @@ export function saveChurch(church: Church): void {
 }
 
 export function deleteChurch(id: string): void {
+  // Proteção vital: a congregação Comunidade Batista Acolher é permanente e nunca pode ser excluída
+  if (id === 'church_cba_maceio') {
+    console.warn('Tentativa de excluir a Comunidade Batista Acolher bloqueada por segurança do sistema.');
+    return;
+  }
+
   // 1. Registra tombstone para nunca mais ressuscitar em nenhum dispositivo
   markChurchDeleted(id);
 

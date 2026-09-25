@@ -21,6 +21,7 @@ import {
   setLocal
 } from './storage';
 import {
+  INITIAL_CHURCHES,
   INITIAL_MEMBERS,
   INITIAL_CHILDREN,
   INITIAL_FAMILIES,
@@ -279,11 +280,20 @@ export function useDataSync(refreshFn: () => void, deps: any[] = []): void {
 
 export async function syncChurchesFromCloud(): Promise<Church[]> {
   try {
+    // 0. Remove tombstone acidental da CBA se existir no Firestore
+    try {
+      await deleteDoc(doc(db, 'deleted_churches', 'church_cba_maceio')).catch(() => {});
+    } catch {
+      // Ignora
+    }
+
     try {
       const deletedSnap = await getDocs(collection(db, 'deleted_churches'));
       if (!deletedSnap.empty) {
         deletedSnap.forEach(delDoc => {
-          deleteChurch(delDoc.id);
+          if (delDoc.id !== 'church_cba_maceio') {
+            deleteChurch(delDoc.id);
+          }
         });
       }
     } catch (e) {
@@ -306,10 +316,19 @@ export async function syncChurchesFromCloud(): Promise<Church[]> {
       });
     }
 
+    // Garante que a CBA e o Demo estejam sempre presentes tanto localmente quanto na nuvem
+    const cbaChurch = INITIAL_CHURCHES.find(c => c.id === 'church_cba_maceio');
+    if (cbaChurch) {
+      saveChurch(cbaChurch);
+      if (!cloudIds.has('church_cba_maceio')) {
+        saveChurchToCloud(cbaChurch).catch(console.warn);
+      }
+    }
+
     if (cloudIds.size > 0) {
       const localChurches = getChurches();
       localChurches.forEach(localC => {
-        if (localC.id !== 'church_demo' && !cloudIds.has(localC.id)) {
+        if (localC.id !== 'church_demo' && localC.id !== 'church_cba_maceio' && !cloudIds.has(localC.id)) {
           deleteChurch(localC.id);
         }
       });
@@ -333,6 +352,7 @@ export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () 
           let changed = false;
           delSnap.forEach(d => {
             const id = d.id;
+            if (id === 'church_cba_maceio') return; // NUNCA deletar CBA
             const current = getChurches();
             if (current.some(c => c.id === id)) {
               deleteChurch(id);
@@ -352,7 +372,7 @@ export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () 
       churchesCol,
       (snapshot) => {
         snapshot.docChanges().forEach((change) => {
-          if (change.type === 'removed') {
+          if (change.type === 'removed' && change.doc.id !== 'church_cba_maceio') {
             deleteChurch(change.doc.id);
           }
         });
@@ -366,10 +386,16 @@ export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () 
           }
         });
 
+        // Garante permanência da CBA
+        const cbaChurch = INITIAL_CHURCHES.find(c => c.id === 'church_cba_maceio');
+        if (cbaChurch) {
+          saveChurch(cbaChurch);
+        }
+
         if (cloudIds.size > 0) {
           const localChurches = getChurches();
           localChurches.forEach(localC => {
-            if (localC.id !== 'church_demo' && !cloudIds.has(localC.id)) {
+            if (localC.id !== 'church_demo' && localC.id !== 'church_cba_maceio' && !cloudIds.has(localC.id)) {
               deleteChurch(localC.id);
             }
           });
@@ -409,6 +435,12 @@ export async function saveChurchToCloud(church: Church): Promise<{ success: bool
 }
 
 export async function deleteChurchFromCloud(churchId: string): Promise<void> {
+  // Proibição total de exclusão da congregação oficial CBA
+  if (churchId === 'church_cba_maceio') {
+    console.warn('Tentativa de excluir a Comunidade Batista Acolher da nuvem bloqueada por segurança.');
+    return;
+  }
+
   try {
     deleteChurch(churchId);
     const churchDoc = doc(db, 'churches', churchId);

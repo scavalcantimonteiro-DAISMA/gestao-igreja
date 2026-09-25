@@ -1,4 +1,526 @@
-import { Ministry, Leadership } from '../types';
+﻿import { Ministry, Leadership } from '../types';
+
+export const CBA_MINISTRIES: Ministry[] = [
+  {
+    "id": "min_infantil",
+    "churchId": "church_cba_maceio",
+    "name": "Departamento Infantil",
+    "leaderName": "Marcela da Mota Lins Queiroga",
+    "viceLeaderName": "Alexia Brand├úo Gozele",
+    "meetingDay": "Domingo",
+    "meetingTime": "17:00 e 18:30",
+    "location": "Salas do Departamento Infantil",
+    "description": "Ensino b├¡blico, acolhimento e discipulado de beb├¬s e crian├ºas durante as celebra├º├Áes.",
+    "membersCount": 12,
+    "members": [
+      "Marcela da Mota Lins Queiroga",
+      "Alexia Brand├úo Gozele",
+      "Alycia Vital",
+      "Elton Casado Fireman",
+      "Gerlanne Costa Alves Silva",
+      "Jaqueline Maria da Silva",
+      "Maria Eduarda Cavalcante Suica Oliveira",
+      "Maria Flor Brand├úo Gozele",
+      "Marina Libardi",
+      "Silma Marisa Gardino Da Silva",
+      "Walkiria Costa Alves dos Santos",
+      "Yasmin Lessa da Silva Farias"
+    ],
+    "volunteers": [
+      "Alice Agra Vasconcelos",
+      "Ingrid Oliveira",
+      "Nicolas Calazans Fireman",
+      "Elisa Hil├írio Fireman"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_louvor",
+    "churchId": "church_cba_maceio",
+    "name": "Minist├®rio de Louvor & Adora├º├úo (M├║sica)",
+    "leaderName": "Sandro de Melo do Esp├¡rito Santo",
+    "viceLeaderName": "Amaury Luiz Lessa Neto",
+    "meetingDay": "S├íbado",
+    "meetingTime": "16:00",
+    "location": "Templo Principal",
+    "description": "Condu├º├úo do louvor congregacional, adora├º├úo b├¡blica, ensaios instrumentais e vocais.",
+    "membersCount": 10,
+    "members": [
+      "Sandro de Melo do Esp├¡rito Santo",
+      "Amaury Luiz Lessa Neto",
+      "Isis Alane Gomes Miranda",
+      "Itamar Vidal Silva de Lima",
+      "Jadson Coutinho de Lima Filho",
+      "Jos├® Chicuta Silva Neto",
+      "Juliana Sarmento Vilela",
+      "Ricardo Ant├┤nio Genuino Barroso",
+      "Thirza de Almeida Barreto Souza",
+      "Victor Oliveira Prot├ísio"
+    ],
+    "volunteers": [
+      "Bruno Rafael Ferreira de Melo",
+      "L├¡zia Barobsa Fireman",
+      "Sando M├írcio Cirino",
+      "Waneska Martins P. Cunha (Coral)",
+      "Wannessa Kelly Wanderley Martins Borba",
+      "Dalton Derley Rem├¡gio Lucas",
+      "Maria Luiza Barros"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_midia",
+    "churchId": "church_cba_maceio",
+    "name": "M├¡dia, Tecnologia & Transmiss├úo (Comunica├º├úo)",
+    "leaderName": "Ruhan Nicolas Montenegro Oliveira",
+    "viceLeaderName": "Mylenna Maria Amancio Correia",
+    "meetingDay": "Quarta e Domingo",
+    "meetingTime": "18:00",
+    "location": "Mesa de Som e Cabine de Transmiss├úo",
+    "description": "Gest├úo de som, proje├º├úo, transmiss├úo ao vivo no YouTube/Instagram e redes sociais da CBA.",
+    "membersCount": 12,
+    "members": [
+      "Ruhan Nicolas Montenegro Oliveira",
+      "Mylenna Maria Amancio Correia",
+      "Ana Carolina Tenorio de Andrade Barbosa",
+      "Ana Ruth de A B Souza",
+      "F├íbio Henrique da Silva Brito",
+      "Guilherme Pietro Costa Alves dos Santos",
+      "Ivo Thalisson Santos de Oliveira",
+      "Jonas Emanuel Bento Assis de Melo",
+      "Julio Cesar Sarmento Vilela de Barros",
+      "Maria Luiza Barros",
+      "Victor Oliveira Prot├ísio",
+      "Vinicius de Souza Le├úo"
+    ],
+    "volunteers": [
+      "Davi Lucas Schinke Cavalcante Balbino",
+      "Karlos Henriques Gouveia Borba",
+      "Priscila Ingrid da Silva Alves",
+      "Lucas Henrique de Souza Luz"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_cantina",
+    "churchId": "church_cba_maceio",
+    "name": "Minist├®rio da Cantina & Comunh├úo",
+    "leaderName": "Albany Hilana Faustino do Esp├¡rito Santo",
+    "viceLeaderName": "Ana Paula Amorim",
+    "meetingDay": "Domingo",
+    "meetingTime": "17:00",
+    "location": "Espa├ºo de Conviv├¬ncia e Cantina CBA",
+    "description": "Servi├ºo de cantina, acolhimento gastron├┤mico e momentos de comunh├úo p├│s-cultos.",
+    "membersCount": 13,
+    "members": [
+      "Albany Hilana Faustino do Esp├¡rito Santo",
+      "Ana Paula Amorim",
+      "Ana Maria dos Santos Silva",
+      "Cristiane Cavalcante Balbino",
+      "Isis Alane Gomes Miranda",
+      "Josefa Ferreira da Silva Santos",
+      "Josivaldo Bento de Assis",
+      "Juliana Costa Pinheiro Lessa",
+      "Leonice Barbosa de Alcantara",
+      "Maria das Dores Cariri dos Santos Silva",
+      "Maria Selma Bento",
+      "Nayra Vicente S. da Silva",
+      "Nilza Simony Coutinho de Lima"
+    ],
+    "volunteers": [
+      "Maria Selma Bento (Eventos)",
+      "Maria Luiza Ten├│rio de Almeida (Eventos)"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_social",
+    "churchId": "church_cba_maceio",
+    "name": "A├º├úo Social (Amor em A├º├úo)",
+    "leaderName": "M├┤nica L├║cia Ferreira Silva de Lima",
+    "viceLeaderName": "Pedro Caetano Marinho Ara├║jo",
+    "meetingDay": "S├íbado (quinzenal)",
+    "meetingTime": "09:00",
+    "location": "Comunidades atendidas e Templo CBA",
+    "description": "Distribui├º├úo de cestas b├ísicas, visitas comunit├írias e apoio a fam├¡lias em vulnerabilidade.",
+    "membersCount": 7,
+    "members": [
+      "M├┤nica L├║cia Ferreira Silva de Lima",
+      "Pedro Caetano Marinho Ara├║jo",
+      "Ala├¡ne Silva Pereira",
+      "Gabriel Caetano Marinho Ara├║jo",
+      "Jose Carlos Gomes patriota J├║nior",
+      "Maria Luiza Barros",
+      "Wyda Eduarda Rocha Barros"
+    ],
+    "volunteers": [
+      "Ariane Montenegro Alves Borges",
+      "Franklin da Cruz Borges Junior",
+      "├ìtala Bento Mesquita",
+      "Kamilla Kelly da Silva Peixoto",
+      "La├¡sa Pereira da Silva",
+      "Maria Jos├® Rem├¡gio Buarque",
+      "Nazar├® de F├ítima Costa Melo",
+      "Bruna Rafaela P. Fernandes",
+      "Jeane da Silva Soares Monte Freitas"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_familia",
+    "churchId": "church_cba_maceio",
+    "name": "Minist├®rio de Casais, Fam├¡lia & EBD",
+    "leaderName": "Alyeskey Almeida",
+    "viceLeaderName": "Renata Cristina da Mota Lins Queiroga",
+    "meetingDay": "Sexta-feira (mensal)",
+    "meetingTime": "19:30",
+    "location": "Templo CBA",
+    "description": "Encontros de casais, fortalecimento dos lares, aconselhamento conjugal e Escola B├¡blica.",
+    "membersCount": 10,
+    "members": [
+      "Alyeskey Almeida",
+      "Renata Cristina da Mota Lins Queiroga",
+      "Cleber Castanha de Queiroga",
+      "Ednice Caetano Marinho Araujo",
+      "Elcio Marques de Almeida",
+      "Everaldo Jos├® da Silva",
+      "Gerlanne Costa Alves Silva",
+      "Hellen Aparecida Bueno Louren├ºo Almeida",
+      "Walkiria Costa Alves dos Santos",
+      "Weslley de Omena Santa Cruz"
+    ],
+    "volunteers": [
+      "Jackeline Cristiane da Silva",
+      "Jordana Ranielle Alves Ara├║jo de Oliveira",
+      "Juliana Costa Pinheiro Lessa"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_recepcao",
+    "churchId": "church_cba_maceio",
+    "name": "Minist├®rio de Recep├º├úo & Boas-Vindas",
+    "leaderName": "Jenice Coelho Rodrigues Cariri",
+    "viceLeaderName": "Sando M├írcio Cirino",
+    "meetingDay": "Domingo",
+    "meetingTime": "18:00",
+    "location": "Porta de Entrada e ├ütrio do Templo",
+    "description": "Primeiro contato, acolhimento de visitantes, entrega de folhetos e boletins.",
+    "membersCount": 5,
+    "members": [
+      "Jenice Coelho Rodrigues Cariri",
+      "Sando M├írcio Cirino",
+      "Ana Ruth de A B Souza",
+      "Leonice Barbosa de Alcantara",
+      "Neivaldo Ramos Pontes"
+    ],
+    "volunteers": [
+      "Edvania Ramos de Melo Bitencourt",
+      "Erika G Campos",
+      "Jaelson Amorim de Vasconcelos",
+      "Marcela da Mota Lins Queiroga",
+      "Paulo Cesar Machado da Silva",
+      "Ricardo Costa Bitencourt",
+      "Weslley de Omena Santa Cruz",
+      "Thais de Lima Santos",
+      "Rosa Maria Schinke Cavalcante"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_juventude",
+    "churchId": "church_cba_maceio",
+    "name": "Juventude & Adolescentes (Conectados CBA)",
+    "leaderName": "Marcos Henrique No├® da Silva",
+    "viceLeaderName": "Charles Andrei Balbino Alves da Silva",
+    "meetingDay": "S├íbado",
+    "meetingTime": "19:30",
+    "location": "Templo CBA",
+    "description": "Cultos de jovens, evangelismo criativo, comunh├úo, discipulado de adolescentes e juniores.",
+    "membersCount": 6,
+    "members": [
+      "Marcos Henrique No├® da Silva",
+      "Charles Andrei Balbino Alves da Silva",
+      "Cristiane Oliveira de Souza Rem├¡gio",
+      "Dalton Derley Rem├¡gio Lucas",
+      "Gabriel Caetano Marinho Ara├║jo",
+      "Mylenna Maria Amancio Correia"
+    ],
+    "volunteers": [
+      "Arthur Freitas Libardi",
+      "Rosa Maria Schinke Cavalcante"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_fiscal",
+    "churchId": "church_cba_maceio",
+    "name": "Conselho Fiscal & Gest├úo Financeira",
+    "leaderName": "Manoel Rom├úo Neto",
+    "meetingDay": "Mensal",
+    "meetingTime": "19:00",
+    "location": "Secretaria / Gabinete",
+    "description": "Auditoria de contas, confer├¬ncia de livros caixas, relat├│rios fiscais e presta├º├úo de contas.",
+    "membersCount": 1,
+    "members": [
+      "Manoel Rom├úo Neto"
+    ],
+    "volunteers": [],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "min_mulheres",
+    "churchId": "church_cba_maceio",
+    "name": "Minist├®rio de Mulheres & Intercess├úo",
+    "leaderName": "├ërica Renata Vilela de Morais",
+    "viceLeaderName": "Hellen Aparecida Bueno Louren├ºo Almeida",
+    "meetingDay": "Quinta-feira",
+    "meetingTime": "19:30",
+    "location": "Templo CBA",
+    "description": "Edifica├º├úo espiritual de mulheres, ch├ís de comunh├úo, ora├º├úo cont├¡nua e intercess├úo.",
+    "membersCount": 4,
+    "members": [
+      "├ërica Renata Vilela de Morais",
+      "Hellen Aparecida Bueno Louren├ºo Almeida",
+      "Ednice Caetano Marinho Araujo",
+      "Juliana Sarmento Vilela"
+    ],
+    "volunteers": [
+      "Ana Paula Amorim",
+      "Elisabete Afra da Silva",
+      "Jaqueline Silva de Ata├¡de",
+      "Maria de F├ítima e Silva",
+      "Maria Rosa Gomes da Silva",
+      "Patr├¡cia de Souza Menezes",
+      "Vilma Maria de Ara├║jo Oliveira",
+      "Wyda Eduarda Rocha Barros"
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  }
+];
+
+export const CBA_LEADERSHIP: Leadership[] = [
+  {
+    "id": "lead_pastor_saulo",
+    "churchId": "church_cba_maceio",
+    "name": "Pr. Saulo Cavalcanti Monteiro",
+    "role": "Pastor Titular",
+    "phone": "(82) 99786-1774",
+    "whatsapp": "5582997861774",
+    "email": "saulomonteiro@cbacolher.com.br",
+    "ministry": "Pastoral Geral",
+    "startDate": "2020-01-01",
+    "observations": "Pastor Presidente da Comunidade Batista Acolher.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_pastor_tercio",
+    "churchId": "church_cba_maceio",
+    "name": "Tercio Ribeiro de Souza",
+    "role": "Equipe Pastoral",
+    "phone": "(82) 98225-9873",
+    "whatsapp": "5582982259873",
+    "ministry": "Pastoral & Gabinete",
+    "startDate": "2022-01-01",
+    "observations": "Minist├®rio Pastoral e Aconselhamento.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_fiscal_manoel",
+    "churchId": "church_cba_maceio",
+    "name": "Manoel Rom├úo Neto",
+    "role": "Presidente do Conselho Fiscal",
+    "phone": "(82) 99331-1301",
+    "whatsapp": "5582993311301",
+    "ministry": "Conselho Fiscal & Financeiro",
+    "startDate": "2024-01-01",
+    "observations": "Respons├ível pela auditoria fiscal e financeira da igreja.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_infantil_marcela",
+    "churchId": "church_cba_maceio",
+    "name": "Marcela da Mota Lins Queiroga",
+    "role": "L├¡der Minist├®rio Infantil",
+    "phone": "(81) 99225-2278",
+    "whatsapp": "5581992252278",
+    "ministry": "Departamento Infantil",
+    "startDate": "2023-02-01",
+    "observations": "Coordena├º├úo pedag├│gica e espiritual das crian├ºas.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_infantil_alexia",
+    "churchId": "church_cba_maceio",
+    "name": "Alexia Brand├úo Gozele",
+    "role": "Vice-L├¡der Minist├®rio Infantil",
+    "phone": "(82) 99660-3258",
+    "whatsapp": "5582996603258",
+    "ministry": "Departamento Infantil",
+    "startDate": "2023-02-01",
+    "observations": "Apoio na coordena├º├úo do Minist├®rio Infantil.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_louvor_sandro",
+    "churchId": "church_cba_maceio",
+    "name": "Sandro de Melo do Esp├¡rito Santo",
+    "role": "Ministro de Louvor",
+    "phone": "(82) 99600-4790",
+    "whatsapp": "5582996004790",
+    "ministry": "Louvor & Adora├º├úo",
+    "startDate": "2021-06-01",
+    "observations": "Dire├º├úo musical e adora├º├úo congregacional.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_louvor_amaury",
+    "churchId": "church_cba_maceio",
+    "name": "Amaury Luiz Lessa Neto",
+    "role": "Vice-L├¡der de Louvor",
+    "phone": "(82) 99415-8003",
+    "whatsapp": "5582994158003",
+    "ministry": "Louvor & Adora├º├úo",
+    "startDate": "2022-01-01",
+    "observations": "Apoio musical e vocal.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_midia_ruhan",
+    "churchId": "church_cba_maceio",
+    "name": "Ruhan Nicolas Montenegro Oliveira",
+    "role": "Coordenador de M├¡dia e Transmiss├úo",
+    "phone": "(82) 99686-3870",
+    "whatsapp": "5582996863870",
+    "ministry": "M├¡dia e Tecnologia",
+    "startDate": "2023-01-01",
+    "observations": "Transmiss├úo ao vivo, ├íudio e proje├º├úo.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_midia_mylenna",
+    "churchId": "church_cba_maceio",
+    "name": "Mylenna Maria Amancio Correia",
+    "role": "Vice-Coordenadora de M├¡dia & Juventude",
+    "phone": "(82) 99690-8463",
+    "whatsapp": "5582996908463",
+    "ministry": "M├¡dia e Juventude",
+    "startDate": "2023-01-01",
+    "observations": "Redes sociais, fotografia e comunica├º├úo jovem.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_cantina_albany",
+    "churchId": "church_cba_maceio",
+    "name": "Albany Hilana Faustino do Esp├¡rito Santo",
+    "role": "Coordenadora da Cantina",
+    "phone": "(82) 99656-4926",
+    "whatsapp": "5582996564926",
+    "ministry": "Cantina & Comunh├úo",
+    "startDate": "2022-03-01",
+    "observations": "Gest├úo da cantina, escalas e acolhimento.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_cantina_anapaula",
+    "churchId": "church_cba_maceio",
+    "name": "Ana Paula Amorim",
+    "role": "Vice-Coordenadora da Cantina",
+    "phone": "(72) 98869-4261",
+    "whatsapp": "5572988694261",
+    "ministry": "Cantina & Comunh├úo",
+    "startDate": "2022-03-01",
+    "observations": "Escalas e apoio ├á equipe da cantina.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_social_monica",
+    "churchId": "church_cba_maceio",
+    "name": "M├┤nica L├║cia Ferreira Silva de Lima",
+    "role": "L├¡der de A├º├úo Social",
+    "phone": "(82) 99158-4774",
+    "whatsapp": "5582991584774",
+    "ministry": "A├º├úo Social",
+    "startDate": "2021-08-01",
+    "observations": "Coordena├º├úo de projetos de caridade e apoio a fam├¡lias.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_social_pedro",
+    "churchId": "church_cba_maceio",
+    "name": "Pedro Caetano Marinho Ara├║jo",
+    "role": "Vice-L├¡der de A├º├úo Social",
+    "phone": "(82) 99812-3898",
+    "whatsapp": "5582998123898",
+    "ministry": "A├º├úo Social",
+    "startDate": "2022-01-01",
+    "observations": "Log├¡stica de arrecada├º├Áes e entregas comunit├írias.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_familia_alyeskey",
+    "churchId": "church_cba_maceio",
+    "name": "Alyeskey Almeida",
+    "role": "L├¡der do Minist├®rio de Fam├¡lias",
+    "phone": "(82) 99973-7979",
+    "whatsapp": "5582999737979",
+    "ministry": "Fam├¡lia, Casais & Homens",
+    "startDate": "2021-01-01",
+    "observations": "Aconselhamento, fortalecimento de lares e encontros de casais.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_familia_renata",
+    "churchId": "church_cba_maceio",
+    "name": "Renata Cristina da Mota Lins Queiroga",
+    "role": "Vice-L├¡der de Fam├¡lias & EBD",
+    "phone": "(81) 98160-1177",
+    "whatsapp": "5581981601177",
+    "ministry": "Fam├¡lia, Casais & EBD",
+    "startDate": "2021-01-01",
+    "observations": "Planejamento pedag├│gico e discipulado familiar.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_recepcao_jenice",
+    "churchId": "church_cba_maceio",
+    "name": "Jenice Coelho Rodrigues Cariri",
+    "role": "L├¡der de Recep├º├úo & Acolhimento",
+    "phone": "(82) 99999-2693",
+    "whatsapp": "5582999992693",
+    "ministry": "Recep├º├úo",
+    "startDate": "2022-05-01",
+    "observations": "Coordena├º├úo da equipe de recep├º├úo e boas-vindas da igreja.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_jovens_marcos",
+    "churchId": "church_cba_maceio",
+    "name": "Marcos Henrique No├® da Silva",
+    "role": "L├¡der de Juventude",
+    "phone": "(82) 99190-4266",
+    "whatsapp": "5582991904266",
+    "ministry": "Juventude Conectados CBA",
+    "startDate": "2023-01-01",
+    "observations": "Coordena├º├úo dos jovens e eventos da juventude.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "lead_mulheres_erica",
+    "churchId": "church_cba_maceio",
+    "name": "├ërica Renata Vilela de Morais",
+    "role": "L├¡der do Minist├®rio de Mulheres",
+    "phone": "(27) 99722-6463",
+    "whatsapp": "5527997226463",
+    "ministry": "Mulheres & Intercess├úo",
+    "startDate": "2022-09-01",
+    "observations": "Encontros e ora├º├Áes para mulheres da congrega├º├úo.",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  }
+];
+
+
+
 
 export const DEMO_MINISTRIES: Ministry[] = [
   {
@@ -367,5 +889,6 @@ export const DEMO_LEADERSHIP: Leadership[] = [
   }
 ];
 
-export const CBA_MINISTRIES = DEMO_MINISTRIES;
-export const CBA_LEADERSHIP = DEMO_LEADERSHIP;
+
+
+

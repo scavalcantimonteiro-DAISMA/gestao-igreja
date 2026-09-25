@@ -49,7 +49,9 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (saved && getChurchById(saved)) {
       return saved;
     }
-    return 'church_demo'; // Igreja Demonstrativa como padrão
+    const cba = getChurchById('church_cba_maceio');
+    if (cba) return cba.id;
+    return 'church_cba_maceio';
   });
 
   const [isFinancialUnlocked, setIsFinancialUnlocked] = useState<boolean>(false);
@@ -62,7 +64,9 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setChurches(cloudChurches);
         setActiveChurchId(prevActive => {
           if (!cloudChurches.some(c => c.id === prevActive)) {
-            const nextActive = cloudChurches[0]?.id || 'church_demo';
+            const nextActive = cloudChurches.some(c => c.id === 'church_cba_maceio')
+              ? 'church_cba_maceio'
+              : (cloudChurches[0]?.id || 'church_cba_maceio');
             localStorage.setItem(ACTIVE_CHURCH_KEY, nextActive);
             return nextActive;
           }
@@ -77,7 +81,9 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setChurches(updatedChurches);
         setActiveChurchId(prevActive => {
           if (!updatedChurches.some(c => c.id === prevActive)) {
-            const nextActive = updatedChurches[0]?.id || 'church_demo';
+            const nextActive = updatedChurches.some(c => c.id === 'church_cba_maceio')
+              ? 'church_cba_maceio'
+              : (updatedChurches[0]?.id || 'church_cba_maceio');
             localStorage.setItem(ACTIVE_CHURCH_KEY, nextActive);
             return nextActive;
           }
@@ -112,26 +118,34 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   }, [activeChurchId]);
 
-  const currentChurch = churches.find(c => c.id === activeChurchId) || churches[0] || {
-    id: 'church_demo',
-    name: 'Igreja Batista Betel (Demonstração)',
-    slug: 'beteldemo',
-    address: 'Av. das Nações, 1000 - Centro',
-    neighborhood: 'Centro',
-    city: 'São Paulo',
-    state: 'SP',
-    instagram: '@beteldemo',
-    phone: '(11) 3333-5555',
-    whatsapp: '5511988880000',
-    pastorName: 'Pr. Marcos Aurélio Silveira',
-    pastorPhone: '(11) 98888-0001',
-    pastorWhatsapp: '5511988880001',
+  const fallbackChurch: Church = {
+    id: 'church_cba_maceio',
+    name: 'Comunidade Batista Acolher',
+    slug: 'cbacolher',
+    loginUser: 'cbacolher',
+    loginPassword: '0000',
+    address: 'Rua General João Saleiro Pitão, 1260',
+    neighborhood: 'Ponta Verde / Jatiúca',
+    city: 'Maceió',
+    state: 'AL',
+    instagram: '@cbacolher',
+    phone: '(82) 3325-1408',
+    whatsapp: '5582997861774',
+    pastorName: 'Pr. Tércio Ribeiro',
+    pastorPhone: '(82) 99999-1001',
+    pastorWhatsapp: '5582999991001',
+    pastoralOfficeName: 'Gabinete Pastoral CBA',
+    pastoralOfficeWhatsapp: '5582999991002',
+    secretaryName: 'Secretaria CBA',
+    secretaryWhatsapp: '5582997861774',
     dailyReportHour: '08:00',
     financialPin: '0000',
     financialPinChanged: false,
     isActive: true,
-    createdAt: new Date().toISOString()
+    createdAt: '2023-01-01T00:00:00.000Z'
   };
+
+  const currentChurch: Church = churches.find(c => c.id === activeChurchId) || churches.find(c => c.id === 'church_cba_maceio') || churches[0] || fallbackChurch;
 
   const selectChurch = (churchId: string) => {
     const all = getChurches();
