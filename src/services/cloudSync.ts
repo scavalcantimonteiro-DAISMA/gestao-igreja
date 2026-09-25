@@ -153,10 +153,21 @@ export async function syncAllChurchDataFromCloud(churchId: string): Promise<void
       const thisChurchLocal = localAll.filter(item => item.churchId === churchId);
 
       if (!snap.empty) {
-        // Nuvem tem dados: consolida
+        // Nuvem tem dados: consolida com autocura de caracteres especiais da CBA
         const cloudItems: any[] = [];
         snap.forEach(d => {
-          cloudItems.push(d.data());
+          let item = d.data();
+          if (churchId === 'church_cba_maceio' && item && item.id) {
+            const rawStr = JSON.stringify(item);
+            if (rawStr.includes('├') || rawStr.includes('ÔÇ')) {
+              const initItem = (col.initial as any[]).find(i => i.id === item.id);
+              if (initItem) {
+                item = { ...item, ...initItem };
+                saveEntityToCloud(col.name, item).catch(() => {});
+              }
+            }
+          }
+          cloudItems.push(item);
         });
         const merged = [...otherChurches, ...cloudItems];
         setLocal(col.key, merged, true);
@@ -208,10 +219,21 @@ export function subscribeToAllChurchData(churchId: string, onUpdate: () => void)
             }
           });
 
-          // 2. Processa adições e modificações
+          // 2. Processa adições e modificações com autocura
           snapshot.docs.forEach(docSnap => {
-            const cloudData = docSnap.data();
+            let cloudData = docSnap.data();
             if (cloudData && cloudData.id) {
+              if (churchId === 'church_cba_maceio') {
+                const rawStr = JSON.stringify(cloudData);
+                if (rawStr.includes('├') || rawStr.includes('ÔÇ')) {
+                  const initItem = (col.initial as any[]).find(i => i.id === cloudData.id);
+                  if (initItem) {
+                    cloudData = { ...cloudData, ...initItem };
+                    saveEntityToCloud(col.name, cloudData).catch(() => {});
+                  }
+                }
+              }
+
               const idx = currentAll.findIndex(item => item.id === cloudData.id);
               if (idx >= 0) {
                 if (JSON.stringify(currentAll[idx]) !== JSON.stringify(cloudData)) {

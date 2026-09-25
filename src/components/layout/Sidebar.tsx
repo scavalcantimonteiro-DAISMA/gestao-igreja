@@ -188,14 +188,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Rodapé do Menu Lateral */}
-        <div className="p-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex flex-col gap-1">
+        <div className="p-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-slate-700 truncate max-w-[170px]">{currentChurch.name}</span>
             <span className="text-[10px] font-bold text-sky-700">v1.0 SaaS</span>
           </div>
-          <p className="text-[10px] text-slate-500 leading-tight">
-            Desenvolvido e comercializado por <span className="text-slate-700 font-bold">Saulo Monteiro</span>, todos os direitos reservados.
-          </p>
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60">
+            <img src="/logo-scm-tech-icon.png" alt="SCM Tech" className="w-5 h-5 rounded object-contain shrink-0" />
+            <p className="text-[10px] text-slate-600 leading-tight">
+              Desenvolvido por <strong className="text-slate-800 font-bold">SCM Tech</strong> (Saulo Monteiro)
+            </p>
+          </div>
         </div>
       </aside>
 

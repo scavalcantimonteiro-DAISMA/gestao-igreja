@@ -127,16 +127,16 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-sky-50 to-blue-50 flex flex-col justify-between p-4 sm:p-6 text-slate-800">
       <div className="flex-1 flex flex-col items-center justify-center max-w-md w-full mx-auto py-8">
         
-        {/* Logotipo / Marca Saulo Monteiro */}
-        <div className="text-center mb-6 animate-in fade-in">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-600 to-blue-700 text-white shadow-lg shadow-sky-600/30 mb-3">
-            <Code2 className="w-6 h-6" />
+        {/* Logotipo / Marca Oficial SCM Tech */}
+        <div className="text-center mb-6 animate-in fade-in flex flex-col items-center">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-slate-200 shadow-md p-1.5 flex items-center justify-center mb-2.5 overflow-hidden">
+            <img src="/logo-scm-tech-icon.png" alt="SCM Tech" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-xl font-black text-slate-900 tracking-wider">
-            SAULO MONTEIRO
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-wider">
+            SCM Tech
           </h1>
           <p className="text-xs font-bold text-sky-700 tracking-wider">
-            SISTEMAS & DESENVOLVIMENTO
+            DESENVOLVIMENTO DE SOFTWARE
           </p>
         </div>
 
@@ -332,8 +332,9 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      <footer className="text-center text-xs text-slate-500 font-medium py-4 border-t border-slate-200/60">
-        Desenvolvido e comercializado por <strong className="text-slate-700 font-semibold">Saulo Monteiro</strong>, todos os direitos reservados.
+      <footer className="text-center text-xs text-slate-500 font-medium py-4 border-t border-slate-200/60 flex items-center justify-center gap-2">
+        <img src="/logo-scm-tech-icon.png" alt="SCM Tech" className="w-4 h-4 rounded object-contain shrink-0" />
+        <span>Desenvolvido e comercializado por <strong className="text-slate-700 font-semibold">SCM Tech</strong> (Saulo Monteiro), todos os direitos reservados.</span>
       </footer>
 
       {/* MODAL DE REDEFINIÇÃO DE SENHA OBRIGATÓRIA */}

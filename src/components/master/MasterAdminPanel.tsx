@@ -288,17 +288,17 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
       {/* 1. TOPO OFICIAL EXCLUSIVO DO MASTER ADMIN (SAULO MONTEIRO) */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200/90 shadow-sm px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-600 via-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-sky-600/30 shrink-0">
-            <Code2 className="w-6 h-6" />
+          <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center p-0.5 shrink-0 overflow-hidden">
+            <img src="/logo-scm-tech-icon.png" alt="SCM Tech" className="w-full h-full object-contain" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-black text-slate-900 tracking-wide uppercase">Saulo Monteiro</h1>
+              <h1 className="text-base font-black text-slate-900 tracking-wide uppercase">SCM Tech</h1>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
                 Master Admin SaaS
               </span>
             </div>
-            <p className="text-xs font-semibold text-sky-700">SISTEMAS & DESENVOLVIMENTO</p>
+            <p className="text-xs font-semibold text-sky-700">Desenvolvimento de Software • Saulo Monteiro</p>
           </div>
         </div>
 
@@ -376,10 +376,13 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
 
           <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm">
             <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">Acesso Master Protegido</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <h3 className="text-xl font-black text-slate-900 truncate">Saulo Monteiro</h3>
+            <div className="flex items-center gap-2.5 mt-1.5">
+              <img src="/logo-scm-tech-icon.png" alt="SCM Tech" className="w-8 h-8 rounded-lg object-contain shrink-0" />
+              <div>
+                <h3 className="text-lg font-black text-slate-900 leading-tight">SCM Tech</h3>
+                <p className="text-[11px] text-slate-500 font-medium">Saulo Monteiro (Admin Geral)</p>
+              </div>
             </div>
-            <p className="text-xs text-slate-400 mt-1">Autenticação com credencial master</p>
           </div>
         </div>
 

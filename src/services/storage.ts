@@ -240,6 +240,73 @@ export function initializeStorage(): void {
 
       localStorage.setItem(RESTORE_CBA_KEY, 'true');
     }
+
+    // 0.1 Atualização e autocura de caracteres acentuados (UTF-8) para a congregação oficial CBA
+    const FIX_ACCENTS_KEY = 'gi_fixed_accents_utf8_v5';
+    if (localStorage.getItem(FIX_ACCENTS_KEY) !== 'true') {
+      // 1. Membros
+      const storedMembers = getLocal<Member[]>('members', []);
+      const cbaCleanMap = new Map(INITIAL_MEMBERS.filter(m => m.churchId === 'church_cba_maceio').map(m => [m.id, m]));
+      const updatedMembers = storedMembers.map(m => {
+        if (m.churchId === 'church_cba_maceio' && cbaCleanMap.has(m.id)) {
+          return { ...m, ...cbaCleanMap.get(m.id) };
+        }
+        return m;
+      });
+      const currentCbaIds = new Set(updatedMembers.filter(m => m.churchId === 'church_cba_maceio').map(m => m.id));
+      cbaCleanMap.forEach((cleanMember, id) => {
+        if (!currentCbaIds.has(id)) {
+          updatedMembers.push(cleanMember);
+        }
+      });
+      setLocal('members', updatedMembers);
+
+      // 2. Ministérios
+      const storedMin = getLocal<Ministry[]>('ministries', []);
+      const cleanMinMap = new Map(INITIAL_MINISTRIES.filter(m => m.churchId === 'church_cba_maceio').map(m => [m.id, m]));
+      const updatedMin = storedMin.map(m => {
+        if (m.churchId === 'church_cba_maceio' && cleanMinMap.has(m.id)) {
+          return { ...m, ...cleanMinMap.get(m.id) };
+        }
+        return m;
+      });
+      setLocal('ministries', updatedMin);
+
+      // 3. Liderança
+      const storedLead = getLocal<Leadership[]>('leadership', []);
+      const cleanLeadMap = new Map(INITIAL_LEADERSHIP.filter(l => l.churchId === 'church_cba_maceio').map(l => [l.id, l]));
+      const updatedLead = storedLead.map(l => {
+        if (l.churchId === 'church_cba_maceio' && cleanLeadMap.has(l.id)) {
+          return { ...l, ...cleanLeadMap.get(l.id) };
+        }
+        return l;
+      });
+      setLocal('leadership', updatedLead);
+
+      // 4. Escalas / Programação
+      const storedSched = getLocal<Schedule[]>('schedules', []);
+      const cleanSchedMap = new Map(INITIAL_SCHEDULES.filter(s => s.churchId === 'church_cba_maceio').map(s => [s.id, s]));
+      const updatedSched = storedSched.map(s => {
+        if (s.churchId === 'church_cba_maceio' && cleanSchedMap.has(s.id)) {
+          return { ...s, ...cleanSchedMap.get(s.id) };
+        }
+        return s;
+      });
+      setLocal('schedules', updatedSched);
+
+      // 5. Eventos
+      const storedEvt = getLocal<ChurchEvent[]>('events', []);
+      const cleanEvtMap = new Map(INITIAL_EVENTS.filter(e => e.churchId === 'church_cba_maceio').map(e => [e.id, e]));
+      const updatedEvt = storedEvt.map(e => {
+        if (e.churchId === 'church_cba_maceio' && cleanEvtMap.has(e.id)) {
+          return { ...e, ...cleanEvtMap.get(e.id) };
+        }
+        return e;
+      });
+      setLocal('events', updatedEvt);
+
+      localStorage.setItem(FIX_ACCENTS_KEY, 'true');
+    }
   }
 
   // 1. Cria backup instantâneo de segurança do estado atual

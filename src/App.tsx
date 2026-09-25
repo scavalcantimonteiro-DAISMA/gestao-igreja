@@ -153,9 +153,10 @@ const MainLayout: React.FC = () => {
               )}
               <span>© {new Date().getFullYear()} <strong className="text-slate-700">{currentChurch.name}</strong></span>
             </div>
-            <p className="text-xs text-slate-600 font-medium text-center sm:text-right">
-              Desenvolvido e comercializado por <strong className="text-sky-700 font-bold">Saulo Monteiro</strong>, todos os direitos reservados.
-            </p>
+            <div className="flex items-center gap-2 text-xs text-slate-600 font-medium text-center sm:text-right">
+              <img src="/logo-scm-tech-icon.png" alt="SCM Tech" className="w-4 h-4 rounded object-contain shrink-0" />
+              <span>Desenvolvido e comercializado por <strong className="text-sky-700 font-bold">SCM Tech</strong> (Saulo Monteiro), todos os direitos reservados.</span>
+            </div>
           </div>
         </footer>
       </div>
