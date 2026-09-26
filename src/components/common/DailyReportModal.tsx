@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FileText, Copy, Check, MessageCircle, X, Calendar, Clock, Users, Send, Church, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Copy, Check, MessageCircle, X, Calendar, Clock, Users, Send, Church, Sparkles, Edit3, RotateCcw } from 'lucide-react';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
 import { 
@@ -26,6 +26,12 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
   const { showToast } = useNotification();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'pastor' | 'ministry'>(initialMinistryId ? 'ministry' : 'pastor');
+
+  // Estados de edição de texto do relatório
+  const [editedPastorText, setEditedPastorText] = useState('');
+  const [isPastorEdited, setIsPastorEdited] = useState(false);
+  const [editedMinistryText, setEditedMinistryText] = useState('');
+  const [isMinistryEdited, setIsMinistryEdited] = useState(false);
 
   const ministries = getMinistries(currentChurch.id);
   const [selectedMinistryId, setSelectedMinistryId] = useState<string>(
@@ -142,7 +148,31 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
     ministryText += `_Coordenação Eclesiástica CBAcolher_`;
   }
 
-  const activeText = activeTab === 'pastor' ? pastorText : ministryText;
+  const currentPastorText = isPastorEdited ? editedPastorText : pastorText;
+  const currentMinistryText = isMinistryEdited ? editedMinistryText : ministryText;
+  const activeText = activeTab === 'pastor' ? currentPastorText : currentMinistryText;
+  const isCurrentEdited = activeTab === 'pastor' ? isPastorEdited : isMinistryEdited;
+
+  const handleTextChange = (val: string) => {
+    if (activeTab === 'pastor') {
+      setEditedPastorText(val);
+      setIsPastorEdited(true);
+    } else {
+      setEditedMinistryText(val);
+      setIsMinistryEdited(true);
+    }
+  };
+
+  const handleResetCurrent = () => {
+    if (activeTab === 'pastor') {
+      setEditedPastorText(pastorText);
+      setIsPastorEdited(false);
+    } else {
+      setEditedMinistryText(ministryText);
+      setIsMinistryEdited(false);
+    }
+    showToast('Texto restaurado para o relatório original.', 'info');
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(activeText);
@@ -159,7 +189,7 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
       return;
     }
     const phone = clean.startsWith('55') ? clean : `55${clean}`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(pastorText)}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(currentPastorText)}`;
     window.open(url, '_blank');
     showToast(`Abrindo WhatsApp de ${currentChurch.pastorName || 'Pastor Titular'} (${rawPhone})...`, 'info');
   };
@@ -186,15 +216,20 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Agenda do Dia & Despacho WhatsApp</h3>
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <span>Agenda do Dia & Despacho WhatsApp</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 font-semibold border border-sky-200">
+                Editável
+              </span>
+            </h3>
             <p className="text-xs text-slate-500">
-              Comunicação pastoral e escalas ministeriais com disparo direto
+              Comunicação pastoral e escalas ministeriais — altere qualquer detalhe antes de enviar
             </p>
           </div>
         </div>
 
         {/* Seletor de Abas: Agenda Pastoral vs Agenda dos Líderes */}
-        <div className="flex p-1 rounded-2xl bg-slate-100 border border-slate-200 mb-4 shrink-0">
+        <div className="flex p-1 rounded-2xl bg-slate-100 border border-slate-200 mb-3 shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('pastor')}
@@ -242,13 +277,39 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
           </div>
         )}
 
-        {/* Prévia do Texto Formatado para WhatsApp */}
-        <div className="flex-1 overflow-y-auto p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-800 whitespace-pre-wrap leading-relaxed shadow-inner">
-          {activeText}
+        {/* Cabeçalho da Área de Edição */}
+        <div className="flex items-center justify-between mb-1.5 shrink-0">
+          <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <Edit3 className="w-3.5 h-3.5 text-sky-600" />
+            <span>Mensagem Formatada (você pode editar ou acrescentar textos):</span>
+          </label>
+          {isCurrentEdited && (
+            <button
+              type="button"
+              onClick={handleResetCurrent}
+              className="text-[11px] font-semibold text-slate-500 hover:text-sky-700 flex items-center gap-1 transition-colors"
+              title="Restaurar relatório original gerado"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Restaurar original
+            </button>
+          )}
+        </div>
+
+        {/* Área de Texto Editável para WhatsApp */}
+        <textarea
+          rows={9}
+          value={activeText}
+          onChange={e => handleTextChange(e.target.value)}
+          className="flex-1 w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-800 leading-relaxed outline-none focus:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all resize-y shadow-inner"
+        />
+        <div className="flex justify-between items-center text-[11px] text-slate-400 mt-1 shrink-0">
+          <span>💡 Edite avisos, horários ou nomes livremente antes de disparar.</span>
+          <span>{activeText.length} caracteres</span>
         </div>
 
         {/* Botões de Ação */}
-        <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-4 shrink-0">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-3 shrink-0 border-t border-slate-100 mt-2">
           <button
             onClick={handleCopy}
             className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"

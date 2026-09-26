@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MessageCircle, Copy, Check, ShieldAlert, Save, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageCircle, Copy, Check, ShieldAlert, Save, X, Edit3, RotateCcw, Send } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
 import { useChurch } from '../../context/ChurchContext';
 
@@ -30,25 +30,45 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   const [isSecretaryModalOpen, setIsSecretaryModalOpen] = useState(false);
   const [secretaryInput, setSecretaryInput] = useState('');
 
-  // Normaliza o número do destinatário
-  const cleanPhone = phone.replace(/\D/g, '');
-  const finalPhone = cleanPhone.startsWith('55') 
-    ? cleanPhone 
-    : cleanPhone.length >= 10 
-    ? `55${cleanPhone}` 
-    : cleanPhone;
+  // Estados para edição antes de enviar
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editablePhone, setEditablePhone] = useState(phone || '');
+  const [editableMessage, setEditableMessage] = useState(message || '');
+
+  // Sincroniza se os props mudarem
+  useEffect(() => {
+    setEditablePhone(phone || '');
+  }, [phone]);
+
+  useEffect(() => {
+    setEditableMessage(message || '');
+  }, [message]);
 
   // Verifica se o WhatsApp da Secretaria está cadastrado
   const secretaryPhone = currentChurch.secretaryWhatsapp || currentChurch.whatsapp || '';
   const isSecretaryMissing = requireSecretaryPhone && (!secretaryPhone || secretaryPhone.replace(/\D/g, '').length < 8);
 
-  const executeOpenWhatsApp = () => {
+  const executeOpenWhatsApp = (customPhone?: string, customMsg?: string) => {
+    const rawNum = customPhone !== undefined ? customPhone : editablePhone;
+    const cleanNum = rawNum.replace(/\D/g, '');
+    const finalPhone = cleanNum.startsWith('55') 
+      ? cleanNum 
+      : cleanNum.length >= 10 
+      ? `55${cleanNum}` 
+      : cleanNum;
+
     if (!finalPhone || finalPhone.length < 10) {
       showToast('Número de WhatsApp do destinatário inválido ou não cadastrado.', 'error');
       return;
     }
-    const waUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+
+    const msgToSend = customMsg !== undefined ? customMsg : editableMessage;
+    const waUrl = msgToSend 
+      ? `https://wa.me/${finalPhone}?text=${encodeURIComponent(msgToSend)}`
+      : `https://wa.me/${finalPhone}`;
+
     window.open(waUrl, '_blank');
+    setIsEditModalOpen(false);
     showToast('Abrindo WhatsApp com mensagem...', 'info');
   };
 
@@ -60,7 +80,15 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
       return;
     }
 
-    executeOpenWhatsApp();
+    // Abre modal para permitir que o usuário edite a mensagem ou o telefone antes de enviar
+    setEditablePhone(phone || '');
+    setEditableMessage(message || '');
+    setIsEditModalOpen(true);
+  };
+
+  const handleResetMessage = () => {
+    setEditableMessage(message || '');
+    showToast('Texto restaurado para o modelo padrão.', 'info');
   };
 
   const handleSaveSecretary = async (e: React.FormEvent) => {
@@ -195,6 +223,128 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição da Mensagem Antes do Envio */}
+      {isEditModalOpen && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in text-left"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800 animate-in zoom-in-95 duration-150"
+          >
+            <button
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <MessageCircle className="w-6 h-6 fill-current" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                  <span>Revisar e Enviar WhatsApp</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
+                    Editável
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {currentChurch.name} • Ajuste a mensagem livremente antes de disparar
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Telefone do Destinatário */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Número de WhatsApp do Destinatário:
+                </label>
+                <input
+                  type="text"
+                  placeholder="(DDD) 99999-9999"
+                  value={editablePhone}
+                  onChange={(e) => setEditablePhone(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                />
+              </div>
+
+              {/* Mensagem Editável */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Mensagem (você pode alterar ou acrescentar o que desejar):</span>
+                  </label>
+                  {message && editableMessage !== message && (
+                    <button
+                      type="button"
+                      onClick={handleResetMessage}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                      title="Voltar ao texto original"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Restaurar original
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  rows={6}
+                  value={editableMessage}
+                  onChange={(e) => setEditableMessage(e.target.value)}
+                  placeholder="Escreva ou ajuste a mensagem que será enviada..."
+                  className="w-full p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm font-sans leading-relaxed outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all resize-y shadow-inner"
+                />
+                <p className="text-[11px] text-slate-400 mt-1 flex justify-between">
+                  <span>💡 O WhatsApp abrirá já com o texto editado acima pronto para envio.</span>
+                  <span>{editableMessage.length} caracteres</span>
+                </p>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(editableMessage);
+                    setCopied(true);
+                    showToast('Mensagem copiada para a área de transferência!', 'success');
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? 'Copiado' : 'Copiar Texto'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => executeOpenWhatsApp()}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all active:scale-95"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Abrir WhatsApp e Enviar</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

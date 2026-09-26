@@ -16,7 +16,8 @@ import {
   FileSpreadsheet, 
   UserCheck, 
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  RotateCcw
 } from 'lucide-react';
 import { MinistryScale, ScaleMemberItem, Ministry, Member } from '../../types';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
@@ -50,8 +51,14 @@ export const MinistryScalesView: React.FC<MinistryScalesViewProps> = ({ onNaviga
   const [editingScaleId, setEditingScaleId] = useState<string | null>(null);
   const [scaleToDelete, setScaleToDelete] = useState<MinistryScale | null>(null);
 
-  // Modal para confirmar/perguntar número de envio da escala
-  const [phonePromptScale, setPhonePromptScale] = useState<{ scale: MinistryScale; targetPhone: string } | null>(null);
+  // Modal para revisar e editar a mensagem de envio da escala no WhatsApp
+  const [sendPromptModal, setSendPromptModal] = useState<{
+    scale: MinistryScale;
+    mode: 'leader' | 'group';
+    targetPhone: string;
+    messageText: string;
+    originalMessage: string;
+  } | null>(null);
 
   // Estado do formulário
   const [selectedMinistryId, setSelectedMinistryId] = useState<string>('');
@@ -277,44 +284,72 @@ export const MinistryScalesView: React.FC<MinistryScalesViewProps> = ({ onNaviga
     return text;
   };
 
-  // Disparo direto para o WhatsApp do Líder
-  const handleSendToLeader = (scale: MinistryScale, destinationPhone?: string) => {
-    const rawPhone = destinationPhone || scale.leaderPhone || '';
-    const cleanPhone = rawPhone.replace(/\D/g, '');
+  // Abrir modal de revisão/edição para o WhatsApp do Líder
+  const handleOpenSendLeader = (scale: MinistryScale, destinationPhone?: string) => {
+    const rawPhone = destinationPhone !== undefined ? destinationPhone : (scale.leaderPhone || '');
+    const text = generateWhatsAppText(scale);
+    setSendPromptModal({
+      scale,
+      mode: 'leader',
+      targetPhone: rawPhone,
+      messageText: text,
+      originalMessage: text
+    });
+  };
 
-    if (!cleanPhone) {
-      // Se não tiver número, abre o modal perguntando para qual número quer enviar!
-      setPhonePromptScale({ scale, targetPhone: '' });
-      return;
+  // Abrir modal de revisão/edição para o Grupo do Ministério no WhatsApp
+  const handleOpenSendGroup = (scale: MinistryScale) => {
+    const text = generateWhatsAppText(scale);
+    setSendPromptModal({
+      scale,
+      mode: 'group',
+      targetPhone: '',
+      messageText: text,
+      originalMessage: text
+    });
+  };
+
+  // Executa o disparo no WhatsApp após revisão ou edição
+  const executeSendWhatsApp = (
+    targetScale: MinistryScale, 
+    mode: 'leader' | 'group', 
+    phoneValue: string, 
+    message: string
+  ) => {
+    if (mode === 'leader') {
+      const cleanPhone = phoneValue.replace(/\D/g, '');
+      if (!cleanPhone || cleanPhone.length < 8) {
+        showToast('Por favor, informe um número de telefone/WhatsApp válido para o líder.', 'error');
+        return;
+      }
+
+      // Se o número foi alterado ou preenchido, salva no registro da escala
+      if (phoneValue !== targetScale.leaderPhone) {
+        const updated = { ...targetScale, leaderPhone: phoneValue };
+        saveMinistryScale(updated);
+        refreshAll();
+      }
+
+      const dddPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      const url = `https://wa.me/${dddPhone}?text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+      logAction(currentChurch.id, 'Administrador', 'ADMIN', 'Envio de Escala no WhatsApp', `${targetScale.ministryName} para ${targetScale.leaderName}`);
+      showToast(`Abrindo WhatsApp para enviar escala a ${targetScale.leaderName}...`, 'success');
+    } else {
+      const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+      logAction(currentChurch.id, 'Administrador', 'ADMIN', 'Envio de Escala para Grupo do Ministério', `${targetScale.ministryName} (${targetScale.date})`);
+      showToast(`Abrindo WhatsApp para compartilhar no Grupo de ${targetScale.ministryName}...`, 'success');
     }
 
-    const message = generateWhatsAppText(scale);
-    const dddPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-    const url = `https://wa.me/${dddPhone}?text=${encodeURIComponent(message)}`;
-
-    window.open(url, '_blank');
-    logAction(currentChurch.id, 'Administrador', 'ADMIN', 'Envio de Escala no WhatsApp', `${scale.ministryName} para ${scale.leaderName}`);
-    showToast(`Abrindo WhatsApp para enviar escala a ${scale.leaderName}...`, 'success');
+    setSendPromptModal(null);
   };
 
-  // Disparo direto no Grupo do Ministério no WhatsApp (abre seletor de contatos/grupos do WhatsApp)
-  const handleSendToGroup = (scale: MinistryScale) => {
-    const message = generateWhatsAppText(scale);
-    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-    logAction(currentChurch.id, 'Administrador', 'ADMIN', 'Envio de Escala para Grupo do Ministério', `${scale.ministryName} (${scale.date})`);
-    showToast(`Abrindo WhatsApp para compartilhar no Grupo de ${scale.ministryName}...`, 'success');
-  };
-
-  // Salvar e enviar imediatamente para o líder
+  // Salvar e abrir modal para o líder imediatamente
   const handleSaveAndSend = () => {
     const saved = handleSaveScale();
     if (saved) {
-      if (!saved.leaderPhone) {
-        setPhonePromptScale({ scale: saved, targetPhone: '' });
-      } else {
-        handleSendToLeader(saved, saved.leaderPhone);
-      }
+      handleOpenSendLeader(saved, saved.leaderPhone);
     }
   };
 
@@ -551,9 +586,9 @@ export const MinistryScalesView: React.FC<MinistryScalesViewProps> = ({ onNaviga
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => handleSendToLeader(s)}
+                      onClick={() => handleOpenSendLeader(s)}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
-                      title={`Enviar escala para o WhatsApp do líder (${s.leaderPhone || 'Solicitar número'})`}
+                      title={`Revisar mensagem e enviar para o WhatsApp do líder (${s.leaderPhone || 'Cadastrar número'})`}
                     >
                       <MessageCircle className="w-3.5 h-3.5 fill-current" />
                       <span>Enviar p/ Líder ({s.leaderPhone ? s.leaderName.split(' ')[0] : 'WhatsApp'})</span>
@@ -561,19 +596,19 @@ export const MinistryScalesView: React.FC<MinistryScalesViewProps> = ({ onNaviga
 
                     <button
                       type="button"
-                      onClick={() => setPhonePromptScale({ scale: s, targetPhone: s.leaderPhone || '' })}
+                      onClick={() => handleOpenSendLeader(s)}
                       className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold transition-colors"
-                      title="Mudar número antes de enviar"
+                      title="Revisar e editar texto ou número antes de enviar"
                     >
-                      Mudar Nº
+                      Editar / Enviar
                     </button>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => handleSendToGroup(s)}
+                    onClick={() => handleOpenSendGroup(s)}
                     className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold active:scale-95 transition-all"
-                    title="Abre o WhatsApp para escolher e compartilhar diretamente no Grupo do Ministério"
+                    title="Revisar texto e abrir o WhatsApp para compartilhar diretamente no Grupo do Ministério"
                   >
                     <MessageCircle className="w-3.5 h-3.5 fill-current text-emerald-600" />
                     <span>Enviar no Grupo do Ministério no WhatsApp</span>
@@ -877,7 +912,7 @@ export const MinistryScalesView: React.FC<MinistryScalesViewProps> = ({ onNaviga
                   onClick={() => {
                     const saved = handleSaveScale();
                     if (saved) {
-                      handleSendToGroup(saved);
+                      handleOpenSendGroup(saved);
                     }
                   }}
                   className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-xs active:scale-95 transition-all"
@@ -892,77 +927,176 @@ export const MinistryScalesView: React.FC<MinistryScalesViewProps> = ({ onNaviga
         </div>
       )}
 
-      {/* MODAL PARA CONFIRMAR / PERGUNTAR NÚMERO DE ENVIO DA ESCALA */}
-      {phonePromptScale && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
+      {/* MODAL DE REVISÃO E EDIÇÃO DA MENSAGEM ANTES DE ENVIAR A ESCALA */}
+      {sendPromptModal && (
+        <div 
+          onClick={() => setSendPromptModal(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in"
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800 max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-150"
+          >
             <button
-              onClick={() => setPhonePromptScale(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+              onClick={() => setSendPromptModal(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mb-3">
-              <MessageCircle className="w-6 h-6 fill-current" />
-            </div>
-
-            <h3 className="text-base font-bold text-slate-900 mb-1">
-              Enviar Escala via WhatsApp
-            </h3>
-            <p className="text-xs text-slate-600 mb-4">
-              Para qual número de telefone/WhatsApp você deseja enviar a escala do ministério <strong>{phonePromptScale.scale.ministryName}</strong>?
-            </p>
-
-            <div className="space-y-3 mb-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-sm">
+                <MessageCircle className="w-6 h-6 fill-current" />
+              </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Número do WhatsApp de Envio *
-                </label>
-                <MaskedInput
-                  mask="phone"
-                  placeholder="(82) 99999-9999"
-                  value={phonePromptScale.targetPhone}
-                  onChange={val => setPhonePromptScale({ ...phonePromptScale, targetPhone: val })}
-                />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Líder da Escala: <strong>{phonePromptScale.scale.leaderName}</strong>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span>Revisar e Enviar Escala</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                    Editável
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {sendPromptModal.scale.ministryName} • {sendPromptModal.scale.date.split('-').reverse().join('/')}
                 </p>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            {/* Alternador de Destino: Enviar p/ Líder vs Enviar no Grupo */}
+            <div className="flex p-1 rounded-2xl bg-slate-100 border border-slate-200 mb-4">
               <button
                 type="button"
-                onClick={() => setPhonePromptScale(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-semibold"
+                onClick={() => setSendPromptModal({
+                  ...sendPromptModal,
+                  mode: 'leader',
+                  targetPhone: sendPromptModal.targetPhone || sendPromptModal.scale.leaderPhone || ''
+                })}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  sendPromptModal.mode === 'leader'
+                    ? 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                Cancelar
+                <UserCheck className="w-4 h-4" />
+                <span>Enviar para o Líder</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => {
-                  const num = phonePromptScale.targetPhone.trim();
-                  if (!num) {
-                    showToast('Informe o número de telefone para envio.', 'error');
-                    return;
-                  }
-                  // Atualiza o número no registro da escala também
-                  const updatedScale = {
-                    ...phonePromptScale.scale,
-                    leaderPhone: num
-                  };
-                  saveMinistryScale(updatedScale);
-                  handleSendToLeader(updatedScale, num);
-                  setPhonePromptScale(null);
-                  refreshAll();
-                }}
-                className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+                onClick={() => setSendPromptModal({
+                  ...sendPromptModal,
+                  mode: 'group'
+                })}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  sendPromptModal.mode === 'group'
+                    ? 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <MessageCircle className="w-4 h-4 fill-current" />
-                <span>Abrir WhatsApp e Enviar</span>
+                <Users className="w-4 h-4" />
+                <span>Enviar no Grupo</span>
               </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Telefone do Líder se modo leader */}
+              {sendPromptModal.mode === 'leader' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Número de WhatsApp do Líder ({sendPromptModal.scale.leaderName}) *
+                  </label>
+                  <MaskedInput
+                    mask="phone"
+                    placeholder="(82) 99999-9999"
+                    value={sendPromptModal.targetPhone}
+                    onChange={val => setSendPromptModal({ ...sendPromptModal, targetPhone: val })}
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Você pode alterar o número acima caso o líder use outro WhatsApp.
+                  </p>
+                </div>
+              )}
+
+              {sendPromptModal.mode === 'group' && (
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <span>Ao clicar em enviar, o WhatsApp abrirá seu seletor de conversas para você escolher o <strong>Grupo do {sendPromptModal.scale.ministryName}</strong>.</span>
+                </div>
+              )}
+
+              {/* Mensagem Editável */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Texto da Escala (você pode editar ou acrescentar avisos):</span>
+                  </label>
+                  {sendPromptModal.messageText !== sendPromptModal.originalMessage && (
+                    <button
+                      type="button"
+                      onClick={() => setSendPromptModal({
+                        ...sendPromptModal,
+                        messageText: sendPromptModal.originalMessage
+                      })}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                      title="Voltar ao texto original gerado automaticamente"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Restaurar original
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  rows={8}
+                  value={sendPromptModal.messageText}
+                  onChange={e => setSendPromptModal({ ...sendPromptModal, messageText: e.target.value })}
+                  className="w-full p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-mono leading-relaxed outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all resize-y shadow-inner"
+                />
+                <p className="text-[11px] text-slate-400 mt-1 flex justify-between">
+                  <span>💡 Você tem total liberdade para editar os textos antes do disparo.</span>
+                  <span>{sendPromptModal.messageText.length} caracteres</span>
+                </p>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSendPromptModal(null)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-semibold"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(sendPromptModal.messageText);
+                    setCopiedId(sendPromptModal.scale.id);
+                    showToast('Texto da escala copiado com sucesso!', 'success');
+                    setTimeout(() => setCopiedId(null), 3000);
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  {copiedId === sendPromptModal.scale.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedId === sendPromptModal.scale.id ? 'Copiado!' : 'Copiar Texto'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    executeSendWhatsApp(
+                      sendPromptModal.scale,
+                      sendPromptModal.mode,
+                      sendPromptModal.targetPhone,
+                      sendPromptModal.messageText
+                    );
+                  }}
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current" />
+                  <span>Abrir WhatsApp e Enviar</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

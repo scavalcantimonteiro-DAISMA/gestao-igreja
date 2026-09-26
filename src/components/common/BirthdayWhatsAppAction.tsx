@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MessageCircle, Send, Copy, Check, X, Cake, Phone, UserCheck, HeartHandshake, ShieldAlert, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageCircle, Send, Copy, Check, X, Cake, Phone, UserCheck, HeartHandshake, ShieldAlert, Save, Edit3, RotateCcw } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
 import { useChurch } from '../../context/ChurchContext';
 
@@ -41,6 +41,10 @@ export const BirthdayWhatsAppAction: React.FC<BirthdayWhatsAppActionProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [targetPhone, setTargetPhone] = useState(phone || '');
+
+  // Mensagem personalizada editável
+  const [customMessage, setCustomMessage] = useState<string>('');
+  const [isMessageEdited, setIsMessageEdited] = useState(false);
 
   // Escolha do remetente (Pastor Titular ou Gabinete Pastoral)
   const [senderRole, setSenderRole] = useState<'pastor' | 'gabinete' | 'secretaria'>(
@@ -139,9 +143,17 @@ export const BirthdayWhatsAppAction: React.FC<BirthdayWhatsAppActionProps> = ({
   };
 
   const greetingMessage = getGreetingMessage();
+  const activeMessage = isMessageEdited ? customMessage : greetingMessage;
+
+  // Atualiza mensagem padrão se o remetente mudar e o usuário não tiver customizado
+  useEffect(() => {
+    if (!isMessageEdited) {
+      setCustomMessage(greetingMessage);
+    }
+  }, [senderRole, personName, age, type]);
 
   // Mensagem para avisar/encaminhar diretamente ao pastor
-  const alertPastorMessage = `Graça e Paz, ${pastorName}! 🎂\n\nHoje é ${type === 'wedding' ? 'aniversário de casamento' : 'o aniversário'} de *${personName}*${age ? ` (${age} anos)` : ''}!\nTelefone: *${targetPhone || 'Não informado'}* ${isChild && guardianName ? `(Responsável: ${guardianName})` : ''}\n\nSegue texto formatado para o senhor enviar:\n\n"${greetingMessage.replace(/\n/g, ' ')}"`;
+  const alertPastorMessage = `Graça e Paz, ${pastorName}! 🎂\n\nHoje é ${type === 'wedding' ? 'aniversário de casamento' : 'o aniversário'} de *${personName}*${age ? ` (${age} anos)` : ''}!\nTelefone: *${targetPhone || 'Não informado'}* ${isChild && guardianName ? `(Responsável: ${guardianName})` : ''}\n\nSegue texto formatado para o senhor enviar:\n\n"${activeMessage.replace(/\n/g, ' ')}"`;
 
   // Disparo para o Membro/Aniversariante
   const handleOpenWhatsAppMember = (e: React.MouseEvent) => {
@@ -158,7 +170,7 @@ export const BirthdayWhatsAppAction: React.FC<BirthdayWhatsAppActionProps> = ({
       return;
     }
 
-    const url = `https://wa.me/${finalTargetPhone}?text=${encodeURIComponent(greetingMessage)}`;
+    const url = `https://wa.me/${finalTargetPhone}?text=${encodeURIComponent(activeMessage)}`;
     window.open(url, '_blank');
     showToast(`Abrindo WhatsApp de ${personName}...`, 'info');
   };
@@ -193,7 +205,7 @@ export const BirthdayWhatsAppAction: React.FC<BirthdayWhatsAppActionProps> = ({
 
   const handleCopyMessage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(greetingMessage);
+    navigator.clipboard.writeText(activeMessage);
     setCopied(true);
     showToast('Mensagem copiada para a área de transferência!', 'success');
     setTimeout(() => setCopied(false), 2000);
@@ -433,14 +445,42 @@ export const BirthdayWhatsAppAction: React.FC<BirthdayWhatsAppActionProps> = ({
               />
             </div>
 
-            {/* Prévia da Mensagem */}
-            <div className="mb-5">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Texto que será enviado no WhatsApp:
-              </label>
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 whitespace-pre-wrap font-sans max-h-40 overflow-y-auto leading-relaxed shadow-inner">
-                {greetingMessage}
+            {/* Mensagem Editável */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Mensagem (você pode editar ou personalizar antes de enviar):</span>
+                </label>
+                {isMessageEdited && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomMessage(greetingMessage);
+                      setIsMessageEdited(false);
+                      showToast('Mensagem restaurada para o modelo padrão.', 'info');
+                    }}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                    title="Restaurar texto do modelo original"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Restaurar original
+                  </button>
+                )}
               </div>
+              <textarea
+                rows={5}
+                value={activeMessage}
+                onChange={(e) => {
+                  setCustomMessage(e.target.value);
+                  setIsMessageEdited(true);
+                }}
+                className="w-full p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm font-sans leading-relaxed outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all resize-y shadow-inner"
+              />
+              <p className="text-[11px] text-slate-400 mt-1 flex justify-between">
+                <span>💡 Ajuste os nomes, versículos ou palavras como desejar antes de enviar.</span>
+                <span>{activeMessage.length} caracteres</span>
+              </p>
             </div>
 
             {/* Ações de Disparo */}
