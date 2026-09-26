@@ -185,21 +185,29 @@ export const ReportsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {members.map(m => (
-                  <tr key={m.id} className="hover:bg-sky-50/40 transition-colors">
-                    <td className="p-3 font-semibold text-slate-900">{m.name}</td>
-                    <td className="p-3 text-slate-600">{m.whatsapp}</td>
-                    <td className="p-3 text-slate-600">{m.churchRole || 'Membro'}</td>
-                    <td className="p-3 text-slate-600">{m.ministry || 'Geral'}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        m.status === 'Ativo' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {m.status}
-                      </span>
+                {members.length > 0 ? (
+                  members.map(m => (
+                    <tr key={m.id} className="hover:bg-sky-50/40 transition-colors">
+                      <td className="p-3 font-semibold text-slate-900">{m.name}</td>
+                      <td className="p-3 text-slate-600">{m.whatsapp}</td>
+                      <td className="p-3 text-slate-600">{m.churchRole || 'Membro'}</td>
+                      <td className="p-3 text-slate-600">{m.ministry || 'Geral'}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          m.status === 'Ativo' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {m.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-slate-400 font-medium">
+                      Nenhum membro cadastrado nesta congregação.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -375,14 +383,22 @@ export const ReportsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {wToday.concat(wUpcoming).map(w => (
-                  <tr key={w.id} className="hover:bg-sky-50/40 transition-colors">
-                    <td className="p-3 font-bold text-pink-600">{w.formattedDate}</td>
-                    <td className="p-3 font-semibold text-slate-900">{w.coupleName}</td>
-                    <td className="p-3 text-slate-600">{w.yearsMarried} anos</td>
-                    <td className="p-3 text-slate-600">{w.whatsapp}</td>
+                {wToday.concat(wUpcoming).length > 0 ? (
+                  wToday.concat(wUpcoming).map(w => (
+                    <tr key={w.id} className="hover:bg-sky-50/40 transition-colors">
+                      <td className="p-3 font-bold text-pink-600">{w.formattedDate}</td>
+                      <td className="p-3 font-semibold text-slate-900">{w.coupleName}</td>
+                      <td className="p-3 text-slate-600">{w.yearsMarried} anos</td>
+                      <td className="p-3 text-slate-600">{w.whatsapp}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
+                      Nenhum aniversário de casamento registrado nesta congregação.
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -401,15 +417,23 @@ export const ReportsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {pgs.map(p => (
-                  <tr key={p.id} className="hover:bg-sky-50/40 transition-colors">
-                    <td className="p-3 font-semibold text-slate-900">{p.name}</td>
-                    <td className="p-3 text-slate-600">{p.leaderName}</td>
-                    <td className="p-3 text-slate-600">{p.dayOfWeek} às {p.time}</td>
-                    <td className="p-3 text-slate-600">{p.address}</td>
-                    <td className="p-3 font-bold text-sky-600">{p.participantsCount} pessoas</td>
+                {pgs.length > 0 ? (
+                  pgs.map(p => (
+                    <tr key={p.id} className="hover:bg-sky-50/40 transition-colors">
+                      <td className="p-3 font-semibold text-slate-900">{p.name}</td>
+                      <td className="p-3 text-slate-600">{p.leaderName}</td>
+                      <td className="p-3 text-slate-600">{p.dayOfWeek} às {p.time}</td>
+                      <td className="p-3 text-slate-600">{p.address}</td>
+                      <td className="p-3 font-bold text-sky-600">{p.participantsCount} pessoas</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-slate-400 font-medium">
+                      Nenhum Pequeno Grupo cadastrado nesta congregação.
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -429,25 +453,33 @@ export const ReportsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {children.map(c => {
-                  const birthYear = c.birthDate ? parseInt(c.birthDate.split('-')[0]) : null;
-                  const currentYear = new Date().getFullYear();
-                  const age = birthYear && !isNaN(birthYear) ? `${currentYear - birthYear} anos` : '-';
-                  return (
-                    <tr key={c.id} className="hover:bg-sky-50/40 transition-colors">
-                      <td className="p-3 font-semibold text-slate-900">{c.name}</td>
-                      <td className="p-3 text-slate-600">{c.birthDate}</td>
-                      <td className="p-3 text-slate-600 font-bold">{age}</td>
-                      <td className="p-3 text-slate-600">{c.guardianName || '-'}</td>
-                      <td className="p-3 text-slate-600">{c.guardianWhatsapp || c.guardianPhone || '-'}</td>
-                      <td className="p-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800">
-                          {c.ebdClass || c.childrenMinistry || 'Infantil'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {children.length > 0 ? (
+                  children.map(c => {
+                    const birthYear = c.birthDate ? parseInt(c.birthDate.split('-')[0]) : null;
+                    const currentYear = new Date().getFullYear();
+                    const age = birthYear && !isNaN(birthYear) ? `${currentYear - birthYear} anos` : '-';
+                    return (
+                      <tr key={c.id} className="hover:bg-sky-50/40 transition-colors">
+                        <td className="p-3 font-semibold text-slate-900">{c.name}</td>
+                        <td className="p-3 text-slate-600">{c.birthDate}</td>
+                        <td className="p-3 text-slate-600 font-bold">{age}</td>
+                        <td className="p-3 text-slate-600">{c.guardianName || '-'}</td>
+                        <td className="p-3 text-slate-600">{c.guardianWhatsapp || c.guardianPhone || '-'}</td>
+                        <td className="p-3">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800">
+                            {c.ebdClass || c.childrenMinistry || 'Infantil'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-slate-400 font-medium">
+                      Nenhuma criança cadastrada no departamento infantil desta congregação.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

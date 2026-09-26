@@ -165,6 +165,8 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
       ministryText += `\n_Coordenação Eclesiástica — ${currentChurch.name}_\n`;
       ministryText += `_Plataforma de Gestão Eclesiástica_`;
     }
+  } else {
+    ministryText = `*ESCALA & COMUNICAÇÃO DE MINISTÉRIO*\n*${currentChurch.name.toUpperCase()}*\n\n_Nenhum ministério cadastrado ainda para esta congregação._\n\n_Cadastre os ministérios na aba Ministérios para habilitar escalas automáticas._`;
   }
 
   const currentPastorText = isPastorEdited ? editedPastorText : pastorText;
@@ -279,20 +281,28 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
         {/* Se for aba de ministérios, exibe seletor de ministério */}
         {activeTab === 'ministry' && (
           <div className="mb-3 shrink-0">
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Selecione o Ministério para gerar a escala:
-            </label>
-            <select
-              value={selectedMinistryId}
-              onChange={e => setSelectedMinistryId(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold outline-none focus:bg-white focus:border-sky-500"
-            >
-              {ministries.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.name} (Líder: {m.leaderName})
-                </option>
-              ))}
-            </select>
+            {ministries.length > 0 ? (
+              <>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Selecione o Ministério para gerar a escala:
+                </label>
+                <select
+                  value={selectedMinistryId}
+                  onChange={e => setSelectedMinistryId(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold outline-none focus:bg-white focus:border-sky-500"
+                >
+                  {ministries.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} (Líder: {m.leaderName})
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
+                Nenhum ministério cadastrado ainda para esta congregação. Cadastre seus ministérios na aba <strong>Ministérios</strong> para habilitar as escalas aqui.
+              </div>
+            )}
           </div>
         )}
 

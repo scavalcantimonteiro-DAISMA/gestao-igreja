@@ -160,7 +160,7 @@ const MainLayout: React.FC = () => {
                 />
               ) : (
                 <div className="h-7 w-7 rounded-lg bg-sky-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                  {currentChurch.name[0]}
+                  {(currentChurch.name && currentChurch.name[0]) || 'I'}
                 </div>
               )}
               <span>© {new Date().getFullYear()} <strong className="text-slate-700">{currentChurch.name}</strong></span>
