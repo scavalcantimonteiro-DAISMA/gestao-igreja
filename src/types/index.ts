@@ -42,6 +42,8 @@ export interface Church {
   dailyReportHour: string; // Ex: "07:30"
   financialPin: string;    // Padrão "0000" inicial
   financialPinChanged: boolean;
+  reserveTarget?: number;  // Meta/valor ideal da reserva de emergência (editável)
+  reserveBalance?: number; // Saldo atual acumulado na reserva de emergência
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -514,6 +516,9 @@ export interface FixedExpense {
   paymentMethod: PaymentMethod;
   notes?: string;
   isActive: boolean;
+  lastPaidMonth?: string; // Mês do último pagamento efetuado (formato YYYY-MM)
+  lastPaidDate?: string;  // Data exata do último pagamento efetuado (YYYY-MM-DD)
+  lastExpenseId?: string; // ID da saída financeira correspondente no caixa
   createdAt: string;
 }
 

@@ -422,7 +422,7 @@ export function exportFinanceToExcel(
 ): void {
   const wb = XLSX.utils.book_new();
 
-  // 1. ABA: COMPARATIVO MENSAL DO ANO
+  // 1. ABA: COMPARATIVO MENSAL DO ANO (APENAS MESES COM REGISTRO PARA NÃO FICAR CONFUSO)
   const MONTHS = [
     { num: '01', name: 'Janeiro' },
     { num: '02', name: 'Fevereiro' },
@@ -438,13 +438,38 @@ export function exportFinanceToExcel(
     { num: '12', name: 'Dezembro' }
   ];
 
-  const comparativeRows = MONTHS.map(m => {
+  // Filtra apenas os meses que possuem lançamentos (entradas ou saídas) no ano selecionado
+  const monthsWithRecords = MONTHS.filter(m => {
+    const monthKey = `${year}-${m.num}`;
+    const hasE = entries.some(e => e.date.startsWith(monthKey));
+    const hasX = expenses.some(x => x.date.startsWith(monthKey));
+    return hasE || hasX;
+  });
+
+  // Se nenhum mês tiver registro no ano, exibe o mês corrente para referência limpa
+  const currentMonthNum = String(new Date().getMonth() + 1).padStart(2, '0');
+  const targetMonths = monthsWithRecords.length > 0 
+    ? monthsWithRecords 
+    : MONTHS.filter(m => m.num === currentMonthNum);
+
+  let totalEntriesYear = 0;
+  let totalExpensesYear = 0;
+  let totalCountEntries = 0;
+  let totalCountExpenses = 0;
+
+  const comparativeRows: any[] = targetMonths.map(m => {
     const monthKey = `${year}-${m.num}`;
     const mEntries = entries.filter(e => e.date.startsWith(monthKey));
     const mExpenses = expenses.filter(x => x.date.startsWith(monthKey));
     const totalE = mEntries.reduce((sum, e) => sum + e.amount, 0);
     const totalX = mExpenses.reduce((sum, x) => sum + x.amount, 0);
+    // Tudo que colocar de saídas subtrai do saldo:
     const balance = totalE - totalX;
+
+    totalEntriesYear += totalE;
+    totalExpensesYear += totalX;
+    totalCountEntries += mEntries.length;
+    totalCountExpenses += mExpenses.length;
 
     const endOfMonth = `${year}-${m.num}-31`;
     const accE = entries.filter(e => e.date <= endOfMonth).reduce((sum, e) => sum + e.amount, 0);
@@ -462,11 +487,24 @@ export function exportFinanceToExcel(
     };
   });
 
+  // Linha de TOTAL CONSOLIDADO no final da aba Comparativo Mensal
+  const finalYearBalance = totalEntriesYear - totalExpensesYear;
+  comparativeRows.push({
+    'Mês': 'TOTAL CONSOLIDADO',
+    'Total Entradas (R$)': Number(totalEntriesYear.toFixed(2)),
+    'Total Saídas (R$)': Number(totalExpensesYear.toFixed(2)),
+    'Saldo do Mês (R$)': Number(finalYearBalance.toFixed(2)), // Saldo = Entradas - Saídas
+    'Caixa Final Acumulado (R$)': Number(finalYearBalance.toFixed(2)),
+    'Qtd. Entradas': totalCountEntries,
+    'Qtd. Saídas': totalCountExpenses
+  });
+
   const wsComp = XLSX.utils.json_to_sheet(comparativeRows);
   XLSX.utils.book_append_sheet(wb, wsComp, 'Comparativo Mensal');
 
   // 2. ABA: ENTRADAS (DÍZIMOS E OFERTAS)
-  const entryRows = entries.map((e, index) => ({
+  const sumEntries = entries.reduce((sum, e) => sum + e.amount, 0);
+  const entryRows: any[] = entries.map((e, index) => ({
     'Nº': index + 1,
     'Data': formatDate(e.date),
     'Descrição': e.description,
@@ -475,11 +513,25 @@ export function exportFinanceToExcel(
     'Forma de Pagamento': e.paymentMethod || 'PIX',
     'Observações': e.notes || ''
   }));
+
+  if (entryRows.length > 0) {
+    entryRows.push({
+      'Nº': 'TOTAL',
+      'Data': '',
+      'Descrição': 'TOTAL GERAL DE ENTRADAS',
+      'Categoria': '',
+      'Valor (R$)': Number(sumEntries.toFixed(2)),
+      'Forma de Pagamento': '',
+      'Observações': `${entries.length} lançamentos de entrada`
+    });
+  }
+
   const wsEntries = XLSX.utils.json_to_sheet(entryRows.length > 0 ? entryRows : [{ Aviso: 'Sem entradas registradas.' }]);
   XLSX.utils.book_append_sheet(wb, wsEntries, 'Entradas');
 
   // 3. ABA: SAÍDAS / DESPESAS
-  const expenseRows = expenses.map((x, index) => ({
+  const sumExpenses = expenses.reduce((sum, x) => sum + x.amount, 0);
+  const expenseRows: any[] = expenses.map((x, index) => ({
     'Nº': index + 1,
     'Data': formatDate(x.date),
     'Descrição': x.description,
@@ -489,11 +541,26 @@ export function exportFinanceToExcel(
     'Responsável': x.responsible || 'Tesouraria',
     'Observações': x.notes || ''
   }));
+
+  if (expenseRows.length > 0) {
+    expenseRows.push({
+      'Nº': 'TOTAL',
+      'Data': '',
+      'Descrição': 'TOTAL GERAL DE SAÍDAS (DESPESAS)',
+      'Categoria': '',
+      'Valor (R$)': Number(sumExpenses.toFixed(2)),
+      'Forma de Pagamento': '',
+      'Responsável': '',
+      'Observações': `${expenses.length} lançamentos de saída`
+    });
+  }
+
   const wsExpenses = XLSX.utils.json_to_sheet(expenseRows.length > 0 ? expenseRows : [{ Aviso: 'Sem saídas registradas.' }]);
   XLSX.utils.book_append_sheet(wb, wsExpenses, 'Saídas');
 
   // 4. ABA: DESPESAS FIXAS PROGRAMADAS
-  const fixedRows = fixedExpenses.map((f, index) => ({
+  const sumFixed = fixedExpenses.filter(f => f.isActive).reduce((sum, f) => sum + f.amount, 0);
+  const fixedRows: any[] = fixedExpenses.map((f, index) => ({
     'Nº': index + 1,
     'Descrição da Despesa': f.description,
     'Categoria': f.category,
@@ -504,8 +571,40 @@ export function exportFinanceToExcel(
     'Beneficiário': f.beneficiary || '',
     'Observações': f.notes || ''
   }));
+
+  if (fixedRows.length > 0) {
+    fixedRows.push({
+      'Nº': 'TOTAL',
+      'Descrição da Despesa': 'TOTAL MENSAL PREVISTO (CONTAS ATIVAS)',
+      'Categoria': '',
+      'Valor Mensal (R$)': Number(sumFixed.toFixed(2)),
+      'Dia de Vencimento': '',
+      'Status': `${fixedExpenses.filter(f => f.isActive).length} ativas`,
+      'Forma de Pagamento': '',
+      'Beneficiário': '',
+      'Observações': ''
+    });
+  }
+
   const wsFixed = XLSX.utils.json_to_sheet(fixedRows.length > 0 ? fixedRows : [{ Aviso: 'Sem despesas fixas cadastradas.' }]);
   XLSX.utils.book_append_sheet(wb, wsFixed, 'Despesas Fixas');
+
+  // 5. ABA: RESERVA DE EMERGÊNCIA & PATRIMÔNIO (SE HOUVER RESERVA CADASTRADA)
+  if (church.reserveBalance !== undefined || church.reserveTarget !== undefined) {
+    const reserveBal = church.reserveBalance || 0;
+    const reserveTgt = church.reserveTarget || 0;
+    const currentCashBalance = sumEntries - sumExpenses;
+    const totalPatrimony = currentCashBalance + reserveBal;
+
+    const reserveRows = [
+      { 'Indicador Financeiro': 'Saldo em Caixa Operacional', 'Valor (R$)': Number(currentCashBalance.toFixed(2)), 'Status / Detalhe': 'Disponível para giro no dia a dia' },
+      { 'Indicador Financeiro': 'Saldo na Reserva de Emergência', 'Valor (R$)': Number(reserveBal.toFixed(2)), 'Status / Detalhe': 'Fundo de contingência guardado' },
+      { 'Indicador Financeiro': 'Meta Ideal da Reserva de Emergência', 'Valor (R$)': Number(reserveTgt.toFixed(2)), 'Status / Detalhe': reserveTgt > 0 ? `${((reserveBal / reserveTgt) * 100).toFixed(1)}% atingido` : 'Não definida' },
+      { 'Indicador Financeiro': 'Patrimônio Financeiro Total da Congregação', 'Valor (R$)': Number(totalPatrimony.toFixed(2)), 'Status / Detalhe': 'Caixa Operacional + Reserva' }
+    ];
+    const wsReserve = XLSX.utils.json_to_sheet(reserveRows);
+    XLSX.utils.book_append_sheet(wb, wsReserve, 'Reserva de Emergência');
+  }
 
   XLSX.writeFile(wb, `Financeiro_Fluxo_de_Caixa_${sanitize(church.name)}_${year}.xlsx`);
 }

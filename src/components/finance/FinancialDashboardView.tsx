@@ -22,7 +22,17 @@ import {
   ArrowDownRight,
   BarChart3,
   Download,
-  FileSpreadsheet
+  FileSpreadsheet,
+  PiggyBank,
+  ShieldCheck,
+  Calendar,
+  AlertCircle,
+  ArrowRightLeft,
+  Sparkles,
+  Check,
+  CheckCheck,
+  Info,
+  CalendarDays
 } from 'lucide-react';
 import { exportFinanceToExcel } from '../../services/excelBackup';
 import { 
@@ -73,7 +83,7 @@ const MONTHS = [
 ];
 
 export const FinancialDashboardView: React.FC = () => {
-  const { currentChurch, isFinancialUnlocked, lockFinancial } = useChurch();
+  const { currentChurch, isFinancialUnlocked, lockFinancial, updateCurrentChurch } = useChurch();
   const { showToast } = useNotification();
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(!isFinancialUnlocked);
@@ -81,8 +91,28 @@ export const FinancialDashboardView: React.FC = () => {
   const [expenses, setExpenses] = useState<FinancialExpense[]>(() => getFinancialExpenses(currentChurch.id));
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>(() => getFixedExpenses(currentChurch.id));
 
-  const [activeTab, setActiveTab] = useState<'geral' | 'comparativo' | 'despesas_fixas' | 'entradas' | 'saidas'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'comparativo' | 'provisionamento' | 'despesas_fixas' | 'entradas' | 'saidas'>('geral');
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [onlyMonthsWithData, setOnlyMonthsWithData] = useState<boolean>(true);
+
+  // Modal de Efetuar Pagamento de Despesa Fixa (com desconto direto do caixa)
+  const [isPayFixedModalOpen, setIsPayFixedModalOpen] = useState(false);
+  const [payingFixedItem, setPayingFixedItem] = useState<FixedExpense | null>(null);
+  const [payFixedDate, setPayFixedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [payFixedMethod, setPayFixedMethod] = useState<PaymentMethod>('PIX');
+  const [payFixedNotes, setPayFixedNotes] = useState('');
+
+  // Modais e Estados da Reserva de Emergência
+  const [isReserveTargetModalOpen, setIsReserveTargetModalOpen] = useState(false);
+  const [reserveTargetInput, setReserveTargetInput] = useState(String(currentChurch.reserveTarget || ''));
+
+  const [isSendToReserveModalOpen, setIsSendToReserveModalOpen] = useState(false);
+  const [sendReserveAmount, setSendReserveAmount] = useState('');
+  const [sendReserveNotes, setSendReserveNotes] = useState('');
+
+  const [isRescueReserveModalOpen, setIsRescueReserveModalOpen] = useState(false);
+  const [rescueReserveAmount, setRescueReserveAmount] = useState('');
+  const [rescueReserveNotes, setRescueReserveNotes] = useState('');
 
   // Entry & Expense Modals
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
@@ -133,9 +163,37 @@ export const FinancialDashboardView: React.FC = () => {
 
   useDataSync(refreshAll, [currentChurch.id]);
 
+  const today = new Date();
+  const currentMonthNum = String(today.getMonth() + 1).padStart(2, '0');
+  const currentMonthKey = `${today.getFullYear()}-${currentMonthNum}`;
+  const currentDay = today.getDate();
+
   const totalEntries = entries.reduce((acc, curr) => acc + curr.amount, 0);
   const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);
   const balance = totalEntries - totalExpenses;
+
+  // Reserva de Emergência
+  const currentReserveBalance = currentChurch.reserveBalance || 0;
+  const currentReserveTarget = currentChurch.reserveTarget || 0;
+  const reservePercent = currentReserveTarget > 0 
+    ? Math.min(100, Math.round((currentReserveBalance / currentReserveTarget) * 100)) 
+    : 0;
+  const totalPatrimony = balance + currentReserveBalance;
+
+  // Despesas Fixas & Provisionamento do mês corrente
+  const activeFixedExpenses = fixedExpenses.filter(f => f.isActive);
+  const totalProvisionedMonth = activeFixedExpenses.reduce((sum, f) => sum + f.amount, 0);
+
+  // Despesas fixas já quitadas neste mês corrente
+  const paidFixedThisMonth = activeFixedExpenses.filter(f => f.lastPaidMonth === currentMonthKey);
+  const totalPaidFixedThisMonth = paidFixedThisMonth.reduce((sum, f) => sum + f.amount, 0);
+
+  // Despesas fixas pendentes no mês corrente
+  const pendingFixedThisMonth = activeFixedExpenses.filter(f => f.lastPaidMonth !== currentMonthKey);
+  const totalPendingProvision = pendingFixedThisMonth.reduce((sum, f) => sum + f.amount, 0);
+
+  // Saldo Livre Projetado (Caixa atual menos o que ainda falta pagar de contas do mês)
+  const projectedFreeBalance = balance - totalPendingProvision;
 
   // Se o financeiro estiver bloqueado, exibe tela de bloqueio com botão de PIN
   if (!isFinancialUnlocked) {
@@ -376,27 +434,172 @@ export const FinancialDashboardView: React.FC = () => {
     refreshAll();
   };
 
-  // Lançar despesa fixa diretamente como despesa do mês atual
-  const handleLaunchFixedInMonth = (f: FixedExpense) => {
-    const today = new Date();
-    const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(Math.min(f.dueDay, 28)).padStart(2, '0')}`;
+  // Abrir modal de confirmação de pagamento de despesa fixa
+  const handleOpenPayFixedModal = (fixed: FixedExpense) => {
+    setPayingFixedItem(fixed);
+    setPayFixedDate(new Date().toISOString().split('T')[0]);
+    setPayFixedMethod(fixed.paymentMethod || 'PIX');
+    setPayFixedNotes('');
+    setIsPayFixedModalOpen(true);
+  };
 
+  // Efetuar pagamento da despesa fixa: desconta do caixa e marca como paga no mês
+  const handleConfirmPayFixed = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payingFixedItem) return;
+
+    const f = payingFixedItem;
+    const refMonth = MONTHS[today.getMonth()].name;
+    const refYear = today.getFullYear();
+
+    // 1. Cria a saída no fluxo de caixa (descontando automaticamente do saldo do caixa)
     const newExpense: FinancialExpense = {
       id: 'fin_x_fix_' + Date.now(),
       churchId: currentChurch.id,
-      date: formattedDate,
-      description: `[Fixa] ${f.description} (Ref: ${MONTHS[today.getMonth()].name}/${today.getFullYear()})`,
+      date: payFixedDate,
+      description: `[Fixa] ${f.description} (Ref: ${refMonth}/${refYear})`,
       category: f.category,
       amount: f.amount,
-      paymentMethod: f.paymentMethod || 'PIX',
+      paymentMethod: payFixedMethod,
       responsible: f.beneficiary || 'Tesouraria',
-      notes: `Lançamento de despesa fixa programada para todo dia ${f.dueDay}. ${f.notes || ''}`,
+      notes: payFixedNotes 
+        ? `${payFixedNotes} • Vencimento original dia ${f.dueDay}` 
+        : `Pagamento de despesa fixa programada (Vencimento dia ${f.dueDay}). ${f.notes || ''}`,
       createdAt: new Date().toISOString()
     };
-
     saveFinancialExpense(newExpense);
-    logAction(currentChurch.id, 'Tesouraria', 'TESOURARIA', 'Lançamento de Despesa Fixa', `${f.description} - R$ ${f.amount.toFixed(2)}`);
-    showToast(`Despesa "${f.description}" lançada no fluxo de caixa deste mês!`, 'success');
+
+    // 2. Atualiza a despesa fixa indicando que o pagamento do mês corrente foi efetuado
+    const updatedFixed: FixedExpense = {
+      ...f,
+      lastPaidMonth: currentMonthKey,
+      lastPaidDate: payFixedDate,
+      lastExpenseId: newExpense.id
+    };
+    saveFixedExpense(updatedFixed);
+
+    logAction(
+      currentChurch.id, 
+      'Tesouraria', 
+      'TESOURARIA', 
+      'Pagamento Efetuado de Despesa Fixa', 
+      `${f.description} - R$ ${f.amount.toFixed(2)} (Ref: ${currentMonthKey})`
+    );
+
+    showToast(`Pagamento de "${f.description}" (R$ ${f.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}) efetuado e descontado do caixa!`, 'success');
+    setIsPayFixedModalOpen(false);
+    setPayingFixedItem(null);
+    refreshAll();
+  };
+
+  // Desfazer status de pago de uma despesa fixa (caso tenha marcado por engano)
+  const handleUnmarkPaidFixed = (f: FixedExpense) => {
+    const updated: FixedExpense = {
+      ...f,
+      lastPaidMonth: undefined,
+      lastPaidDate: undefined,
+      lastExpenseId: undefined
+    };
+    saveFixedExpense(updated);
+    showToast(`Status da despesa fixa "${f.description}" redefinido para pendente no mês.`, 'info');
+    refreshAll();
+  };
+
+  // Salvar Meta Ideal da Reserva de Emergência
+  const handleSaveReserveTarget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(reserveTargetInput) || 0;
+    await updateCurrentChurch({ reserveTarget: val });
+    showToast(`Meta ideal da Reserva de Emergência atualizada para ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 'success');
+    setIsReserveTargetModalOpen(false);
+  };
+
+  // Enviar Valor do Caixa para a Reserva de Emergência
+  const handleConfirmSendToReserve = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(sendReserveAmount);
+    if (!amount || amount <= 0) {
+      showToast('Por favor, informe um valor positivo a ser enviado para a reserva.', 'error');
+      return;
+    }
+
+    // 1. Registra saída no caixa (descontando do saldo do caixa)
+    const newExpense: FinancialExpense = {
+      id: 'fin_x_res_' + Date.now(),
+      churchId: currentChurch.id,
+      date: new Date().toISOString().split('T')[0],
+      description: '[Reserva de Emergência] Aporte enviado do caixa para a reserva',
+      category: 'outros',
+      amount: amount,
+      paymentMethod: 'Transferência',
+      responsible: 'Tesouraria',
+      notes: sendReserveNotes || 'Transferência de recursos do caixa operacional para a Reserva de Emergência da igreja.',
+      createdAt: new Date().toISOString()
+    };
+    saveFinancialExpense(newExpense);
+
+    // 2. Credita no saldo da reserva da congregação
+    const newBalance = currentReserveBalance + amount;
+    await updateCurrentChurch({ reserveBalance: newBalance });
+
+    logAction(
+      currentChurch.id,
+      'Tesouraria',
+      'TESOURARIA',
+      'Aporte em Reserva de Emergência',
+      `R$ ${amount.toFixed(2)} transferido do caixa para reserva`
+    );
+
+    showToast(`R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} enviado com sucesso para a Reserva de Emergência!`, 'success');
+    setIsSendToReserveModalOpen(false);
+    setSendReserveAmount('');
+    setSendReserveNotes('');
+    refreshAll();
+  };
+
+  // Resgatar Valor da Reserva de Emergência de Volta para o Caixa
+  const handleConfirmRescueReserve = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(rescueReserveAmount);
+    if (!amount || amount <= 0) {
+      showToast('Por favor, informe um valor positivo a ser resgatado.', 'error');
+      return;
+    }
+    if (amount > currentReserveBalance) {
+      showToast(`O valor informado (R$ ${amount.toFixed(2)}) é maior que o saldo da reserva (R$ ${currentReserveBalance.toFixed(2)}).`, 'error');
+      return;
+    }
+
+    // 1. Registra entrada no caixa (somando no saldo do caixa)
+    const newEntry: FinancialEntry = {
+      id: 'fin_e_res_' + Date.now(),
+      churchId: currentChurch.id,
+      date: new Date().toISOString().split('T')[0],
+      description: '[Reserva de Emergência] Resgate da reserva para o caixa operacional',
+      category: 'outros',
+      amount: amount,
+      paymentMethod: 'Transferência',
+      notes: rescueReserveNotes || 'Resgate de recursos da reserva de emergência para custeio no caixa da congregação.',
+      createdAt: new Date().toISOString()
+    };
+    saveFinancialEntry(newEntry);
+
+    // 2. Debita do saldo da reserva da congregação
+    const newBalance = Math.max(0, currentReserveBalance - amount);
+    await updateCurrentChurch({ reserveBalance: newBalance });
+
+    logAction(
+      currentChurch.id,
+      'Tesouraria',
+      'TESOURARIA',
+      'Resgate de Reserva de Emergência',
+      `R$ ${amount.toFixed(2)} resgatado da reserva para o caixa`
+    );
+
+    showToast(`R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} resgatado para o caixa operacional com sucesso!`, 'success');
+    setIsRescueReserveModalOpen(false);
+    setRescueReserveAmount('');
+    setRescueReserveNotes('');
     refreshAll();
   };
 
@@ -601,6 +804,104 @@ export const FinancialDashboardView: React.FC = () => {
         </div>
       </div>
 
+      {/* Card Especial: Reserva de Emergência & Patrimônio Total */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 text-white border border-emerald-500/20 shadow-xl">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-400/30">
+                <PiggyBank className="w-5 h-5" />
+              </span>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                  Fundo de Segurança & Contingência
+                </span>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg sm:text-xl font-black text-white">
+                    Reserva do Caixa (Emergência)
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReserveTargetInput(String(currentReserveTarget || ''));
+                      setIsReserveTargetModalOpen(true);
+                    }}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-emerald-300 text-[11px] font-semibold border border-white/10 transition-colors"
+                    title="Definir ou editar valor ideal de reserva"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>Definir Meta</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+              Recurso estratégico guardado para obras urgentes e imprevistos. O valor fica seguro e subtraído do caixa operacional diário.
+            </p>
+          </div>
+
+          {/* Valores, Meta e Ações */}
+          <div className="flex flex-wrap items-center gap-6 w-full lg:w-auto">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Saldo Guardado na Reserva</span>
+              <span className="text-2xl sm:text-3xl font-black text-emerald-400">
+                {currentReserveBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[11px] text-slate-300">
+                  Meta ideal: <strong className="text-white">{currentReserveTarget > 0 ? currentReserveTarget.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Não definida'}</strong>
+                </span>
+                {currentReserveTarget > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {reservePercent}% atingido
+                  </span>
+                )}
+              </div>
+              {currentReserveTarget > 0 && (
+                <div className="w-full sm:w-48 h-2 rounded-full bg-white/10 overflow-hidden mt-2">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                    style={{ width: `${reservePercent}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Botões de Aporte e Resgate */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSendReserveAmount('');
+                  setSendReserveNotes('');
+                  setIsSendToReserveModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/25 active:scale-95 transition-all"
+                title="Transferir valor disponível do caixa operacional para a Reserva de Emergência"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                <span>Enviar do Caixa para Reserva</span>
+              </button>
+
+              {currentReserveBalance > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRescueReserveAmount('');
+                    setRescueReserveNotes('');
+                    setIsRescueReserveModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white border border-white/10 font-bold text-xs active:scale-95 transition-all"
+                  title="Resgatar valor da reserva para o caixa operacional"
+                >
+                  <span>Resgatar para Caixa</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Navegação entre Abas */}
       <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200 w-full sm:w-fit overflow-x-auto">
         <button
@@ -618,7 +919,16 @@ export const FinancialDashboardView: React.FC = () => {
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Comparativo Mensal (Mês a Mês)</span>
+          <span>Comparativo Mensal</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('provisionamento')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'provisionamento' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <CalendarDays className="w-3.5 h-3.5 text-amber-600" />
+          <span>Provisionamento ({pendingFixedThisMonth.length} a pagar)</span>
         </button>
         <button
           onClick={() => setActiveTab('despesas_fixas')}
@@ -716,14 +1026,24 @@ export const FinancialDashboardView: React.FC = () => {
             </div>
           </div>
 
-          {/* Tabela Comparativa dos 12 Meses */}
+          {/* Tabela Comparativa Mensal */}
           <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h4 className="text-base font-bold text-slate-900">Evolução Mensal e Caixa Final</h4>
-                <p className="text-xs text-slate-500">Valores consolidados por competência mensal</p>
+                <p className="text-xs text-slate-500">Valores consolidados por competência mensal (entradas, saídas e saldo acumulado)</p>
               </div>
-              <span className="text-xs font-semibold text-slate-400">12 Meses</span>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer select-none bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={onlyMonthsWithData}
+                    onChange={e => setOnlyMonthsWithData(e.target.checked)}
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>Ocultar meses sem registro</span>
+                </label>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -739,7 +1059,9 @@ export const FinancialDashboardView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {monthlyComparativeData.map(m => {
+                  {monthlyComparativeData
+                    .filter(m => !onlyMonthsWithData || m.entriesTotal > 0 || m.expensesTotal > 0 || m.num === currentMonthNum)
+                    .map(m => {
                     const isPositive = m.balance >= 0;
                     const hasMoviment = m.entriesTotal > 0 || m.expensesTotal > 0;
                     return (
@@ -804,6 +1126,288 @@ export const FinancialDashboardView: React.FC = () => {
                               <ArrowDownRight className="w-3 h-3" />
                               Déficit
                             </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-100/90 font-black text-xs text-slate-900 border-t-2 border-slate-300">
+                  <tr>
+                    <td className="px-6 py-4 uppercase tracking-wider font-black text-slate-900">
+                      TOTAL CONSOLIDADO ({selectedYear})
+                    </td>
+                    <td className="px-6 py-4 text-right text-emerald-700 font-black">
+                      + {yearTotalEntries.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
+                    <td className="px-6 py-4 text-right text-rose-700 font-black">
+                      - {yearTotalExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
+                    <td className="px-6 py-4 text-right font-black">
+                      <span className={`px-2.5 py-1 rounded-xl text-xs ${yearTotalBalance >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                        {yearTotalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right text-indigo-900 font-black">
+                      {balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-[11px] font-bold text-slate-600">Saldo Geral</span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* ABA PROVISIONAMENTO & CONTAS A PAGAR DO MÊS               */}
+      {/* ========================================================== */}
+      {activeTab === 'provisionamento' && (
+        <div className="space-y-6">
+          {/* Banner de Apresentação e Indicadores de Provisão */}
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center gap-1.5">
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    <span>Competência: {MONTHS[today.getMonth()].name} / {today.getFullYear()}</span>
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-300">
+                    Hoje: Dia {currentDay}
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black mt-2 text-white">
+                  Provisionamento de Pagamentos do Mês
+                </h3>
+                <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                  Planejamento e controle de desembolso para todas as contas fixas e compromissos recorrentes do mês corrente.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setEditingFixedId(null);
+                  setFixedForm({
+                    description: '',
+                    category: 'aluguel',
+                    amount: undefined,
+                    dueDay: 10,
+                    isActive: true,
+                    paymentMethod: 'PIX',
+                    beneficiary: '',
+                    notes: ''
+                  });
+                  setIsFixedModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nova Conta Programada</span>
+              </button>
+            </div>
+
+            {/* Grid com 4 Indicadores Cruciais */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5">
+              {/* 1. Total Provisionado */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <span className="text-[10px] uppercase font-bold text-amber-300 tracking-wider block">
+                  Total Provisionado no Mês
+                </span>
+                <span className="text-2xl font-black text-white mt-1 block">
+                  {totalProvisionedMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {activeFixedExpenses.length} contas ativas programadas
+                </p>
+              </div>
+
+              {/* 2. Já Quitado no Mês */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider block">
+                  Já Quitado / Pago no Mês
+                </span>
+                <span className="text-2xl font-black text-emerald-400 mt-1 block">
+                  {totalPaidFixedThisMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+                <p className="text-[11px] text-emerald-300/80 mt-1">
+                  {paidFixedThisMonth.length} contas já pagas e debitadas
+                </p>
+              </div>
+
+              {/* 3. Provisão Pendente a Pagar */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <span className="text-[10px] uppercase font-bold text-rose-400 tracking-wider block">
+                  Provisão Pendente (A Pagar)
+                </span>
+                <span className="text-2xl font-black text-rose-300 mt-1 block">
+                  {totalPendingProvision.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+                <p className="text-[11px] text-rose-300/80 mt-1">
+                  {pendingFixedThisMonth.length} contas a pagar neste mês
+                </p>
+              </div>
+
+              {/* 4. Saldo Livre Projetado */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <span className="text-[10px] uppercase font-bold text-sky-300 tracking-wider block">
+                  Saldo Livre Projetado
+                </span>
+                <span className={`text-2xl font-black mt-1 block ${projectedFreeBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {projectedFreeBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+                <p className="text-[11px] text-slate-300 mt-1">
+                  {projectedFreeBalance >= 0 ? '✓ Caixa suficiente para o mês' : '⚠️ Déficit projetado de caixa'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabela de Contas Provisionadas do Mês */}
+          <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div>
+                <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-indigo-600" />
+                  <span>Demonstrativo de Contas do Mês</span>
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Clique no botão "Pagamento Efetuado" para quitar a conta e descontar o valor diretamente do caixa.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                  <CheckCircle2 className="w-3 h-3" /> {paidFixedThisMonth.length} Pagas
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 font-bold border border-rose-200">
+                  <Clock className="w-3 h-3" /> {pendingFixedThisMonth.length} Pendentes
+                </span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4">Vencimento</th>
+                    <th className="px-6 py-4">Descrição da Conta</th>
+                    <th className="px-6 py-4">Categoria</th>
+                    <th className="px-6 py-4">Beneficiário</th>
+                    <th className="px-6 py-4 text-right">Valor Previsto</th>
+                    <th className="px-6 py-4 text-center">Status no Mês</th>
+                    <th className="px-6 py-4 text-center">Ação / Pagamento</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {activeFixedExpenses.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                        Nenhuma despesa fixa ativa cadastrada. Cadastre contas fixas na aba "Despesas Fixas" para acompanhar o provisionamento.
+                      </td>
+                    </tr>
+                  )}
+
+                  {[...activeFixedExpenses].sort((a, b) => a.dueDay - b.dueDay).map(fixed => {
+                    const isPaid = fixed.lastPaidMonth === currentMonthKey;
+                    const isDueToday = !isPaid && fixed.dueDay === currentDay;
+                    const isOverdue = !isPaid && fixed.dueDay < currentDay;
+
+                    return (
+                      <tr key={fixed.id} className={`hover:bg-slate-50/80 transition-colors ${isPaid ? 'bg-emerald-50/20' : ''}`}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                              isPaid 
+                                ? 'bg-emerald-100 text-emerald-800' 
+                                : isOverdue 
+                                ? 'bg-rose-100 text-rose-800' 
+                                : isDueToday 
+                                ? 'bg-amber-100 text-amber-800' 
+                                : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {String(fixed.dueDay).padStart(2, '0')}
+                            </span>
+                            <span className="text-slate-500 font-normal text-[11px]">
+                              Dia {fixed.dueDay}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4 font-bold text-slate-900">
+                          {fixed.description}
+                          {fixed.notes && (
+                            <span className="block text-[10px] text-slate-400 font-normal truncate max-w-xs">{fixed.notes}</span>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap capitalize text-slate-600">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            {fixed.category}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-slate-600">
+                          {fixed.beneficiary || <span className="text-slate-300 italic">Não informado</span>}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-right font-black text-slate-900">
+                          <span className={isPaid ? 'text-emerald-700' : 'text-slate-900'}>
+                            {fixed.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          {isPaid ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Pago {fixed.lastPaidDate ? `(${fixed.lastPaidDate.split('-').reverse().slice(0, 2).join('/')})` : ''}</span>
+                            </span>
+                          ) : isDueToday ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              <span>Vencendo Hoje</span>
+                            </span>
+                          ) : isOverdue ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>Vencido dia {fixed.dueDay}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>A Vencer</span>
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          {isPaid ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-emerald-600 font-bold text-xs flex items-center gap-1">
+                                <Check className="w-4 h-4" /> Descontado do Caixa
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUnmarkPaidFixed(fixed)}
+                                className="p-1 text-slate-300 hover:text-slate-500 rounded-lg transition-colors ml-1"
+                                title="Desfazer marcação de pago deste mês"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPayFixedModal(fixed)}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm hover:shadow-md active:scale-95 transition-all"
+                              title="Marcar como pagamento efetuado e descontar valor do caixa"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Pagamento Efetuado</span>
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -896,16 +1500,59 @@ export const FinancialDashboardView: React.FC = () => {
                   </p>
                 )}
 
-                {/* Ações: Lançar no Caixa / Editar com Senha / Excluir com Senha */}
-                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => handleLaunchFixedInMonth(fixed)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 transition-colors"
-                    title="Lançar como despesa paga no fluxo de caixa deste mês"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Lançar no Caixa</span>
-                  </button>
+                {/* Status no mês corrente */}
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Status do Mês:</span>
+                  {fixed.lastPaidMonth === currentMonthKey ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Pago no Mês</span>
+                    </span>
+                  ) : fixed.dueDay === currentDay ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 animate-pulse">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>Vencendo Hoje</span>
+                    </span>
+                  ) : fixed.dueDay < currentDay ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Vencido dia {fixed.dueDay}</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-bold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Vence dia {fixed.dueDay}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Ações: Pagamento Efetuado (Descontar do Caixa) / Editar com Senha / Excluir com Senha */}
+                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  {fixed.lastPaidMonth === currentMonthKey ? (
+                    <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200">
+                      <span className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Pago {fixed.lastPaidDate ? `(${fixed.lastPaidDate.split('-').reverse().slice(0, 2).join('/')})` : ''}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleUnmarkPaidFixed(fixed)}
+                        className="text-[10px] text-slate-400 hover:text-rose-600 underline font-normal ml-2"
+                        title="Desfazer e marcar como pendente"
+                      >
+                        Desfazer
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleOpenPayFixedModal(fixed)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm hover:shadow active:scale-95 transition-all"
+                      title="Efetuar pagamento e descontar o valor diretamente do caixa da igreja"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Pagamento Efetuado</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => requestSecurityVerification({
@@ -1568,6 +2215,409 @@ export const FinancialDashboardView: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm"
                 >
                   {editingFixedId ? 'Atualizar Despesa Fixa' : 'Salvar Despesa Fixa'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* MODAL: EFETUAR PAGAMENTO DE DESPESA FIXA (DESCONTA CAIXA)  */}
+      {/* ========================================================== */}
+      {isPayFixedModalOpen && payingFixedItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
+            <button
+              onClick={() => {
+                setIsPayFixedModalOpen(false);
+                setPayingFixedItem(null);
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+                <CheckCircle2 className="w-5 h-5" />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Confirmar Pagamento de Despesa Fixa
+                </h3>
+                <p className="text-xs text-slate-500">
+                  O valor será debitado do caixa e a conta marcada como paga no mês
+                </p>
+              </div>
+            </div>
+
+            {/* Resumo da Conta */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 mb-4 space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Conta / Despesa:</span>
+                <span className="font-bold text-slate-900">{payingFixedItem.description}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Valor a ser debitado:</span>
+                <span className="font-black text-rose-600 text-sm">
+                  {payingFixedItem.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
+              {payingFixedItem.beneficiary && (
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Beneficiário:</span>
+                  <span className="font-semibold text-slate-700">{payingFixedItem.beneficiary}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Saldo Atual em Caixa:</span>
+                <span className={`font-bold ${balance >= payingFixedItem.amount ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmPayFixed} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Data do Pagamento *</label>
+                  <input
+                    type="date"
+                    required
+                    value={payFixedDate}
+                    onChange={e => setPayFixedDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs outline-none focus:bg-white focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Forma de Pagamento</label>
+                  <select
+                    value={payFixedMethod}
+                    onChange={e => setPayFixedMethod(e.target.value as PaymentMethod)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs outline-none focus:bg-white focus:border-emerald-500"
+                  >
+                    <option value="PIX">PIX</option>
+                    <option value="Boleto">Boleto</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Transferência">Transferência</option>
+                    <option value="Cartão de Débito">Cartão de Débito</option>
+                    <option value="Cartão de Crédito">Cartão de Crédito</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Observações do Comprovante (Opcional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Ex: Pago via app do banco, cód. autenticação, etc."
+                  value={payFixedNotes}
+                  onChange={e => setPayFixedNotes(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs outline-none focus:bg-white focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPayFixedModalOpen(false);
+                    setPayingFixedItem(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Confirmar & Descontar do Caixa</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* MODAL: DEFINIR META / VALOR IDEAL DA RESERVA               */}
+      {/* ========================================================== */}
+      {isReserveTargetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-sm rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
+            <button
+              onClick={() => setIsReserveTargetModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-200">
+                <PiggyBank className="w-5 h-5" />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Meta Ideal de Reserva do Caixa
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Defina o valor ideal de contingência para a {currentChurch.name}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveReserveTarget} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Valor Ideal da Reserva (R$) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="Ex: 5000,00"
+                  value={reserveTargetInput}
+                  onChange={e => setReserveTargetInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-base font-black outline-none focus:bg-white focus:border-indigo-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Recomendado: de 1 a 3 meses de despesas fixas da igreja.
+                </p>
+              </div>
+
+              {/* Botões de sugestão rápida */}
+              <div className="flex flex-wrap gap-1.5">
+                {[2000, 5000, 10000, 20000].map(sug => (
+                  <button
+                    key={sug}
+                    type="button"
+                    onClick={() => setReserveTargetInput(String(sug))}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 text-[11px] font-bold text-slate-600 hover:text-indigo-700 transition-colors"
+                  >
+                    R$ {sug.toLocaleString('pt-BR')}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsReserveTargetModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 active:scale-95 transition-all"
+                >
+                  Salvar Meta
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* MODAL: ENVIAR DO CAIXA PARA A RESERVA DE EMERGÊNCIA        */}
+      {/* ========================================================== */}
+      {isSendToReserveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
+            <button
+              onClick={() => setIsSendToReserveModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+                <ArrowRightLeft className="w-5 h-5" />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Enviar Valor para a Reserva de Emergência
+                </h3>
+                <p className="text-xs text-slate-500">
+                  O valor sairá do caixa operacional e será acumulado na reserva
+                </p>
+              </div>
+            </div>
+
+            {/* Painel de Saldo Atual */}
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 mb-4">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Disponível no Caixa</span>
+                <span className={`text-base font-black ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Saldo Atual na Reserva</span>
+                <span className="text-base font-black text-indigo-600">
+                  {currentReserveBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmSendToReserve} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Valor a Enviar para a Reserva (R$) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="0,00"
+                  value={sendReserveAmount}
+                  onChange={e => setSendReserveAmount(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-base font-black outline-none focus:bg-white focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Botões Rápidos */}
+              <div className="flex flex-wrap gap-1.5">
+                {[100, 250, 500, 1000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setSendReserveAmount(String(amt))}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 text-[11px] font-bold text-slate-600 hover:text-emerald-700 transition-colors"
+                  >
+                    + R$ {amt}
+                  </button>
+                ))}
+                {balance > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSendReserveAmount(String(Math.floor(balance)))}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[11px] font-bold text-emerald-800 transition-colors"
+                  >
+                    Todo Saldo (R$ {Math.floor(balance)})
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Observações (Opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Aporte mensal deliberado pela diretoria"
+                  value={sendReserveNotes}
+                  onChange={e => setSendReserveNotes(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs outline-none focus:bg-white focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsSendToReserveModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+                >
+                  <ArrowRightLeft className="w-4 h-4" />
+                  <span>Transferir para a Reserva</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* MODAL: RESGATAR VALOR DA RESERVA PARA O CAIXA              */}
+      {/* ========================================================== */}
+      {isRescueReserveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800">
+            <button
+              onClick={() => setIsRescueReserveModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="p-2.5 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200">
+                <Sparkles className="w-5 h-5" />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Resgatar Valor da Reserva para o Caixa
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Retorna fundos da reserva de emergência para cobrir o fluxo de caixa
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200 mb-4">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-amber-800 font-medium">Saldo Atual Disponível na Reserva:</span>
+                <span className="font-black text-amber-900 text-sm">
+                  {currentReserveBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmRescueReserve} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Valor a Resgatar para o Caixa (R$) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  max={currentReserveBalance}
+                  placeholder="0,00"
+                  value={rescueReserveAmount}
+                  onChange={e => setRescueReserveAmount(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-base font-black outline-none focus:bg-white focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Motivo / Observações do Resgate
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Reforma emergencial, manutenção de telhado, etc."
+                  value={rescueReserveNotes}
+                  onChange={e => setRescueReserveNotes(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs outline-none focus:bg-white focus:border-amber-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsRescueReserveModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-600/20 active:scale-95 transition-all"
+                >
+                  Confirmar Resgate para o Caixa
                 </button>
               </div>
             </form>
