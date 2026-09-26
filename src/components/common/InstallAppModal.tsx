@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Download, X, Check, Share, PlusSquare, Monitor } from 'lucide-react';
+import { Smartphone, Download, X, Check, Share, PlusSquare, Monitor, Church as ChurchIcon } from 'lucide-react';
 import { useChurch } from '../../context/ChurchContext';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -57,8 +57,14 @@ export const InstallAppModal: React.FC<{ isOpen: boolean; onClose: () => void }>
         </button>
 
         <div className="flex items-center gap-3.5 mb-5">
-          <div className="w-13 h-13 rounded-2xl bg-sky-600 text-white flex items-center justify-center p-2 shadow-md shadow-sky-600/25">
-            <img src="/logo-cba.png" alt="Logo CBA" className="w-full h-full object-contain" />
+          <div className="w-13 h-13 rounded-2xl bg-sky-600 text-white flex items-center justify-center p-2 shadow-md shadow-sky-600/25 overflow-hidden">
+            {currentChurch.logoUrl ? (
+              <img src={currentChurch.logoUrl} alt={currentChurch.name} className="w-full h-full object-contain" />
+            ) : (currentChurch.slug === 'cbacolher' || currentChurch.id === 'church_cba_maceio') ? (
+              <img src="/logo-cba.png" alt="Logo CBA" className="w-full h-full object-contain" />
+            ) : (
+              <ChurchIcon className="w-7 h-7 text-white" />
+            )}
           </div>
           <div>
             <h3 className="font-extrabold text-base text-slate-900 leading-tight">Instalar Aplicativo (App)</h3>

@@ -531,7 +531,7 @@ export const SmallGroupList: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="Ex: PG Acolher Ponta Verde"
+                  placeholder="Ex: Conexão / Pequeno Grupo Esperança"
                   value={formData.name || ''}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-orange-500"

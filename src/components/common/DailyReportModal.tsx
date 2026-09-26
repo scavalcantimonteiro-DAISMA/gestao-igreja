@@ -38,8 +38,16 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
     initialMinistryId || (ministries.length > 0 ? ministries[0].id : '')
   );
 
+  useEffect(() => {
+    setIsPastorEdited(false);
+    setEditedPastorText('');
+    setIsMinistryEdited(false);
+    setEditedMinistryText('');
+  }, [currentChurch.id, selectedMinistryId]);
+
   if (!isOpen) return null;
 
+  const isCba = currentChurch.slug === 'cbacolher' || currentChurch.id === 'church_cba_maceio';
   const now = new Date();
   const dateFormatted = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
   const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
@@ -47,8 +55,9 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
 
   const { today: bdaysToday } = getBirthdays(currentChurch.id);
   const { today: weddingsToday } = getWeddingAnniversaries(currentChurch.id);
+  const todayDateStr = now.toISOString().split('T')[0];
   const appointments = getPastoralAppointments(currentChurch.id).filter(
-    a => a.date === now.toISOString().split('T')[0] || a.date === '2026-09-22'
+    a => a.date === todayDateStr
   );
   const schedules = getSchedules(currentChurch.id);
   const events = getEvents(currentChurch.id);
@@ -63,7 +72,11 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
   // ==========================================
   let pastorText = `*AGENDA PASTORAL DO DIA — ${currentDayName}, ${dateFormatted}*\n`;
   pastorText += `*${currentChurch.name.toUpperCase()}*\n`;
-  pastorText += `_\"A chama que nos move é o amor! ❤️‍🔥\"_\n\n`;
+  if (isCba) {
+    pastorText += `_"A chama que nos move é o amor! ❤️‍🔥"_\n\n`;
+  } else {
+    pastorText += `\n`;
+  }
 
   // Programação / Cultos de Hoje
   pastorText += `🏛️ *PROGRAMAÇÃO & CULTOS DE HOJE*\n`;
@@ -116,8 +129,9 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
     pastorText += `\n`;
   }
 
-  pastorText += `_Contato Pastoral: ${currentChurch.pastorName} (${currentChurch.pastorPhone})_\n`;
-  pastorText += `_Plataforma de Gestão Eclesiástica CBA_`;
+  const pastorContact = currentChurch.pastorWhatsapp || currentChurch.pastorPhone || currentChurch.phone;
+  pastorText += `_Contato Pastoral: ${currentChurch.pastorName || 'Pastor Titular'}${pastorContact ? ` (${pastorContact})` : ''}_\n`;
+  pastorText += `_Plataforma de Gestão Eclesiástica — ${currentChurch.name}_`;
 
   // ==========================================
   // 2. TEXTO: AGENDA / ESCALA DO MINISTÉRIO (LÍDERES)
@@ -144,8 +158,13 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
       ministryText += `\n🌱 *Voluntários em acolhimento:* ${currentMinistry.volunteers.join(', ')}\n`;
     }
 
-    ministryText += `\n\"A chama que nos move é o amor! ❤️‍🔥\"\n`;
-    ministryText += `_Coordenação Eclesiástica CBAcolher_`;
+    if (isCba) {
+      ministryText += `\n"A chama que nos move é o amor! ❤️‍🔥"\n`;
+      ministryText += `_Coordenação Eclesiástica CBAcolher_`;
+    } else {
+      ministryText += `\n_Coordenação Eclesiástica — ${currentChurch.name}_\n`;
+      ministryText += `_Plataforma de Gestão Eclesiástica_`;
+    }
   }
 
   const currentPastorText = isPastorEdited ? editedPastorText : pastorText;

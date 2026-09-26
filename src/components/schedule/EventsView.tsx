@@ -326,7 +326,7 @@ export const EventsView: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="Ex: Conferência da Chama 2026, Retiro Espiritual..."
+                  placeholder="Ex: Conferência da Família 2026, Retiro Espiritual..."
                   value={eventForm.name || ''}
                   onChange={e => setEventForm({ ...eventForm, name: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"

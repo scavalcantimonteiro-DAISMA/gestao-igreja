@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '../types';
-import { getChurches, findChurchByLogin } from '../services/storage';
+import { getChurches, getChurchById, findChurchByLogin } from '../services/storage';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -165,9 +165,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const switchDemoRole = (role: UserRole, churchId: string) => {
-    const isCba = churchId === 'church_cba_maceio';
-    let name = isCba ? 'Membro CBA' : 'Usuário';
-    let email = isCba ? 'usuario@cbacolher.com.br' : 'usuario@igrejabetel.com.br';
+    const churches = getChurches();
+    const church = churches.find(c => c.id === churchId) || getChurchById(churchId);
+    const isCba = churchId === 'church_cba_maceio' || church?.slug === 'cbacolher';
+    const churchName = church ? church.name : (isCba ? 'Comunidade Batista Acolher' : 'Igreja');
+    const slug = church ? church.slug : (isCba ? 'cbacolher' : 'igreja');
+
+    let name = isCba ? 'Membro CBA' : `Membro (${churchName})`;
+    let email = isCba ? 'usuario@cbacolher.com.br' : `usuario@${slug}.com.br`;
 
     switch (role) {
       case 'SUPERADMIN':
@@ -175,24 +180,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email = 'saulo@smdesenvolvimento.com.br';
         break;
       case 'ADMIN':
-        name = isCba ? 'Administração CBA' : 'Administração Betel';
-        email = isCba ? 'admin@cbacolher.com.br' : 'admin@igrejabetel.com.br';
+        name = isCba ? 'Administração CBA' : `Administração ${churchName}`;
+        email = isCba ? 'admin@cbacolher.com.br' : `admin@${slug}.com.br`;
         break;
       case 'PASTOR':
-        name = isCba ? 'Pr. Saulo Cavalcanti' : 'Pr. Marcos Aurélio Silveira';
-        email = isCba ? 'pastor@cbacolher.com.br' : 'pastor@igrejabetel.com.br';
+        name = church?.pastorName || (isCba ? 'Pr. Saulo Cavalcanti' : 'Pastor Titular');
+        email = isCba ? 'pastor@cbacolher.com.br' : `pastor@${slug}.com.br`;
         break;
       case 'SECRETARIA':
-        name = isCba ? 'Secretaria CBA' : 'Secretaria Betel';
-        email = isCba ? 'secretaria@cbacolher.com.br' : 'secretaria@igrejabetel.com.br';
+        name = church?.secretaryName || (isCba ? 'Secretaria CBA' : `Secretaria ${churchName}`);
+        email = isCba ? 'secretaria@cbacolher.com.br' : `secretaria@${slug}.com.br`;
         break;
       case 'TESOURARIA':
-        name = isCba ? 'Tesouraria CBA' : 'Tesouraria Betel';
-        email = isCba ? 'tesouraria@cbacolher.com.br' : 'tesouraria@igrejabetel.com.br';
+        name = isCba ? 'Tesouraria CBA' : `Tesouraria ${churchName}`;
+        email = isCba ? 'tesouraria@cbacolher.com.br' : `tesouraria@${slug}.com.br`;
         break;
       case 'LIDER_PG':
-        name = isCba ? 'Líder Pequeno Grupo CBA' : 'Carlos Eduardo Oliveira (Líder PG)';
-        email = isCba ? 'liderpg@cbacolher.com.br' : 'carlos.pg@igrejabetel.com.br';
+        name = isCba ? 'Líder Pequeno Grupo CBA' : `Líder PG (${churchName})`;
+        email = isCba ? 'liderpg@cbacolher.com.br' : `liderpg@${slug}.com.br`;
+        break;
+      case 'LIDER_ESCALA':
+        name = `Líder de Escala (${churchName})`;
+        email = `escala@${slug}.com.br`;
         break;
     }
 

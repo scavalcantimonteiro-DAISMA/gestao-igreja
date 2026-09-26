@@ -184,7 +184,7 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
     };
 
     saveVisitor(saved);
-    logAction(currentChurch.id, 'Recepção CBA', 'SECRETARIA', 'Cadastro de Visitante', saved.name);
+    logAction(currentChurch.id, `Recepção ${currentChurch.name}`, 'SECRETARIA', 'Cadastro de Visitante', saved.name);
     showToast('Visitante cadastrado com sucesso!', 'success');
     setIsVisitorModalOpen(false);
     refreshVisitors();
@@ -549,9 +549,9 @@ export const VisitorsAndEbdView: React.FC<VisitorsAndEbdViewProps> = ({
             <button
               onClick={() => {
                 setVisitorForm({
-                  firstVisitDate: '2026-09-20',
+                  firstVisitDate: new Date().toISOString().split('T')[0],
                   status: 'novo',
-                  howMetChurch: 'Instagram @cbacolher'
+                  howMetChurch: currentChurch.instagram ? `Instagram ${currentChurch.instagram}` : 'Convite de Amigo / Família'
                 });
                 setIsVisitorModalOpen(true);
               }}

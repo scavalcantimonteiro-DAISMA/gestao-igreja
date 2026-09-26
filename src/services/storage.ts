@@ -1060,7 +1060,94 @@ export function deleteFixedExpense(id: string): void {
 
 export function getMessageTemplates(churchId: string): MessageTemplate[] {
   const list = getLocal<MessageTemplate[]>('message_templates', INITIAL_MESSAGE_TEMPLATES);
-  return list.filter(t => t.churchId === churchId);
+  const isCba = churchId === 'church_cba_maceio';
+  const church = getChurchById(churchId);
+  const churchName = church?.name || 'Igreja';
+
+  let found = list.filter(t => t.churchId === churchId);
+
+  // Se não for CBA, sanitiza qualquer template existente que possa ter herdado textos exclusivos da CBA
+  if (!isCba && found.length > 0) {
+    let modified = false;
+    found = found.map(t => {
+      let text = t.text;
+      if (text.includes('A chama que nos move') || text.includes('Comunidade Batista Acolher') || text.includes('CBAcolher')) {
+        text = text
+          .replace(/Comunidade Batista Acolher/g, churchName)
+          .replace(/ - "A chama que nos move é o amor! ❤️‍🔥"/g, '')
+          .replace(/"A chama que nos move é o amor! ❤️‍🔥"/g, '')
+          .replace(/_Coordenação Eclesiástica CBAcolher_/g, `_Coordenação Eclesiástica — ${churchName}_`)
+          .replace(/CBAcolher/g, churchName);
+        modified = true;
+        return { ...t, text };
+      }
+      return t;
+    });
+
+    if (modified) {
+      const otherList = list.filter(t => t.churchId !== churchId);
+      setLocal('message_templates', [...otherList, ...found]);
+    }
+    return found;
+  }
+
+  if (found.length > 0) {
+    return found;
+  }
+
+  // Gera modelos padrão dinâmicos e isolados para a congregação
+  if (!church) return [];
+
+  const pastor = church.pastorName || 'Pastor Titular';
+  const phone = church.pastorWhatsapp || church.pastorPhone || church.whatsapp || '';
+  const phoneLine = phone ? `\nWhatsApp: ${phone}` : '';
+
+  const defaults: MessageTemplate[] = [
+    {
+      id: `tpl_${church.id}_1`,
+      churchId: church.id,
+      type: 'aniversario',
+      title: 'Aniversário de Membro',
+      text: `Graça e Paz, {nome}! 🎂✨ A ${churchName} se alegra imensamente com a sua vida hoje! Que o Senhor derrame bênçãos abundantes de saúde, paz e muitas vitórias sobre você neste novo ciclo de {idade} anos. Feliz Aniversário!\n\nCom carinho e bênçãos pastorais,\n*${pastor}*${phoneLine}\n${churchName}`,
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: `tpl_${church.id}_2`,
+      churchId: church.id,
+      type: 'aniversario_casamento',
+      title: 'Aniversário de Casamento',
+      text: `Graça e Paz, {nome}! 💍 Hoje celebramos com vocês mais um abençoado ano de casamento ({anos_casamento} anos!). Que Deus continue guardando e fortalecendo cada dia mais a aliança de vocês.\n\nCom bênçãos pastorais,\n*${pastor}*${phoneLine}\n${churchName}`,
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: `tpl_${church.id}_3`,
+      churchId: church.id,
+      type: 'visitante',
+      title: 'Acolhimento de Visitante',
+      text: `Graça e Paz, {nome}! 👋⛪ Foi uma grande alegria receber você na ${churchName}. Nossas portas e corações estão sempre abertos para você e sua família.\n\nUm abraço fraterno,\n*${pastor}*${phoneLine}\n${churchName}`,
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: `tpl_${church.id}_4`,
+      churchId: church.id,
+      type: 'acompanhamento',
+      title: 'Acompanhamento Pastoral',
+      text: `Graça e Paz, {nome}! 🙏📖 Passando para saber como você está e reforçar que estou orando pela sua vida e família. Se precisar de uma palavra, oração ou visita pastoral, estou sempre à disposição.\n\nCom orações e carinho,\n*${pastor}*${phoneLine}\n${churchName}`,
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: `tpl_${church.id}_5`,
+      churchId: church.id,
+      type: 'aniversario_crianca',
+      title: 'Aniversário Infantil',
+      text: `Parabéns, {nome}! 🎈 Hoje o Departamento Infantil e toda a nossa igreja estão em festa pelo seu aniversário! Que o Papai do Céu continue te enchendo de amor, sabedoria e muita alegria. Feliz aniversário! 🎂🎉🥳\n\nCom carinho e bênçãos,\n*${pastor}*${phoneLine}\n${churchName}`,
+      updatedAt: new Date().toISOString()
+    }
+  ];
+
+  list.push(...defaults);
+  setLocal('message_templates', list);
+  return defaults;
 }
 
 export function saveMessageTemplate(tpl: MessageTemplate): void {

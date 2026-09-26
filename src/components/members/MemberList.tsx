@@ -408,7 +408,7 @@ export const MemberList: React.FC = () => {
               <div>
                 <span className="font-bold text-slate-500 block">Vida Cristã:</span>
                 <span className="text-slate-800">
-                  Batismo: {selectedMemberDetail.baptismDate || 'Não informado'} ({selectedMemberDetail.baptismChurch || 'CBA'})
+                  Batismo: {selectedMemberDetail.baptismDate || 'Não informado'}{selectedMemberDetail.baptismChurch ? ` (${selectedMemberDetail.baptismChurch})` : ''}
                 </span>
               </div>
 
