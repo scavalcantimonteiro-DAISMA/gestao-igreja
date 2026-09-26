@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Vídeo Comercial Instagram Reels - Gestão Igreja</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #0b0f19; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    
+    .container { display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 900px; width: 100%; }
+    
+    .header-box { text-align: center; }
+    .header-box h1 { font-size: 26px; font-weight: 900; color: #38bdf8; letter-spacing: -0.5px; }
+    .header-box p { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+    
+    .stage {
+      position: relative;
+      width: 360px;
+      height: 640px;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8), 0 0 0 6px #1e293b, 0 0 0 10px #0f172a;
+      background: #020617;
+    }
+    
+    canvas { width: 100%; height: 100%; display: block; }
+    
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+    .btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+    .btn-green { background: #059669; }
+    .btn-green:hover { background: #047857; }
+    .btn-dark { background: #334155; }
+    .btn-dark:hover { background: #475569; }
+    
+    .info-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 16px 20px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 580px;
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .info-card strong { color: #38bdf8; }
+    .progress-bar-wrap { width: 100%; background: #334155; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { width: 0%; height: 100%; background: #10b981; transition: width 0.1s linear; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-box">
+    <h1>🎬 Vídeo Comercial Animado - Instagram Reels & Anúncios</h1>
+    <p>Resolução Oficial 9:16 (1080x1920) • Gestão Igreja por Saulo Monteiro</p>
+  </div>
+
+  <div class="stage">
+    <canvas id="videoCanvas" width="1080" height="1920"></canvas>
+  </div>
+
+  <div style="width: 360px;">
+    <div class="progress-bar-wrap">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-top: 4px;">
+      <span id="timeDisplay">00:00 / 00:26</span>
+      <span id="sceneDisplay">Cena 1 de 5</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-dark" id="btnPlayPause" onclick="togglePlay()">⏸️ Pausar / Reproduzir</button>
+    <button class="btn btn-dark" onclick="restart()">🔄 Reiniciar</button>
+    <button class="btn btn-green" id="btnExport" onclick="recordAndExportVideo()">⬇️ Gravar & Baixar Vídeo (.webm / .mp4)</button>
+  </div>
+
+  <div class="info-card">
+    <p>💡 <strong>Como usar para impulsionar no Instagram:</strong></p>
+    <p>1. Clique em <strong>"Gravar & Baixar Vídeo"</strong> para salvar o arquivo de vídeo pronto no seu computador ou celular.</p>
+    <p>2. Ao criar a publicação no Instagram como <em>Reels</em>, adicione uma trilha sonora corporativa/inspiradora em alta e use a legenda comercial pronta fornecida abaixo.</p>
+    <p>3. O vídeo já exibe o gancho visual nos primeiros 3 segundos, telas da plataforma, disparos no WhatsApp e o seu botão de chamada direta: <strong>Fale Comigo: (81) 98425-5125</strong>.</p>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('videoCanvas');
+  const ctx = canvas.getContext('2d');
+  const progressFill = document.getElementById('progressFill');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const sceneDisplay = document.getElementById('sceneDisplay');
+  const btnExport = document.getElementById('btnExport');
+
+  const TOTAL_DURATION = 26; // 26 segundos de alta retenção
+  let currentTime = 0;
+  let isPlaying = true;
+  let lastTimestamp = 0;
+
+  // Cenas do Vídeo
+  // 0 - 5s: O Problema (Planilhas perdidas, membros desorganizados, escalas atrasadas)
+  // 5 - 11s: A Solução (Apresentação Gestão Igreja + Dashboard com Relatório Diário)
+  // 11 - 17s: O Grande Diferencial (Criar Escala com envio no WhatsApp para líder e grupo)
+  // 17 - 21s: Segurança e Finanças (Controle com PIN, Departamento Infantil e Membresia)
+  // 21 - 26s: Chamada para Ação Irrecusável (R$ 150/mês + Fale Comigo: 81 98425-5125)
+
+  function render(time) {
+    ctx.clearRect(0, 0, 1080, 1920);
+
+    // Fundo Gradiente Luxo Escuro
+    const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1920);
+    bgGrad.addColorStop(0, '#060d1d');
+    bgGrad.addColorStop(0.5, '#0b1936');
+    bgGrad.addColorStop(1, '#030712');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    // Efeito de partículas sutis no fundo
+    drawGlowingOrbs(time);
+
+    // Topo Fixo com Marca
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.roundRect(80, 80, 920, 140, 24);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.stroke();
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 52px -apple-system, sans-serif';
+    ctx.fillText('GESTÃO IGREJA', 130, 170);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '32px -apple-system, sans-serif';
+    ctx.fillText('POR SAULO MONTEIRO', 620, 170);
+    ctx.restore();
+
+    // Roteamento de Cenas
+    if (time < 5) {
+      renderScene1(time);
+      sceneDisplay.innerText = 'Cena 1 de 5 (O Problema)';
+    } else if (time < 11) {
+      renderScene2(time - 5);
+      sceneDisplay.innerText = 'Cena 2 de 5 (A Solução & Dashboard)';
+    } else if (time < 17) {
+      renderScene3(time - 11);
+      sceneDisplay.innerText = 'Cena 3 de 5 (Escalas no WhatsApp)';
+    } else if (time < 21) {
+      renderScene4(time - 17);
+      sceneDisplay.innerText = 'Cena 4 de 5 (Segurança, Crianças & Finanças)';
+    } else {
+      renderScene5(time - 21);
+      sceneDisplay.innerText = 'Cena 5 de 5 (Chamada para Ação)';
+    }
+
+    // Barra de Progresso no Rodapé do Vídeo
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(80, 1850, 920, 12);
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(80, 1850, (time / TOTAL_DURATION) * 920, 12);
+  }
+
+  function drawGlowingOrbs(time) {
+    ctx.save();
+    const x1 = 540 + Math.sin(time * 0.8) * 200;
+    const y1 = 600 + Math.cos(time * 0.5) * 150;
+    const g1 = ctx.createRadialGradient(x1, y1, 50, x1, y1, 600);
+    g1.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
+    g1.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g1;
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    const x2 = 540 - Math.sin(time * 0.6) * 180;
+    const y2 = 1400 - Math.cos(time * 0.7) * 120;
+    const g2 = ctx.createRadialGradient(x2, y2, 30, x2, y2, 500);
+    g2.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, 1080, 1920);
+    ctx.restore();
+  }
+
+  // --- CENA 1: O PROBLEMA (0-5s) ---
+  function renderScene1(t) {
+    ctx.save();
+    const alpha = Math.min(1, t * 2);
+    ctx.globalAlpha = alpha;
+
+    // Badge Alerta
+    ctx.fillStyle = '#ef4444';
+    ctx.roundRect(280, 360, 520, 70, 35);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠️ PASTOR & SECRETARIA', 540, 408);
+
+    // Título Principal com Impacto
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 78px -apple-system, sans-serif';
+    ctx.fillText('Ainda sofrendo com', 540, 560);
+    ctx.fillStyle = '#f87171';
+    ctx.fillText('PLANILHAS', 540, 660);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('e papéis na igreja?', 540, 760);
+
+    // Card Ilustrativo de Dores
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.roundRect(100, 900, 880, 600, 32);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    const dores = [
+      '❌ Membros sem cadastro ou contatos perdidos',
+      '❌ Esquecimento de aniversariantes da semana',
+      '❌ Escalas de louvor desorganizadas de última hora',
+      '❌ Relatórios financeiros confusos e sem segurança'
+    ];
+
+    ctx.textAlign = 'left';
+    ctx.font = '500 40px -apple-system, sans-serif';
+    dores.forEach((dor, i) => {
+      ctx.fillStyle = '#fecaca';
+      ctx.fillText(dor, 140, 1020 + (i * 125));
+    });
+
+    // Subtítulo Rodapé
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 44px -apple-system, sans-serif';
+    ctx.fillText('Existe um jeito 100% mais simples! 👇', 540, 1650);
+
+    ctx.restore();
+  }
+
+  // --- CENA 2: A SOLUÇÃO & DASHBOARD (5-11s) ---
+  function renderScene2(t) {
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    // Badge Solução
+    ctx.fillStyle = '#0284c7';
+    ctx.roundRect(240, 320, 600, 70, 35);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px -apple-system, sans-serif';
+    ctx.fillText('✨ A SOLUÇÃO DEFINITIVA', 540, 368);
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '900 80px -apple-system, sans-serif';
+    ctx.fillText('GESTÃO IGREJA', 540, 480);
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '40px -apple-system, sans-serif';
+    ctx.fillText('A plataforma SaaS moderna que sua igreja precisa', 540, 560);
+
+    // Mockup Card Dashboard
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    ctx.roundRect(90, 660, 900, 940, 36);
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Cards Métricas
+    const cards = [
+      { num: '140', label: 'Membros & Filhos', color: '#0284c7' },
+      { num: '12', label: 'Pequenos Grupos', color: '#f59e0b' },
+      { num: 'R$ 8.450', label: 'Saldo em Caixa', color: '#10b981' }
+    ];
+
+    cards.forEach((c, idx) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.roundRect(130 + (idx * 275), 720, 260, 180, 20);
+      ctx.fill();
+      ctx.fillStyle = c.color;
+      ctx.font = 'bold 50px -apple-system, sans-serif';
+      ctx.fillText(c.num, 260 + (idx * 275), 800);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '28px -apple-system, sans-serif';
+      ctx.fillText(c.label, 260 + (idx * 275), 855);
+    });
+
+    // Destaque Relatório Diário Pastoral
+    ctx.fillStyle = 'rgba(30, 58, 138, 0.6)';
+    ctx.roundRect(130, 950, 820, 580, 24);
+    ctx.fill();
+    ctx.strokeStyle = '#60a5fa';
+    ctx.stroke();
+
+    ctx.fillStyle = '#fef08a';
+    ctx.font = 'bold 46px -apple-system, sans-serif';
+    ctx.fillText('☀️ RELATÓRIO MATINAL DO PASTOR', 540, 1040);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '36px -apple-system, sans-serif';
+    ctx.fillText('• 🎂 Aniversariantes do dia com mensagem pronta', 180, 1150);
+    ctx.fillText('• 💍 Casais celebrando aniversário de casamento', 180, 1240);
+    ctx.fillText('• 📅 Cultos, escalas e agendamentos de hoje', 180, 1330);
+    ctx.fillText('• 📲 Disparo no WhatsApp do Pastor em 1 clique', 180, 1420);
+
+    ctx.restore();
+  }
+
+  // --- CENA 3: ESCALAS NO WHATSAPP (11-17s) ---
+  function renderScene3(t) {
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    // Badge Inovação
+    ctx.fillStyle = '#10b981';
+    ctx.roundRect(220, 310, 640, 70, 35);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px -apple-system, sans-serif';
+    ctx.fillText('🔥 O RECURSO MAIS AMADO', 540, 358);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 76px -apple-system, sans-serif';
+    ctx.fillText('CRIAR ESCALAS E', 540, 480);
+    ctx.fillStyle = '#34d399';
+    ctx.fillText('ENVIAR NO WHATSAPP!', 540, 575);
+
+    // Mockup do Card de Escala
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    ctx.roundRect(90, 680, 900, 900, 36);
+    ctx.fill();
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 48px -apple-system, sans-serif';
+    ctx.fillText('Ministério de Louvor & Adoração', 540, 780);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '34px -apple-system, sans-serif';
+    ctx.fillText('Culto de Celebração de Domingo • 18:30', 540, 840);
+
+    // Balão de WhatsApp
+    ctx.fillStyle = '#065f46';
+    ctx.roundRect(140, 910, 800, 440, 24);
+    ctx.fill();
+    ctx.strokeStyle = '#34d399';
+    ctx.stroke();
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#a7f3d0';
+    ctx.font = 'bold 36px -apple-system, sans-serif';
+    ctx.fillText('📲 Mensagem Pronta de Escala:', 180, 980);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '32px -apple-system, sans-serif';
+    ctx.fillText('Líder: Sandro de Melo | (82) 99999-5555', 180, 1050);
+    ctx.fillText('• Bateria: Itamar Vidal', 180, 1120);
+    ctx.fillText('• Teclado: Jadson Coutinho', 180, 1180);
+    ctx.fillText('• Vocal: Isis Alane Miranda', 180, 1240);
+
+    // Botões de Envio
+    ctx.fillStyle = '#22c55e';
+    ctx.roundRect(140, 1400, 380, 100, 20);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 32px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Enviar p/ Líder 💬', 330, 1460);
+
+    ctx.fillStyle = '#15803d';
+    ctx.roundRect(560, 1400, 380, 100, 20);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText('Enviar no Grupo 👥', 750, 1460);
+
+    // Senha Restrita
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '34px -apple-system, sans-serif';
+    ctx.fillText('🔒 Com senha de acesso restrito exclusiva para líderes!', 540, 1680);
+
+    ctx.restore();
+  }
+
+  // --- CENA 4: SEGURANÇA & FINANÇAS (17-21s) ---
+  function renderScene4(t) {
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.roundRect(260, 320, 560, 70, 35);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 36px -apple-system, sans-serif';
+    ctx.fillText('🔒 SEGURANÇA TOTAL', 540, 368);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 74px -apple-system, sans-serif';
+    ctx.fillText('TUDO O QUE SUA', 540, 480);
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillText('IGREJA PRECISA', 540, 570);
+
+    // Grid de Funcionalidades
+    const modulos = [
+      { icon: '💰', title: 'Módulo Financeiro com PIN', desc: 'Dízimos, ofertas e despesas blindados' },
+      { icon: '👶', title: 'Departamento Infantil', desc: 'Turmas EBD, alergias e contatos de pais' },
+      { icon: '👥', title: 'Membresia & Famílias', desc: 'Cadastro detalhado e sem dados sensíveis' },
+      { icon: '📊', title: 'Backup em Excel & Nuvem', desc: 'Sincronização em tempo real multi-telas' }
+    ];
+
+    modulos.forEach((m, idx) => {
+      const yPos = 680 + (idx * 210);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.roundRect(100, yPos, 880, 180, 24);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.font = '64px -apple-system, sans-serif';
+      ctx.fillText(m.icon, 140, yPos + 115);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 42px -apple-system, sans-serif';
+      ctx.fillText(m.title, 240, yPos + 80);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '32px -apple-system, sans-serif';
+      ctx.fillText(m.desc, 240, yPos + 135);
+    });
+
+    ctx.restore();
+  }
+
+  // --- CENA 5: OFERTA & CHAMADA PARA AÇÃO (21-26s) ---
+  function renderScene5(t) {
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    ctx.fillStyle = '#10b981';
+    ctx.roundRect(240, 310, 600, 70, 35);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px -apple-system, sans-serif';
+    ctx.fillText('🚀 CONDIÇÃO ESPECIAL', 540, 358);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 76px -apple-system, sans-serif';
+    ctx.fillText('MODERNIZE SUA', 540, 470);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText('IGREJA HOJE MESMO', 540, 565);
+
+    // Box do Valor
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+    ctx.roundRect(110, 680, 860, 480, 36);
+    ctx.fill();
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '36px -apple-system, sans-serif';
+    ctx.fillText('Oportunidade para sua Igreja', 540, 775);
+
+    ctx.fillStyle = '#22c55e';
+    ctx.font = '900 66px -apple-system, sans-serif';
+    ctx.fillText('CONSULTE A', 540, 875);
+    ctx.fillText('CONDIÇÃO COMERCIAL', 540, 965);
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '30px -apple-system, sans-serif';
+    ctx.fillText('Demonstração gratuita • Sem carência nem fidelidade', 540, 1070);
+
+    // BOTÃO DE AÇÃO FALE COMIGO (PULSANTE)
+    const pulse = 1 + Math.sin(t * 8) * 0.03;
+    ctx.save();
+    ctx.translate(540, 1370);
+    ctx.scale(pulse, pulse);
+
+    ctx.fillStyle = '#16a34a';
+    ctx.roundRect(-420, -90, 840, 180, 36);
+    ctx.fill();
+    ctx.strokeStyle = '#86efac';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 50px -apple-system, sans-serif';
+    ctx.fillText('💬 FALE COMIGO AGORA!', 0, -10);
+
+    ctx.fillStyle = '#fef08a';
+    ctx.font = 'bold 54px -apple-system, sans-serif';
+    ctx.fillText('(81) 98425-5125', 0, 55);
+
+    ctx.restore();
+
+    // Rodapé
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 36px -apple-system, sans-serif';
+    ctx.fillText('Saulo Monteiro • Sistemas & Desenvolvimento', 540, 1720);
+
+    ctx.restore();
+  }
+
+  function loop(timestamp) {
+    if (!lastTimestamp) lastTimestamp = timestamp;
+    const delta = (timestamp - lastTimestamp) / 1000;
+    lastTimestamp = timestamp;
+
+    if (isPlaying) {
+      currentTime += delta;
+      if (currentTime >= TOTAL_DURATION) {
+        currentTime = 0; // Reinicia o loop
+      }
+    }
+
+    render(currentTime);
+
+    // Atualiza barra de progresso da página
+    progressFill.style.width = (currentTime / TOTAL_DURATION * 100) + '%';
+    const curSec = Math.floor(currentTime).toString().padStart(2, '0');
+    timeDisplay.innerText = `00:${curSec} / 00:${TOTAL_DURATION}`;
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+
+  function togglePlay() {
+    isPlaying = !isPlaying;
+    document.getElementById('btnPlayPause').innerText = isPlaying ? '⏸️ Pausar' : '▶️ Reproduzir';
+  }
+
+  function restart() {
+    currentTime = 0;
+    isPlaying = true;
+  }
+
+  // GRAVAÇÃO E EXPORTAÇÃO AUTOMÁTICA EM VÍDEO
+  async function recordAndExportVideo() {
+    btnExport.innerText = '🔴 Gravando Vídeo... Aguarde 26s';
+    btnExport.disabled = true;
+
+    currentTime = 0;
+    isPlaying = true;
+
+    const stream = canvas.captureStream(30); // 30 FPS
+    let options = { mimeType: 'video/webm; codecs=vp9' };
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      options = { mimeType: 'video/webm' };
+    }
+
+    const recorder = new MediaRecorder(stream, options);
+    const chunks = [];
+
+    recorder.ondataavailable = e => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Video_Instagram_Reels_Gestao_Igreja.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      btnExport.innerText = '✅ Vídeo Baixado com Sucesso!';
+      setTimeout(() => {
+        btnExport.innerText = '⬇️ Gravar & Baixar Vídeo (.webm / .mp4)';
+        btnExport.disabled = false;
+      }, 4000);
+    };
+
+    recorder.start();
+
+    // Grava exatamente os 26 segundos
+    setTimeout(() => {
+      recorder.stop();
+    }, TOTAL_DURATION * 1000);
+  }
+</script>
+
+</body>
+</html>
