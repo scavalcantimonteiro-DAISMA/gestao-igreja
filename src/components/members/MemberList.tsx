@@ -83,7 +83,6 @@ export const MemberList: React.FC = () => {
       const matchesSearch = 
         searchTerm === '' ||
         m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.cpf?.includes(searchTerm) ||
         m.whatsapp?.includes(searchTerm) ||
         m.street?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         m.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -157,7 +156,7 @@ export const MemberList: React.FC = () => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por nome, CPF, telefone ou bairro..."
+            placeholder="Buscar por nome, telefone ou bairro..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-100"

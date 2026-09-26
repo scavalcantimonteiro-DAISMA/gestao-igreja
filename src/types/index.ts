@@ -8,7 +8,8 @@ export type UserRole =
   | 'PASTOR'      // Acesso pastoral completo
   | 'SECRETARIA'  // Cadastros, membros, eventos, agenda
   | 'TESOURARIA'  // Exclusivo financeiro
-  | 'LIDER_PG';   // Apenas o seu pequeno grupo
+  | 'LIDER_PG'    // Apenas o seu pequeno grupo
+  | 'LIDER_ESCALA'; // Exclusivo para criação e envio de escalas ministeriais
 
 export interface Church {
   id: string;
@@ -16,6 +17,7 @@ export interface Church {
   slug: string;
   loginUser?: string;
   loginPassword?: string;
+  scaleAccessPassword?: string; // Senha cadastrada para líderes acessarem exclusivamente a aba de escalas
   mustChangePassword?: boolean;
   cnpj?: string;
   address: string;
@@ -237,6 +239,28 @@ export interface Ministry {
   members: string[]; // nomes ou IDs
   volunteers?: string[]; // pessoas com desejo de servir
   createdAt: string;
+}
+
+export interface ScaleMemberItem {
+  id?: string;
+  name: string;
+  role?: string; // ex: Voz, Teclado, Bateria, Recepção, Mídia, etc.
+}
+
+export interface MinistryScale {
+  id: string;
+  churchId: string;
+  ministryId: string;
+  ministryName: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // ex: "18:30" ou "Culto Noturno"
+  title?: string; // ex: Culto de Domingo Noite, Reunião de Jovens
+  leaderName: string;
+  leaderPhone: string; // Número de WhatsApp para envio da escala
+  members: ScaleMemberItem[];
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 

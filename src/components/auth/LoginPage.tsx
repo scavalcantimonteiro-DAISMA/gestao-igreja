@@ -60,7 +60,11 @@ export const LoginPage: React.FC = () => {
       }
       selectChurch(res.churchId);
       const target = allChurches.find(c => c.id === res.churchId);
-      showToast(`Bem-vindo à ${target?.name || 'sua igreja'}!`, 'success');
+      if (res.role === 'LIDER_ESCALA') {
+        showToast(`Acesso liberado: Gestão de Escalas (${target?.name || 'Igreja'})`, 'success');
+      } else {
+        showToast(`Bem-vindo à ${target?.name || 'sua igreja'}!`, 'success');
+      }
     } else {
       setErrorMsg(res.message || 'Credenciais inválidas para esta igreja.');
     }

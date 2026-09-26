@@ -9,7 +9,6 @@ import {
   Save, 
   Trash2, 
   Heart, 
-  MessageCircle, 
   FileSpreadsheet,
   Phone,
   Edit3,
@@ -50,34 +49,6 @@ export const MinistriesList: React.FC = () => {
 
   // Campo auxiliar para adicionar membro inline direto no card
   const [inlineMemberInput, setInlineMemberInput] = useState<{ [ministryId: string]: string }>({});
-
-  const handleShareScale = (m: Ministry) => {
-    let text = `*ESCALA & COMUNICAÇÃO DE MINISTÉRIO*\n`;
-    text += `*${currentChurch.name.toUpperCase()}*\n`;
-    text += `*Ministério:* ${m.name}\n`;
-    text += `*Líder:* ${m.leaderName}${m.leaderPhone ? ` (${m.leaderPhone})` : ''}\n`;
-    if (m.viceLeaderName) {
-      text += `*Vice-Líder:* ${m.viceLeaderName}${m.viceLeaderPhone ? ` (${m.viceLeaderPhone})` : ''}\n`;
-    }
-    if (m.meetingDay || m.meetingTime) {
-      text += `*Horário/Encontro:* ${m.meetingDay || 'Conforme escala'} às ${m.meetingTime || '18:30'}\n`;
-    }
-    if (m.location) {
-      text += `*Local:* ${m.location}\n`;
-    }
-    text += `\n👥 *EQUIPE ESCALADA / INTEGRANTES ATIVOS (${(m.members || []).length}):*\n`;
-    (m.members || []).forEach((name, idx) => {
-      text += `${idx + 1}. ${name}\n`;
-    });
-    if (m.volunteers && m.volunteers.length > 0) {
-      text += `\n🌱 *Voluntários:* ${m.volunteers.join(', ')}\n`;
-    }
-    text += `\n_Coordenação Ministerial - ${currentChurch.name}_`;
-
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
-    showToast(`Abrindo WhatsApp com escala de ${m.name}...`, 'info');
-  };
 
   const refreshList = () => {
     setMinistries(getMinistries(currentChurch.id));
@@ -446,17 +417,12 @@ export const MinistriesList: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleShareScale(m)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 active:scale-95 transition-all"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                      <span>Disparar Escala no WhatsApp</span>
-                    </button>
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      {(m.members || []).length} integrantes
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span className="font-semibold text-slate-600">
+                      Total da equipe: <strong className="text-sky-700 font-bold">{(m.members || []).length} integrantes</strong>
+                    </span>
+                    <span className="text-[11px] bg-sky-50 text-sky-700 px-2.5 py-1 rounded-lg border border-sky-200/60 font-semibold">
+                      Ativo
                     </span>
                   </div>
                 </div>

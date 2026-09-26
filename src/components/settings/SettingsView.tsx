@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Building2, MessageSquare, History, Save, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Settings, Building2, MessageSquare, History, Save, ShieldAlert, CheckCircle2, CalendarCheck, KeyRound } from 'lucide-react';
 import { Church, MessageTemplate } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -27,7 +27,8 @@ export const SettingsView: React.FC = () => {
     secretaryWhatsapp: currentChurch.secretaryWhatsapp,
     defaultBirthdaySender: currentChurch.defaultBirthdaySender || 'pastor',
     defaultGeneralSender: currentChurch.defaultGeneralSender || 'secretaria',
-    dailyReportHour: currentChurch.dailyReportHour
+    dailyReportHour: currentChurch.dailyReportHour,
+    scaleAccessPassword: currentChurch.scaleAccessPassword || ''
   });
 
   // Atualiza os campos do formulário sempre que a congregação mudar ou sincronizar em tempo real da nuvem
@@ -47,7 +48,8 @@ export const SettingsView: React.FC = () => {
       secretaryWhatsapp: currentChurch.secretaryWhatsapp,
       defaultBirthdaySender: currentChurch.defaultBirthdaySender || 'pastor',
       defaultGeneralSender: currentChurch.defaultGeneralSender || 'secretaria',
-      dailyReportHour: currentChurch.dailyReportHour
+      dailyReportHour: currentChurch.dailyReportHour,
+      scaleAccessPassword: currentChurch.scaleAccessPassword || ''
     });
   }, [currentChurch]);
 
@@ -314,6 +316,48 @@ export const SettingsView: React.FC = () => {
                     <option value="pastor">Pastor Titular</option>
                     <option value="gabinete">Gabinete Pastoral</option>
                   </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Senha Específica para Líderes de Escala */}
+            <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <CalendarCheck className="w-4 h-4 text-indigo-600" />
+                  <span>Acesso Restrito: Líderes de Escala</span>
+                </span>
+                <span className="text-[10px] bg-indigo-200/80 text-indigo-900 font-bold px-2 py-0.5 rounded-full">
+                  Exclusivo Aba de Escala
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Cadastre uma senha específica para que os líderes de ministério acessem o sistema. Ao entrarem com o <strong>mesmo usuário da igreja</strong> e essa senha, o sistema liberará <strong>apenas a aba Criar Escala</strong>, permitindo montar as escalas e disparar mensagens para o líder ou no grupo de WhatsApp de cada ministério.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Senha de Acesso para Escalas</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: escala2026 ou louvor123"
+                    value={churchForm.scaleAccessPassword || ''}
+                    onChange={e => setChurchForm({ ...churchForm, scaleAccessPassword: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-indigo-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-indigo-500 transition-colors font-mono"
+                  />
+                </div>
+                <div className="flex flex-col justify-end text-[11px] text-slate-600 bg-white/70 p-2.5 rounded-xl border border-indigo-100">
+                  <p>
+                    🔑 <strong>Como repassar aos líderes:</strong>
+                  </p>
+                  <p className="mt-0.5">
+                    Login: <strong className="text-indigo-800 font-mono">{currentChurch.loginUser || currentChurch.slug}</strong>
+                  </p>
+                  <p>
+                    Senha: <strong className="text-indigo-800 font-mono">{churchForm.scaleAccessPassword || 'Defina ao lado e salve'}</strong>
+                  </p>
                 </div>
               </div>
             </div>

@@ -5,6 +5,7 @@ import {
   Family, 
   SmallGroup, 
   Ministry, 
+  MinistryScale,
   Leadership, 
   Schedule, 
   ChurchEvent, 
@@ -27,6 +28,7 @@ import {
   INITIAL_FAMILIES, 
   INITIAL_SMALL_GROUPS, 
   INITIAL_MINISTRIES, 
+  INITIAL_MINISTRY_SCALES,
   INITIAL_LEADERSHIP, 
   INITIAL_SCHEDULES, 
   INITIAL_EVENTS, 
@@ -684,6 +686,36 @@ export function deleteMinistry(id: string): void {
   const list = getLocal<Ministry[]>('ministries', INITIAL_MINISTRIES);
   setLocal('ministries', list.filter(m => m.id !== id));
   notifyCloudSync('delete', 'ministries', id);
+}
+
+// ==========================================
+// ESCALAS DE MINISTÉRIOS
+// ==========================================
+
+export function getMinistryScales(churchId: string): MinistryScale[] {
+  const list = getLocal<MinistryScale[]>('ministry_scales', INITIAL_MINISTRY_SCALES);
+  return list.filter(s => s.churchId === churchId);
+}
+
+export function saveMinistryScale(scale: MinistryScale): void {
+  const list = getLocal<MinistryScale[]>('ministry_scales', INITIAL_MINISTRY_SCALES);
+  const index = list.findIndex(s => s.id === scale.id);
+  const updated = index >= 0
+    ? { ...scale, updatedAt: new Date().toISOString() }
+    : { ...scale, createdAt: scale.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+  if (index >= 0) {
+    list[index] = updated;
+  } else {
+    list.unshift(updated);
+  }
+  setLocal('ministry_scales', list);
+  notifyCloudSync('save', 'ministry_scales', updated);
+}
+
+export function deleteMinistryScale(id: string): void {
+  const list = getLocal<MinistryScale[]>('ministry_scales', INITIAL_MINISTRY_SCALES);
+  setLocal('ministry_scales', list.filter(s => s.id !== id));
+  notifyCloudSync('delete', 'ministry_scales', id);
 }
 
 export function getLeadership(churchId: string): Leadership[] {

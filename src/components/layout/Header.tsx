@@ -14,7 +14,8 @@ import {
   Cake,
   HeartHandshake,
   Calendar,
-  Smartphone
+  Smartphone,
+  CalendarCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
@@ -133,27 +134,34 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Centro: Barra de Pesquisa Global */}
-        <div className="hidden lg:flex items-center flex-1 max-w-md mx-6">
-          <div className="relative w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Pesquisa global (membro, CPF, telefone, endereço)..."
-              value={searchTerm}
-              onChange={e => onSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-100/90 border border-slate-200 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all shadow-inner"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => onSearchChange('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-700"
-              >
-                Limpar
-              </button>
-            )}
+        {/* Centro: Barra de Pesquisa Global ou Badge de Escala */}
+        {currentUser?.role === 'LIDER_ESCALA' ? (
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-bold">
+            <CalendarCheck className="w-4 h-4 text-indigo-600" />
+            <span>Painel Exclusivo de Escalas Ministeriais</span>
           </div>
-        </div>
+        ) : (
+          <div className="hidden lg:flex items-center flex-1 max-w-md mx-6">
+            <div className="relative w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Pesquisa global (membro, telefone, endereço)..."
+                value={searchTerm}
+                onChange={e => onSearchChange(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-100/90 border border-slate-200 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all shadow-inner"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => onSearchChange('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-700"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Direita: Relatório Diário, Notificações e Perfil */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -168,30 +176,33 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden lg:inline">Instalar App</span>
           </button>
 
-          {/* Botão Relatório Diário do Pastor */}
-          <button
-            onClick={() => setShowDailyReport(true)}
-            title="Gerar Relatório Diário do Pastor"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-semibold shadow-sm transition-all"
-          >
-            <FileText className="w-4 h-4 text-sky-600" />
-            <span className="hidden xl:inline">Relatório Diário</span>
-          </button>
-
-          {/* Sino de Notificações */}
-          <div className="relative">
+          {/* Botão Relatório Diário do Pastor (apenas admin/pastor) */}
+          {currentUser?.role !== 'LIDER_ESCALA' && (
             <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-              title="Notificações do Dia"
+              onClick={() => setShowDailyReport(true)}
+              title="Gerar Relatório Diário do Pastor"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-semibold shadow-sm transition-all"
             >
-              <Bell className="w-4 h-4" />
-              {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow animate-pulse">
-                  {notificationCount}
-                </span>
-              )}
+              <FileText className="w-4 h-4 text-sky-600" />
+              <span className="hidden xl:inline">Relatório Diário</span>
             </button>
+          )}
+
+          {/* Sino de Notificações (apenas admin/pastor) */}
+          {currentUser?.role !== 'LIDER_ESCALA' && (
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
+                title="Notificações do Dia"
+              >
+                <Bell className="w-4 h-4" />
+                {notificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow animate-pulse">
+                    {notificationCount}
+                  </span>
+                )}
+              </button>
 
             {/* Dropdown de Notificações */}
             {showNotifications && (
@@ -254,6 +265,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
+        )}
 
           {/* Botão de Desconectar / Sair */}
           <button

@@ -6,6 +6,7 @@ import {
   Family, 
   SmallGroup, 
   Ministry, 
+  MinistryScale,
   Leadership, 
   Schedule, 
   ChurchEvent, 
@@ -63,8 +64,6 @@ export function exportMembersToExcel(church: Church, members: Member[]): void {
     'Cônjuge': m.spouseName || '',
     'Data de Casamento': formatDate(m.weddingDate),
     'Profissão': m.profession || '',
-    'CPF': m.cpf || '',
-    'RG': m.rg || '',
     'Rua': m.street || '',
     'Número': m.number || '',
     'Bairro': m.neighborhood || '',
@@ -277,6 +276,28 @@ export function exportMinistriesToExcel(church: Church, ministries: Ministry[]):
   const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Aviso: 'Nenhum ministério cadastrado.' }]);
   XLSX.utils.book_append_sheet(wb, ws, 'Ministérios');
   XLSX.writeFile(wb, `Ministerios_${sanitize(church.name)}_${getTodayString()}.xlsx`);
+}
+
+// =========================================================================
+// 8.1. EXPORTAÇÃO DE ESCALAS DE MINISTÉRIOS
+// =========================================================================
+export function exportMinistryScalesToExcel(church: Church, scales: MinistryScale[]): void {
+  const wb = XLSX.utils.book_new();
+  const rows = scales.map(s => ({
+    'Ministério': s.ministryName,
+    'Data da Escala': formatDate(s.date),
+    'Horário / Culto': s.time || '',
+    'Ocasião / Culto': s.title || '',
+    'Líder Responsável': s.leaderName,
+    'WhatsApp do Líder': s.leaderPhone || '',
+    'Total de Escalados': s.members?.length || 0,
+    'Equipe Escalada': (s.members || []).map(m => typeof m === 'string' ? m : `${m.name}${m.role ? ` (${m.role})` : ''}`).join(' | '),
+    'Instruções / Observações': s.notes || ''
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Aviso: 'Nenhuma escala ministerial cadastrada.' }]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Escalas');
+  XLSX.writeFile(wb, `Escalas_Ministeriais_${sanitize(church.name)}_${getTodayString()}.xlsx`);
 }
 
 // =========================================================================

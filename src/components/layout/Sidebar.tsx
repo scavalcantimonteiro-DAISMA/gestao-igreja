@@ -20,7 +20,8 @@ import {
   Settings, 
   X,
   Globe,
-  Smartphone
+  Smartphone,
+  CalendarCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
@@ -41,11 +42,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   onReturnToMasterAdmin
 }) => {
-  const { isMasterAdmin } = useAuth();
+  const { isMasterAdmin, currentUser } = useAuth();
   const { currentChurch, isFinancialUnlocked } = useChurch();
   const [showInstallModal, setShowInstallModal] = React.useState(false);
 
-  const menuItems = [
+  const isScaleLeaderOnly = currentUser?.role === 'LIDER_ESCALA';
+
+  const fullMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'members', label: 'Cadastro de Membros', icon: Users },
     { id: 'children', label: 'Departamento Infantil', icon: Baby },
@@ -54,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'smallgroups', label: 'Pequenos Grupos (PG)', icon: Flame },
     { id: 'leadership', label: 'Liderança', icon: ShieldAlert },
     { id: 'ministries', label: 'Ministérios', icon: ChurchIcon },
+    { id: 'scales', label: 'Criar Escala', icon: CalendarCheck },
     { id: 'cabinet', label: 'Gabinete Pastoral', icon: BookOpen },
     { id: 'visits', label: 'Visitas Pastorais', icon: HomeIcon },
     { id: 'prayers', label: 'Pedidos de Oração', icon: Heart },
@@ -69,6 +73,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
+
+  // SE FOR LÍDER DE ESCALA: exibe unicamente a aba "Criar Escala"
+  const menuItems = isScaleLeaderOnly 
+    ? [{ id: 'scales', label: 'Criar Escala', icon: CalendarCheck }]
+    : fullMenuItems;
 
   const handleSelect = (id: string) => {
     setActiveTab(id);
@@ -132,6 +141,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Saulo
               </span>
             </button>
+          </div>
+        )}
+
+        {/* Banner de Acesso Restrito Líder de Escala */}
+        {isScaleLeaderOnly && (
+          <div className="px-3 pt-3">
+            <div className="p-3 rounded-2xl bg-indigo-50 border border-indigo-200/80 text-indigo-950">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-600 block">Perfil de Acesso</span>
+              <p className="text-xs font-bold mt-0.5 flex items-center gap-1.5">
+                <CalendarCheck className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Líder de Ministério</span>
+              </p>
+              <p className="text-[11px] text-indigo-700/90 mt-1 leading-snug">
+                Acesso exclusivo para montagem e envio de escalas.
+              </p>
+            </div>
           </div>
         )}
 

@@ -5,6 +5,7 @@ import {
   Family, 
   SmallGroup, 
   Ministry, 
+  MinistryScale,
   Leadership, 
   Schedule, 
   ChurchEvent, 
@@ -30,6 +31,7 @@ export const INITIAL_CHURCHES: Church[] = [
     slug: 'cbacolher',
     loginUser: 'cbacolher',
     loginPassword: '0000',
+    scaleAccessPassword: 'escala123',
     address: 'Avenida Júlio Marquez Luz, 1409 (antiga Av. Jatiúca)',
     neighborhood: 'Jatiúca',
     city: 'Maceió',
@@ -88,6 +90,48 @@ export const INITIAL_FAMILIES: Family[] = [];
 export const INITIAL_SMALL_GROUPS: SmallGroup[] = [];
 
 export const INITIAL_MINISTRIES: Ministry[] = [...CBA_MINISTRIES, ...DEMO_MINISTRIES];
+
+export const INITIAL_MINISTRY_SCALES: MinistryScale[] = [
+  {
+    id: 'scale_cba_1',
+    churchId: 'church_cba_maceio',
+    ministryId: 'min_louvor',
+    ministryName: 'Ministério de Louvor & Adoração (Música)',
+    date: '2026-09-27',
+    time: '18:30',
+    title: 'Culto de Celebração de Domingo (Noite)',
+    leaderName: 'Sandro de Melo do Espírito Santo',
+    leaderPhone: '(82) 99999-5555',
+    members: [
+      { id: '1', name: 'Sandro de Melo do Espírito Santo', role: 'Vocal / Violão' },
+      { id: '2', name: 'Isis Alane Gomes Miranda', role: 'Vocal' },
+      { id: '3', name: 'Itamar Vidal Silva de Lima', role: 'Bateria' },
+      { id: '4', name: 'Jadson Coutinho de Lima Filho', role: 'Teclado' },
+      { id: '5', name: 'Victor Oliveira Protásio', role: 'Baixo' }
+    ],
+    notes: 'Chegada e passagem de som às 17h30. Roupas em tons escuros.',
+    createdAt: '2026-09-20T10:00:00.000Z'
+  },
+  {
+    id: 'scale_cba_2',
+    churchId: 'church_cba_maceio',
+    ministryId: 'min_infantil',
+    ministryName: 'Departamento Infantil',
+    date: '2026-09-27',
+    time: '18:30',
+    title: 'Culto Noturno - Ministério Infantil',
+    leaderName: 'Marcela da Mota Lins Queiroga',
+    leaderPhone: '(82) 99999-7777',
+    members: [
+      { id: '1', name: 'Marcela da Mota Lins Queiroga', role: 'Coordenação Geral' },
+      { id: '2', name: 'Alexia Brandão Gozele', role: 'Turma Berçário' },
+      { id: '3', name: 'Alycia Vital', role: 'Turma Maternal' },
+      { id: '4', name: 'Maria Eduarda Cavalcante', role: 'Apoio e Lanche' }
+    ],
+    notes: 'Material de pintura e revistas bíblicas organizados na Sala 01.',
+    createdAt: '2026-09-20T10:00:00.000Z'
+  }
+];
 
 export const INITIAL_LEADERSHIP: Leadership[] = [...CBA_LEADERSHIP, ...DEMO_LEADERSHIP];
 

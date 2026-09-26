@@ -8,7 +8,9 @@ import { Sidebar } from './components/layout/Sidebar';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { MemberList } from './components/members/MemberList';
 import { ChildrenList } from './components/children/ChildrenList';
-import { ScheduleAndEventsView } from './components/schedule/ScheduleAndEventsView';
+import { ScheduleView } from './components/schedule/ScheduleView';
+import { EventsView } from './components/schedule/EventsView';
+import { MinistryScalesView } from './components/ministries/MinistryScalesView';
 import { SmallGroupList } from './components/smallgroups/SmallGroupList';
 import { LeadershipList } from './components/leadership/LeadershipList';
 import { MinistriesList } from './components/ministries/MinistriesList';
@@ -25,11 +27,18 @@ const MainLayout: React.FC = () => {
   const { currentUser, isMasterAdmin } = useAuth();
   const { currentChurch } = useChurch();
 
+  const isScaleLeader = currentUser?.role === 'LIDER_ESCALA';
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() => isScaleLeader ? 'scales' : 'dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
   const [viewingChurchAsMaster, setViewingChurchAsMaster] = useState(false);
+
+  React.useEffect(() => {
+    if (isScaleLeader && activeTab !== 'scales') {
+      setActiveTab('scales');
+    }
+  }, [isScaleLeader, activeTab]);
 
   // SE NÃO ESTIVER LOGADO: Exibe a tela de login inicial antes de tudo!
   if (!currentUser) {
@@ -50,6 +59,10 @@ const MainLayout: React.FC = () => {
   }
 
   const handleNavigate = (tab: string) => {
+    if (isScaleLeader) {
+      setActiveTab('scales');
+      return;
+    }
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -112,11 +125,12 @@ const MainLayout: React.FC = () => {
           {activeTab === 'dashboard' && <DashboardView onNavigate={handleNavigate} />}
           {activeTab === 'members' && <MemberList />}
           {activeTab === 'children' && <ChildrenList />}
-          {activeTab === 'schedules' && <ScheduleAndEventsView />}
-          {activeTab === 'events' && <ScheduleAndEventsView />}
+          {activeTab === 'schedules' && <ScheduleView />}
+          {activeTab === 'events' && <EventsView />}
           {activeTab === 'smallgroups' && <SmallGroupList />}
           {activeTab === 'leadership' && <LeadershipList />}
           {activeTab === 'ministries' && <MinistriesList />}
+          {activeTab === 'scales' && <MinistryScalesView onNavigateToMinistries={() => handleNavigate('ministries')} />}
           {activeTab === 'cabinet' && <PastoralCabinetView key="cabinet" initialTab="gabinete" isolated={true} />}
           {activeTab === 'visits' && <PastoralCabinetView key="visits" initialTab="visitas" isolated={true} />}
           {activeTab === 'prayers' && <PastoralCabinetView key="prayers" initialTab="oracao" isolated={true} />}

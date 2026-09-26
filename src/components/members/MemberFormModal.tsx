@@ -327,29 +327,6 @@ export const MemberFormModal: React.FC<MemberFormModalProps> = ({
                 </div>
 
                 <div>
-                  <MaskedInput
-                    mask="cpf"
-                    label="CPF"
-                    placeholder="000.000.000-00"
-                    value={formData.cpf || ''}
-                    onChange={val => setFormData({ ...formData, cpf: val })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    RG
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Número e órgão emissor"
-                    value={formData.rg || ''}
-                    onChange={e => setFormData({ ...formData, rg: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 transition-colors"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Estado Civil
                   </label>

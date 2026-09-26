@@ -6,7 +6,7 @@ interface AuthContextType {
   currentUser: User | null;
   isMasterAdmin: boolean;
   loginAsMaster: (password: string) => boolean;
-  loginChurch: (login: string, pass: string) => { success: boolean; churchId: string; mustChangePassword?: boolean; message?: string };
+  loginChurch: (login: string, pass: string) => { success: boolean; churchId: string; role?: UserRole; mustChangePassword?: boolean; message?: string };
   loginChurchDirect: (churchId: string) => void;
   loginUser: (email: string, pass: string, churchId?: string) => boolean;
   logout: () => void;
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Login da Igreja (Suporta CBA e qualquer nova igreja cadastrada no SaaS)
-  const loginChurch = (login: string, pass: string): { success: boolean; churchId: string; mustChangePassword?: boolean; message?: string } => {
+  const loginChurch = (login: string, pass: string): { success: boolean; churchId: string; role?: UserRole; mustChangePassword?: boolean; message?: string } => {
     if (!login || !login.trim()) {
       return { success: false, churchId: '', message: 'Informe o login da sua congregação.' };
     }
@@ -67,6 +67,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const matchedChurch = findChurchByLogin(storedChurches, login);
 
     if (matchedChurch) {
+      // 1. VERIFICA SE DIGITOU A SENHA ESPECÍFICA DE LÍDER DE ESCALA
+      const isScalePass = Boolean(
+        matchedChurch.scaleAccessPassword && 
+        matchedChurch.scaleAccessPassword.trim() !== '' && 
+        pass.trim() === matchedChurch.scaleAccessPassword.trim()
+      );
+
+      if (isScalePass) {
+        const scaleUser: User = {
+          id: 'usr_scale_' + matchedChurch.id,
+          churchId: matchedChurch.id,
+          name: `Líder de Escala (${matchedChurch.name})`,
+          email: `escala@${matchedChurch.slug}.com`,
+          role: 'LIDER_ESCALA',
+          isActive: true,
+          createdAt: new Date().toISOString()
+        };
+        setCurrentUser(scaleUser);
+        return { 
+          success: true, 
+          churchId: matchedChurch.id, 
+          role: 'LIDER_ESCALA', 
+          mustChangePassword: false 
+        };
+      }
+
+      // 2. VERIFICA SE DIGITOU A SENHA ADMINISTRATIVA PRINCIPAL DA IGREJA
       const expectedPass = matchedChurch.loginPassword || '0000';
       const isPassCorrect = 
         pass === expectedPass || 
@@ -94,7 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           createdAt: new Date().toISOString()
         };
         setCurrentUser(churchUser);
-        return { success: true, churchId: matchedChurch.id, mustChangePassword: false };
+        return { success: true, churchId: matchedChurch.id, role: 'ADMIN', mustChangePassword: false };
       }
       return { success: false, churchId: '', message: 'Senha incorreta para esta congregação.' };
     }
