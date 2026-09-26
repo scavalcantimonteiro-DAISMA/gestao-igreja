@@ -789,19 +789,106 @@ export const FinancialDashboardView: React.FC = () => {
           <p className="text-[11px] text-sky-600 font-medium mt-1">Disponibilidade atual em caixa</p>
         </div>
 
-        {/* Despesas Fixas Previstas */}
-        <div className="p-5 rounded-3xl bg-white border border-indigo-200 shadow-sm">
-          <div className="flex items-center justify-between text-indigo-600 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Despesas Fixas / Mês</span>
-            <Receipt className="w-5 h-5" />
+        {/* Despesas Fixas & Provisionamento */}
+        <div className="p-5 rounded-3xl bg-white border border-indigo-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-indigo-600 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Despesas Fixas / Mês</span>
+              <Receipt className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-black text-indigo-700">
+              {totalActiveFixedExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </div>
+            <p className="text-[11px] text-indigo-600 font-medium mt-1">
+              {fixedExpenses.filter(f => f.isActive).length} contas recorrentes cadastradas
+            </p>
           </div>
-          <div className="text-2xl font-black text-indigo-700">
-            {totalActiveFixedExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-          </div>
-          <p className="text-[11px] text-indigo-600 font-medium mt-1">
-            {fixedExpenses.filter(f => f.isActive).length} contas recorrentes programadas
-          </p>
+
+          <button
+            onClick={() => setActiveTab('provisionamento')}
+            className="mt-3 flex items-center justify-between w-full px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold transition-all shadow-xs"
+            title="Ir para o demonstrativo de provisionamento e contas a pagar do mês"
+          >
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 text-amber-600" />
+              <span>Ver Provisionamento</span>
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px]">
+              {pendingFixedThisMonth.length} a pagar
+            </span>
+          </button>
         </div>
+      </div>
+
+      {/* Navegação entre Abas (Posicionada no topo para visibilidade imediata) */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 border border-slate-200 w-full overflow-x-auto shadow-xs">
+        <button
+          onClick={() => setActiveTab('geral')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'geral' ? 'bg-white text-sky-700 shadow-md' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span>Visão Geral</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-700">
+            {entries.length + expenses.length}
+          </span>
+        </button>
+        
+        {/* ABA PROVISIONAMENTO EM DESTAQUE */}
+        <button
+          onClick={() => setActiveTab('provisionamento')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all ${
+            activeTab === 'provisionamento' 
+              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30' 
+              : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/60'
+          }`}
+        >
+          <CalendarDays className="w-4 h-4 text-amber-700" />
+          <span>Provisionamento do Mês</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            activeTab === 'provisionamento' ? 'bg-slate-950 text-white' : 'bg-amber-500 text-slate-950'
+          }`}>
+            {pendingFixedThisMonth.length} a pagar
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('despesas_fixas')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'despesas_fixas' ? 'bg-white text-purple-700 shadow-md' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Receipt className="w-4 h-4 text-purple-600" />
+          <span>Despesas Fixas ({fixedExpenses.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('comparativo')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'comparativo' ? 'bg-white text-indigo-700 shadow-md' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4 text-indigo-600" />
+          <span>Comparativo Mensal</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('entradas')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'entradas' ? 'bg-white text-emerald-700 shadow-md' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span>Entradas ({entries.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('saidas')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'saidas' ? 'bg-white text-rose-700 shadow-md' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span>Saídas ({expenses.length})</span>
+        </button>
       </div>
 
       {/* Card Especial: Reserva de Emergência & Patrimônio Total */}
@@ -826,10 +913,10 @@ export const FinancialDashboardView: React.FC = () => {
                       setReserveTargetInput(String(currentReserveTarget || ''));
                       setIsReserveTargetModalOpen(true);
                     }}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-emerald-300 text-[11px] font-semibold border border-white/10 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-emerald-300 text-xs font-bold border border-white/10 transition-colors"
                     title="Definir ou editar valor ideal de reserva"
                   >
-                    <Edit3 className="w-3 h-3" />
+                    <Edit3 className="w-3.5 h-3.5" />
                     <span>Definir Meta</span>
                   </button>
                 </div>
@@ -900,61 +987,6 @@ export const FinancialDashboardView: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Navegação entre Abas */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200 w-full sm:w-fit overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('geral')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'geral' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Visão Geral ({entries.length + expenses.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('comparativo')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'comparativo' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Comparativo Mensal</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('provisionamento')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'provisionamento' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <CalendarDays className="w-3.5 h-3.5 text-amber-600" />
-          <span>Provisionamento ({pendingFixedThisMonth.length} a pagar)</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('despesas_fixas')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'despesas_fixas' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Receipt className="w-3.5 h-3.5 text-purple-600" />
-          <span>Despesas Fixas ({fixedExpenses.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('entradas')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'entradas' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Entradas ({entries.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('saidas')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'saidas' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Saídas ({expenses.length})
-        </button>
       </div>
 
       {/* ========================================================== */}
@@ -1593,6 +1625,87 @@ export const FinancialDashboardView: React.FC = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Bloco de Provisionamento do Mês dentro da Visão Geral */}
+      {activeTab === 'geral' && activeFixedExpenses.length > 0 && (
+        <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <CalendarDays className="w-5 h-5 text-amber-600" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Provisionamento do Mês: Contas Programadas
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">
+                  {pendingFixedThisMonth.length} a pagar neste mês
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Clique no botão <strong>"Pagamento Efetuado"</strong> para quitar a conta e descontar o valor automaticamente do caixa.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('provisionamento')}
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-all"
+            >
+              <span>Ver painel completo de provisionamento ({activeFixedExpenses.length})</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[...activeFixedExpenses].sort((a, b) => a.dueDay - b.dueDay).map(fixed => {
+              const isPaid = fixed.lastPaidMonth === currentMonthKey;
+              return (
+                <div key={fixed.id} className={`p-4 rounded-2xl border transition-all ${isPaid ? 'bg-emerald-50/20 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Vencimento: Todo dia {fixed.dueDay}
+                      </span>
+                      <h4 className="text-sm font-bold text-slate-900 mt-0.5">{fixed.description}</h4>
+                      {fixed.beneficiary && (
+                        <p className="text-[11px] text-slate-500">Favorecido: {fixed.beneficiary}</p>
+                      )}
+                    </div>
+                    <span className="text-sm font-black text-rose-600 whitespace-nowrap">
+                      {fixed.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+                    {isPaid ? (
+                      <div className="w-full flex items-center justify-between text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                        <span className="flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5" /> Pago no Mês {fixed.lastPaidDate ? `(${fixed.lastPaidDate.split('-').reverse().slice(0, 2).join('/')})` : ''}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUnmarkPaidFixed(fixed)}
+                          className="text-[10px] text-slate-400 hover:text-rose-600 underline font-normal ml-2"
+                          title="Desfazer e marcar como pendente"
+                        >
+                          Desfazer
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenPayFixedModal(fixed)}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs active:scale-95 transition-all"
+                        title="Marcar pagamento como efetuado e debitar valor do caixa"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>✓ Pagamento Efetuado (Descontar do Caixa)</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
