@@ -14,7 +14,9 @@ import {
   MapPin, 
   FileText,
   DollarSign,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock,
+  Eye
 } from 'lucide-react';
 import { useChurch, useDataSync } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +24,7 @@ import { ChurchBrandLogo } from '../common/ChurchBrandLogo';
 import { WhatsAppButton } from '../common/WhatsAppButton';
 import { BirthdayWhatsAppAction } from '../common/BirthdayWhatsAppAction';
 import { DailyReportModal } from '../common/DailyReportModal';
+import { FinancialPinModal } from '../common/FinancialPinModal';
 import { exportChurchToExcel } from '../../services/excelBackup';
 import { 
   getMembers, 
@@ -45,8 +48,9 @@ interface DashboardViewProps {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
-  const { currentChurch } = useChurch();
+  const { currentChurch, isFinancialUnlocked } = useChurch();
   const [showDailyReport, setShowDailyReport] = useState(false);
+  const [isFinancePinModalOpen, setIsFinancePinModalOpen] = useState(false);
   const [, setLastSyncTick] = useState(0);
 
   useDataSync(() => setLastSyncTick(Date.now()), [currentChurch.id]);
@@ -208,18 +212,56 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           <div className="text-[11px] font-medium text-slate-500 truncate">Batismos Prev.</div>
         </div>
 
-        {/* Saldo Financeiro Rápido */}
+        {/* Saldo Financeiro Rápido (com proteção de PIN) */}
         <div 
-          onClick={() => onNavigate('finance')}
-          className="col-span-1 p-4 rounded-2xl bg-white border border-emerald-200 hover:border-emerald-400 transition-all cursor-pointer group shadow-sm hover:shadow-md"
+          onClick={() => {
+            if (!isFinancialUnlocked) {
+              setIsFinancePinModalOpen(true);
+            } else {
+              onNavigate('finance');
+            }
+          }}
+          className={`col-span-1 p-4 rounded-2xl transition-all cursor-pointer group shadow-sm hover:shadow-md relative overflow-hidden ${
+            !isFinancialUnlocked 
+              ? 'bg-slate-50 border border-slate-200 hover:border-amber-400' 
+              : 'bg-white border border-emerald-200 hover:border-emerald-400'
+          }`}
+          title={!isFinancialUnlocked ? 'Saldo protegido por senha. Clique para desbloquear.' : 'Clique para ver o módulo financeiro'}
         >
-          <div className="flex items-center justify-between text-emerald-600 mb-2">
-            <DollarSign className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between mb-2">
+            <div className={`p-1.5 rounded-lg ${!isFinancialUnlocked ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-600'}`}>
+              {!isFinancialUnlocked ? (
+                <Lock className="w-4 h-4" />
+              ) : (
+                <DollarSign className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              )}
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+              !isFinancialUnlocked 
+                ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+                : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+            }`}>
+              {!isFinancialUnlocked ? 'Protegido' : 'Liberado'}
+            </span>
           </div>
-          <div className="text-base sm:text-lg font-black text-emerald-700 truncate">
-            {saldoAtual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
-          </div>
-          <div className="text-[11px] font-semibold text-emerald-800 truncate">Saldo em Caixa</div>
+
+          {!isFinancialUnlocked ? (
+            <div>
+              <div className="text-base sm:text-lg font-black text-slate-400 tracking-widest select-none">
+                ••••••••
+              </div>
+              <div className="text-[11px] font-bold text-amber-700 truncate mt-0.5">
+                Clique p/ Ver Saldo
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="text-base sm:text-lg font-black text-emerald-700 truncate">
+                {saldoAtual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+              </div>
+              <div className="text-[11px] font-semibold text-emerald-800 truncate">Saldo em Caixa</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -579,6 +621,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
       {/* Modal Relatório Pastoral */}
       <DailyReportModal isOpen={showDailyReport} onClose={() => setShowDailyReport(false)} />
+
+      {/* Modal Desbloqueio Financeiro */}
+      <FinancialPinModal
+        isOpen={isFinancePinModalOpen}
+        onClose={() => setIsFinancePinModalOpen(false)}
+        onSuccess={() => {
+          setIsFinancePinModalOpen(false);
+        }}
+      />
     </div>
   );
 };

@@ -224,21 +224,25 @@ export const LeadershipList: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Função / Cargo *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Função / Cargo Ministerial *</label>
                 <select
-                  value={formData.role || 'Diácono'}
+                  value={formData.role || 'Pastor Presidente'}
                   onChange={e => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:bg-white focus:border-sky-500 font-medium"
                 >
+                  <option value="Apóstolo">Apóstolo</option>
+                  <option value="Bispo">Bispo</option>
                   <option value="Pastor Presidente">Pastor Presidente</option>
                   <option value="Pastor Auxiliar">Pastor Auxiliar</option>
+                  <option value="Evangelista">Evangelista</option>
+                  <option value="Presbítero">Presbítero</option>
                   <option value="Ministro">Ministro</option>
                   <option value="Ministro de Música">Ministro de Música</option>
-                  <option value="Presbítero">Presbítero</option>
                   <option value="Diácono">Diácono</option>
                   <option value="Diaconisa">Diaconisa</option>
                   <option value="Líder de Ministério">Líder de Ministério</option>
                   <option value="Coordenador">Coordenador</option>
+                  <option value="Outro">Outro</option>
                 </select>
               </div>
 
