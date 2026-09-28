@@ -188,12 +188,19 @@ export function initializeStorage(): void {
       setLocal('gi_deleted_church_ids', deleted.filter(id => id !== 'church_cba_maceio'));
     }
 
-    // Limpeza de segurança: Remove a senha pessoal do administrador que havia ficado por engano em congregações
+    // Limpeza de segurança: Remove a senha pessoal do administrador e qualquer filial indevidamente injetada em código
     const currentStoredChurches = getLocal<Church[]>('churches', []);
     if (currentStoredChurches && currentStoredChurches.length > 0) {
       let changed = false;
-      const sanitized = currentStoredChurches.map(ch => {
-        if (ch.subsidiaryMasterPassword === '160605') {
+      let sanitized = currentStoredChurches.filter(ch => {
+        if (ch.id === 'church_cba_filial_jacarecica') {
+          changed = true;
+          return false;
+        }
+        return true;
+      });
+      sanitized = sanitized.map(ch => {
+        if (ch.subsidiaryMasterPassword === '160605' || ch.subsidiaryMasterPassword === 'cba123') {
           changed = true;
           const copy = { ...ch };
           delete copy.subsidiaryMasterPassword;

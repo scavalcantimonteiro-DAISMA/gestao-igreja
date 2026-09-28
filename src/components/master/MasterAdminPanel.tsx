@@ -1270,7 +1270,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                                   <input
                                     type="text"
                                     required
-                                    placeholder="Ex: Congregação Jacarecica"
+                                    placeholder="Ex: Congregação Bairro Norte"
                                     value={branch.name}
                                     onChange={e => {
                                       const val = e.target.value;
@@ -1303,7 +1303,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                                   <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Bairro / Local</label>
                                   <input
                                     type="text"
-                                    placeholder="Ex: Jacarecica"
+                                    placeholder="Ex: Bairro Norte"
                                     value={branch.neighborhood}
                                     onChange={e => {
                                       const val = e.target.value;
@@ -1318,7 +1318,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                                   <input
                                     type="text"
                                     required
-                                    placeholder="Ex: cbajacarecica"
+                                    placeholder="Ex: filialbairronorte"
                                     value={branch.loginUser}
                                     onChange={e => {
                                       const val = e.target.value.toLowerCase().replace(/\s+/g, '');
@@ -1721,7 +1721,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                     <input
                       type="text"
                       required
-                      placeholder="ex: cbapontadaterra"
+                      placeholder="ex: filialbairronovo"
                       value={newBranchData.loginUser}
                       onChange={e => setNewBranchData({ ...newBranchData, loginUser: e.target.value.toLowerCase().replace(/\s+/g, '') })}
                       className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-mono"
