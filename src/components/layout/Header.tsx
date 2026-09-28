@@ -203,6 +203,12 @@ export const Header: React.FC<HeaderProps> = ({
                                   setShowSubsidiaryDropdown(false);
                                   return;
                                 }
+                                if (isMasterAdmin) {
+                                  selectChurch(sub.id);
+                                  showToast(`Visualizando congregação "${sub.name}" (Acesso Administrador Geral)`, 'success');
+                                  setShowSubsidiaryDropdown(false);
+                                  return;
+                                }
                                 setSubsidiaryToAccess(sub);
                                 setMasterPassInput('');
                                 setMasterPassError('');

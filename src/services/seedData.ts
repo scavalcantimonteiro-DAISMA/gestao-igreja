@@ -53,7 +53,7 @@ export const INITIAL_CHURCHES: Church[] = [
     financialPin: '0000',
     financialPinChanged: false,
     isHeadquarters: true,
-    subsidiaryMasterPassword: '160605',
+    subsidiaryMasterPassword: 'cba123',
     isActive: true,
     createdAt: '2026-01-10T10:00:00Z'
   },

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Building2, MessageSquare, History, Save, ShieldAlert, CheckCircle2, CalendarCheck, KeyRound } from 'lucide-react';
+import { Settings, Building2, MessageSquare, History, Save, ShieldAlert, CheckCircle2, CalendarCheck, KeyRound, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { Church, MessageTemplate } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -10,6 +10,7 @@ export const SettingsView: React.FC = () => {
   const { showToast } = useNotification();
 
   const [activeSubTab, setActiveSubTab] = useState<'igreja' | 'mensagens' | 'auditoria'>('igreja');
+  const [showSubsidiaryPass, setShowSubsidiaryPass] = useState(false);
 
   // Form Igreja sincronizado dinamicamente com currentChurch
   const [churchForm, setChurchForm] = useState<Partial<Church>>({
@@ -28,7 +29,8 @@ export const SettingsView: React.FC = () => {
     defaultBirthdaySender: currentChurch.defaultBirthdaySender || 'pastor',
     defaultGeneralSender: currentChurch.defaultGeneralSender || 'secretaria',
     dailyReportHour: currentChurch.dailyReportHour,
-    scaleAccessPassword: currentChurch.scaleAccessPassword || ''
+    scaleAccessPassword: currentChurch.scaleAccessPassword || '',
+    subsidiaryMasterPassword: currentChurch.subsidiaryMasterPassword || ''
   });
 
   // Atualiza os campos do formulário sempre que a congregação mudar ou sincronizar em tempo real da nuvem
@@ -49,7 +51,8 @@ export const SettingsView: React.FC = () => {
       defaultBirthdaySender: currentChurch.defaultBirthdaySender || 'pastor',
       defaultGeneralSender: currentChurch.defaultGeneralSender || 'secretaria',
       dailyReportHour: currentChurch.dailyReportHour,
-      scaleAccessPassword: currentChurch.scaleAccessPassword || ''
+      scaleAccessPassword: currentChurch.scaleAccessPassword || '',
+      subsidiaryMasterPassword: currentChurch.subsidiaryMasterPassword || ''
     });
   }, [currentChurch]);
 
@@ -357,6 +360,57 @@ export const SettingsView: React.FC = () => {
                   </p>
                   <p>
                     Senha: <strong className="text-indigo-800 font-mono">{churchForm.scaleAccessPassword || 'Defina ao lado e salve'}</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Senha Master de Supervisão das Congregações Filiais (Para Igreja Sede) */}
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-amber-600" />
+                  <span>Igreja Sede: Senha Master de Supervisão das Filiais</span>
+                </span>
+                <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                  Supervisão de Filiais
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Cadastre ou altere a <strong>senha master exclusiva da sua Igreja Sede</strong>. Ao utilizar o botão <em>"Visualizar Congregação"</em> no topo do sistema, a liderança da sede informará esta senha para auditar e visualizar diretamente os dados de qualquer filial vinculada, com total autonomia e sem precisar da senha de login de cada congregação.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Senha Master de Visualização das Filiais</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showSubsidiaryPass ? "text" : "password"}
+                      placeholder="Ex: sede2026 ou sua senha de supervisão"
+                      value={churchForm.subsidiaryMasterPassword || ''}
+                      onChange={e => setChurchForm({ ...churchForm, subsidiaryMasterPassword: e.target.value })}
+                      className="w-full pl-3.5 pr-10 py-2 rounded-xl bg-white border border-amber-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-amber-500 transition-colors font-mono font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSubsidiaryPass(!showSubsidiaryPass)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      title={showSubsidiaryPass ? "Ocultar senha" : "Ver senha"}
+                    >
+                      {showSubsidiaryPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-col justify-end text-[11px] text-slate-600 bg-white/70 p-2.5 rounded-xl border border-amber-100">
+                  <p>
+                    🛡️ <strong>Status da Senha Master da Sede:</strong>
+                  </p>
+                  <p className="mt-0.5 font-medium text-slate-700">
+                    {churchForm.subsidiaryMasterPassword 
+                      ? '✓ Senha cadastrada e ativa para uso da diretoria da sede.' 
+                      : '⚠️ Nenhuma senha cadastrada ainda. Digite uma senha ao lado e clique em Salvar Alterações.'}
                   </p>
                 </div>
               </div>

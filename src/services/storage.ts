@@ -188,6 +188,24 @@ export function initializeStorage(): void {
       setLocal('gi_deleted_church_ids', deleted.filter(id => id !== 'church_cba_maceio'));
     }
 
+    // Limpeza de segurança: Remove a senha pessoal do administrador que havia ficado por engano em congregações
+    const currentStoredChurches = getLocal<Church[]>('churches', []);
+    if (currentStoredChurches && currentStoredChurches.length > 0) {
+      let changed = false;
+      const sanitized = currentStoredChurches.map(ch => {
+        if (ch.subsidiaryMasterPassword === '160605') {
+          changed = true;
+          const copy = { ...ch };
+          delete copy.subsidiaryMasterPassword;
+          return copy;
+        }
+        return ch;
+      });
+      if (changed) {
+        setLocal('churches', sanitized);
+      }
+    }
+
     if (localStorage.getItem(RESTORE_CBA_KEY) !== 'true') {
       // 1. Garante a igreja CBA na lista de igrejas
       const currentChurches = getLocal<Church[]>('churches', []);

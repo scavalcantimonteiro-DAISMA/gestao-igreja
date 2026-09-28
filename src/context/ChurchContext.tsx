@@ -382,10 +382,10 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // A sede de origem é a currentChurch atual se não estivermos já navegando de outra filial
     const originChurch = isViewingAsHeadquarters && headquartersChurch ? headquartersChurch : currentChurch;
 
-    // Senha master da Sede (ou a master global do Saulo '160605')
-    const masterExpected = originChurch.subsidiaryMasterPassword || originChurch.loginPassword || '160605';
+    // Senha master da Sede cadastrada nas Configurações da Igreja
+    const masterExpected = originChurch.subsidiaryMasterPassword || originChurch.loginPassword;
     const isAuthorized = 
-      masterPasswordInput === masterExpected || 
+      Boolean(masterExpected && masterPasswordInput === masterExpected) || 
       masterPasswordInput === '160605' || 
       masterPasswordInput === 'S@ulo160605';
 

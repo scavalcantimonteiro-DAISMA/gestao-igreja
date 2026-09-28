@@ -56,7 +56,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
 
   // Estados para congregações filhas no cadastro de nova igreja
   const [hasBranches, setHasBranches] = useState(false);
-  const [subsidiaryMasterPassInput, setSubsidiaryMasterPassInput] = useState('160605');
+  const [subsidiaryMasterPassInput, setSubsidiaryMasterPassInput] = useState('');
   const [branchesList, setBranchesList] = useState<Array<{
     name: string;
     pastorName: string;
@@ -181,7 +181,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
       financialPin: '0000',
       financialPinChanged: false,
       isHeadquarters: hasBranches,
-      subsidiaryMasterPassword: hasBranches ? (subsidiaryMasterPassInput.trim() || '160605') : undefined,
+      subsidiaryMasterPassword: hasBranches && subsidiaryMasterPassInput.trim() ? subsidiaryMasterPassInput.trim() : undefined,
       mustChangePassword: true,
       isActive: true
     });
@@ -224,7 +224,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
     setIsRegisterOpen(false);
     setHasBranches(false);
     setBranchesList([]);
-    setSubsidiaryMasterPassInput('160605');
+    setSubsidiaryMasterPassInput('');
   };
 
   // Submissão de Adição de Nova Filial a uma Igreja Sede existente (controle comercial SaaS)
@@ -268,7 +268,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
       updateChurchData({
         ...parentChurchForNewBranch,
         isHeadquarters: true,
-        subsidiaryMasterPassword: parentChurchForNewBranch.subsidiaryMasterPassword || '160605'
+        subsidiaryMasterPassword: parentChurchForNewBranch.subsidiaryMasterPassword || ''
       });
     }
 
@@ -688,12 +688,62 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                           <span className="text-slate-500 flex items-center gap-1">
                             <KeyRound className="w-3 h-3 text-indigo-600" /> Senha Master Filiais:
                           </span>
-                          <code className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded font-mono font-bold text-[10px] border border-indigo-200">
-                            {c.subsidiaryMasterPassword || '160605'}
-                          </code>
+                          {c.subsidiaryMasterPassword && c.subsidiaryMasterPassword !== '160605' ? (
+                            <code className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded font-mono font-bold text-[10px] border border-indigo-200">
+                              {c.subsidiaryMasterPassword}
+                            </code>
+                          ) : (
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              Pendente (Definir em Configurações)
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
+
+                    {/* CONGREGAÇÕES FILIAIS VINCULADAS - BOTÃO DE VISUALIZAÇÃO DIRETA ADM */}
+                    {isHead && branches.length > 0 && (
+                      <div className="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-200/90 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Congregações Filiais Vinculadas ({branches.length})</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                            Acesso ADM
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {branches.map(branch => (
+                            <div key={branch.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-white border border-indigo-100 gap-2 shadow-2xs">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-xs text-slate-900 truncate flex items-center gap-1.5">
+                                  <span>{branch.name}</span>
+                                  {branch.neighborhood && (
+                                    <span className="text-[10px] font-normal text-slate-500">({branch.neighborhood})</span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-500 truncate mt-0.5">
+                                  {branch.pastorName ? `Pr. ${branch.pastorName}` : 'Sem pastor titular'} • Login: <code className="font-mono text-[10px] text-indigo-700 bg-indigo-50 px-1 rounded">{branch.loginUser || branch.slug}</code>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEnterChurch(branch.id)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-2xs active:scale-95"
+                                  title={`Visualizar painel completo da filial ${branch.name}`}
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>Visualizar Filial</span>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* BARRA DE AÇÕES INFERIOR */}
@@ -791,10 +841,15 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                     <button
                       type="button"
                       onClick={() => handleEnterChurch(c.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-xs"
-                      title="Visualizar o painel eclesiástico desta congregação"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-xs font-bold transition-all shadow-xs ${
+                        c.parentChurchId
+                          ? 'bg-indigo-600 hover:bg-indigo-500'
+                          : 'bg-sky-600 hover:bg-sky-500'
+                      }`}
+                      title={c.parentChurchId ? "Visualizar painel completo desta congregação filial" : "Visualizar o painel eclesiástico desta congregação"}
                     >
-                      <span>Abrir Painel</span>
+                      {c.parentChurchId && <Eye className="w-3.5 h-3.5" />}
+                      <span>{c.parentChurchId ? 'Visualizar Filial' : 'Abrir Painel'}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -1151,7 +1206,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                       <input
                         type="text"
                         required={hasBranches}
-                        placeholder="Ex: 160605 ou senha personalizada"
+                        placeholder="Ex: sede2026 ou sua senha da sede"
                         value={subsidiaryMasterPassInput}
                         onChange={e => setSubsidiaryMasterPassInput(e.target.value)}
                         className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold text-slate-800"
@@ -1510,7 +1565,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                     </label>
                     <input
                       type="text"
-                      placeholder="Ex: 160605"
+                      placeholder="Ex: sede2026 ou senha da sede"
                       value={editingChurch.subsidiaryMasterPassword || ''}
                       onChange={e => setEditingChurch({ ...editingChurch, subsidiaryMasterPassword: e.target.value })}
                       className="w-full px-3 py-1.5 rounded-xl border border-indigo-200 bg-white font-mono font-bold text-slate-800"
