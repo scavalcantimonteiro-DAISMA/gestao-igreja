@@ -22,10 +22,11 @@ import { SettingsView } from './components/settings/SettingsView';
 import { MasterAdminPanel } from './components/master/MasterAdminPanel';
 import { LoginPage } from './components/auth/LoginPage';
 import { MasterAdminModal } from './components/auth/LoginModal';
+import { FirstLoginSecurityModal } from './components/auth/FirstLoginSecurityModal';
 
 const MainLayout: React.FC = () => {
   const { currentUser, isMasterAdmin } = useAuth();
-  const { currentChurch } = useChurch();
+  const { currentChurch, isViewingAsHeadquarters, headquartersChurch, returnToHeadquarters } = useChurch();
 
   const isScaleLeader = currentUser?.role === 'LIDER_ESCALA';
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -86,6 +87,36 @@ const MainLayout: React.FC = () => {
             ← Voltar ao Painel Master (SaaS)
           </button>
         </div>
+      )}
+
+      {/* Banner de Aviso quando a Igreja Sede estiver visualizando uma Congregação Filha */}
+      {isViewingAsHeadquarters && headquartersChurch && (
+        <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-white px-4 sm:px-6 py-2.5 text-xs flex items-center justify-between font-medium z-40 relative shadow-md border-b border-indigo-500/30">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+            <span>
+              Modo Supervisão (Igreja Sede): Visualizando <strong>{currentChurch.name}</strong> • Sede: <strong>{headquartersChurch.name}</strong>
+            </span>
+          </div>
+          <button 
+            onClick={() => {
+              returnToHeadquarters();
+              setActiveTab('dashboard');
+            }}
+            className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1 rounded-lg font-bold text-xs shadow transition-all active:scale-95 flex items-center gap-1.5"
+          >
+            <span>← Voltar para a Igreja Sede</span>
+          </button>
+        </div>
+      )}
+
+      {/* Modal obrigatório de configuração de segurança inicial (caso a igreja ainda não tenha configurado) */}
+      {!isMasterAdmin && (currentChurch.mustChangePassword || !currentChurch.financialPinChanged) && (
+        <FirstLoginSecurityModal
+          isOpen={true}
+          church={currentChurch}
+          onSuccess={() => {}}
+        />
       )}
 
       {/* Sidebar de Navegação */}

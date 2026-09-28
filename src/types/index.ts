@@ -42,6 +42,11 @@ export interface Church {
   dailyReportHour: string; // Ex: "07:30"
   financialPin: string;    // Padrão "0000" inicial
   financialPinChanged: boolean;
+  // Estrutura de Igreja Sede e Congregações Filhas
+  isHeadquarters?: boolean;            // Identifica se esta igreja é uma Sede/Matriz
+  parentChurchId?: string;            // Se for congregação filha, armazena o ID da Igreja Sede
+  subsidiaryMasterPassword?: string;  // Senha Master cadastrada para a Sede visualizar e auditar suas congregações filhas
+  mustSetupSecurity?: boolean;        // Indica se no primeiro acesso deve passar pelo wizard de segurança
   reserveTarget?: number;  // Meta/valor ideal da reserva de emergência (editável)
   reserveBalance?: number; // Saldo atual acumulado na reserva de emergência
   isActive: boolean;

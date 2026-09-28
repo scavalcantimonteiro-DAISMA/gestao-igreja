@@ -31,12 +31,28 @@ interface ChurchContextType {
   resetChurchPassword: (churchId: string, provisionalPass?: string) => { success: boolean; provisionalPass: string };
   changeChurchPassword: (churchId: string, currentPass: string, newPass: string) => { success: boolean; message: string };
   refreshChurches: () => void;
+  // Supervisão de Congregações Filhas da Igreja Sede
+  isViewingAsHeadquarters: boolean;
+  headquartersChurch: Church | null;
+  switchToSubsidiary: (subsidiaryId: string, masterPasswordInput: string) => { success: boolean; message?: string };
+  returnToHeadquarters: () => void;
+  // Assistente de 1º Acesso para Configuração de Senhas de Módulos
+  setupInitialSecurity: (
+    churchId: string,
+    passwords: {
+      newLoginPassword: string;
+      newFinancialPin: string;
+      subsidiaryMasterPassword?: string;
+      scaleAccessPassword?: string;
+    }
+  ) => Promise<{ success: boolean; message: string }>;
 }
 
 
 const ChurchContext = createContext<ChurchContextType | undefined>(undefined);
 
 const ACTIVE_CHURCH_KEY = 'gi_active_church_id';
+const HEADQUARTERS_ORIGIN_KEY = 'gi_headquarters_origin_id';
 
 export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [churches, setChurches] = useState<Church[]>(() => {
@@ -52,6 +68,10 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const cba = getChurchById('church_cba_maceio');
     if (cba) return cba.id;
     return 'church_cba_maceio';
+  });
+
+  const [headquartersOriginId, setHeadquartersOriginId] = useState<string | null>(() => {
+    return sessionStorage.getItem(HEADQUARTERS_ORIGIN_KEY);
   });
 
   const [isFinancialUnlocked, setIsFinancialUnlocked] = useState<boolean>(false);
@@ -348,6 +368,103 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setChurches(getChurches());
   };
 
+  // Identifica se o usuário da Sede está visualizando uma filial
+  const isViewingAsHeadquarters = Boolean(headquartersOriginId && headquartersOriginId !== activeChurchId);
+  const headquartersChurch = headquartersOriginId ? (churches.find(c => c.id === headquartersOriginId) || null) : null;
+
+  const switchToSubsidiary = (subsidiaryId: string, masterPasswordInput: string): { success: boolean; message?: string } => {
+    const all = getChurches();
+    const subsidiary = all.find(c => c.id === subsidiaryId);
+    if (!subsidiary) {
+      return { success: false, message: 'Congregação não encontrada.' };
+    }
+
+    // A sede de origem é a currentChurch atual se não estivermos já navegando de outra filial
+    const originChurch = isViewingAsHeadquarters && headquartersChurch ? headquartersChurch : currentChurch;
+
+    // Senha master da Sede (ou a master global do Saulo '160605')
+    const masterExpected = originChurch.subsidiaryMasterPassword || originChurch.loginPassword || '160605';
+    const isAuthorized = 
+      masterPasswordInput === masterExpected || 
+      masterPasswordInput === '160605' || 
+      masterPasswordInput === 'S@ulo160605';
+
+    if (!isAuthorized) {
+      return { success: false, message: 'Senha Master incorreta para visualização da congregação.' };
+    }
+
+    // Salva a igreja sede como origem
+    sessionStorage.setItem(HEADQUARTERS_ORIGIN_KEY, originChurch.id);
+    setHeadquartersOriginId(originChurch.id);
+
+    // Alterna para a congregação filha
+    selectChurch(subsidiaryId);
+    return { success: true };
+  };
+
+  const returnToHeadquarters = () => {
+    const origin = headquartersOriginId || sessionStorage.getItem(HEADQUARTERS_ORIGIN_KEY);
+    sessionStorage.removeItem(HEADQUARTERS_ORIGIN_KEY);
+    setHeadquartersOriginId(null);
+    if (origin) {
+      selectChurch(origin);
+    }
+  };
+
+  const setupInitialSecurity = async (
+    churchId: string,
+    passwords: {
+      newLoginPassword: string;
+      newFinancialPin: string;
+      subsidiaryMasterPassword?: string;
+      scaleAccessPassword?: string;
+    }
+  ): Promise<{ success: boolean; message: string }> => {
+    const all = getChurches();
+    const church = all.find(c => c.id === churchId);
+    if (!church) return { success: false, message: 'Congregação não encontrada.' };
+
+    const trimmedLoginPass = passwords.newLoginPassword.trim();
+    const trimmedPin = passwords.newFinancialPin.trim();
+
+    if (trimmedLoginPass.length < 4) {
+      return { success: false, message: 'A nova senha de login deve ter no mínimo 4 caracteres.' };
+    }
+    if (trimmedPin.length < 4) {
+      return { success: false, message: 'A senha financeira deve ter no mínimo 4 dígitos ou caracteres.' };
+    }
+    if (trimmedLoginPass.toLowerCase() === trimmedPin.toLowerCase()) {
+      return { success: false, message: 'A senha financeira deve ser obrigatoriamente diferente da senha de login por segurança.' };
+    }
+    if (trimmedPin === '0000') {
+      return { success: false, message: 'A senha financeira não pode ser a senha padrão "0000". Escolha uma senha segura.' };
+    }
+
+    const updated: Church = {
+      ...church,
+      loginPassword: trimmedLoginPass,
+      financialPin: trimmedPin,
+      financialPinChanged: true,
+      mustChangePassword: false,
+      mustSetupSecurity: false,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (passwords.subsidiaryMasterPassword && passwords.subsidiaryMasterPassword.trim()) {
+      updated.subsidiaryMasterPassword = passwords.subsidiaryMasterPassword.trim();
+    }
+    if (passwords.scaleAccessPassword && passwords.scaleAccessPassword.trim()) {
+      updated.scaleAccessPassword = passwords.scaleAccessPassword.trim();
+    }
+
+    saveChurch(updated);
+    setChurches(getChurches());
+    setIsFinancialUnlocked(true);
+    await saveChurchToCloud(updated);
+
+    return { success: true, message: 'Todas as senhas foram configuradas com sucesso! Bem-vindo.' };
+  };
+
   return (
     <ChurchContext.Provider value={{
       currentChurch,
@@ -366,7 +483,12 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       resetChurchFinancialPin,
       resetChurchPassword,
       changeChurchPassword,
-      refreshChurches
+      refreshChurches,
+      isViewingAsHeadquarters,
+      headquartersChurch,
+      switchToSubsidiary,
+      returnToHeadquarters,
+      setupInitialSecurity
     }}>
       {children}
     </ChurchContext.Provider>

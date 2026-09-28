@@ -54,6 +54,31 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
   const [provisionalPassInput, setProvisionalPassInput] = useState<string>('1234');
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
+  // Estados para congregações filhas no cadastro de nova igreja
+  const [hasBranches, setHasBranches] = useState(false);
+  const [subsidiaryMasterPassInput, setSubsidiaryMasterPassInput] = useState('160605');
+  const [branchesList, setBranchesList] = useState<Array<{
+    name: string;
+    pastorName: string;
+    neighborhood: string;
+    loginUser: string;
+    loginPassword: string;
+  }>>([]);
+
+  // Modal para o Saulo adicionar congregação filha a uma igreja sede já existente (cobrança avulsa SaaS)
+  const [isAddBranchModalOpen, setIsAddBranchModalOpen] = useState(false);
+  const [parentChurchForNewBranch, setParentChurchForNewBranch] = useState<Church | null>(null);
+  const [newBranchData, setNewBranchData] = useState({
+    name: '',
+    pastorName: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    whatsapp: '',
+    loginUser: '',
+    loginPassword: '1234'
+  });
+
   // Dados para novo cadastro
   const [newChurchData, setNewChurchData] = useState<Partial<Church>>({
     name: '',
@@ -125,7 +150,7 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
     reader.readAsDataURL(file);
   };
 
-  // Submissão do Cadastro
+  // Submissão do Cadastro (com suporte a Igreja Sede e Congregações Filhas)
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newChurchData.name?.trim()) {
@@ -155,11 +180,111 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
       dailyReportHour: newChurchData.dailyReportHour || '08:00',
       financialPin: '0000',
       financialPinChanged: false,
+      isHeadquarters: hasBranches,
+      subsidiaryMasterPassword: hasBranches ? (subsidiaryMasterPassInput.trim() || '160605') : undefined,
+      mustChangePassword: true,
       isActive: true
     });
 
-    showToast(`Igreja "${created.name}" cadastrada! Login: ${loginUser}`, 'success');
+    // Se tiver filiais adicionadas na criação:
+    if (hasBranches && branchesList.length > 0) {
+      branchesList.forEach(branch => {
+        if (!branch.name.trim()) return;
+        const bSlug = branch.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const bLogin = (branch.loginUser?.trim().toLowerCase() || bSlug.replace(/-/g, ''));
+        registerNewChurch({
+          name: branch.name,
+          slug: bSlug,
+          loginUser: bLogin,
+          loginPassword: branch.loginPassword?.trim() || '1234',
+          logoUrl: newChurchData.logoUrl || '',
+          address: branch.neighborhood || created.address || '',
+          city: created.city || '',
+          state: created.state || '',
+          instagram: created.instagram || '',
+          phone: created.phone || '',
+          whatsapp: created.whatsapp || '',
+          pastorName: branch.pastorName || 'Pastor Congregação',
+          pastorPhone: '',
+          pastorWhatsapp: '',
+          dailyReportHour: '08:00',
+          financialPin: '0000',
+          financialPinChanged: false,
+          isHeadquarters: false,
+          parentChurchId: created.id,
+          mustChangePassword: true,
+          isActive: true
+        });
+      });
+      showToast(`Igreja Sede "${created.name}" e ${branchesList.length} congregações cadastradas com sucesso!`, 'success');
+    } else {
+      showToast(`Igreja "${created.name}" cadastrada! Login: ${loginUser}`, 'success');
+    }
+
     setIsRegisterOpen(false);
+    setHasBranches(false);
+    setBranchesList([]);
+    setSubsidiaryMasterPassInput('160605');
+  };
+
+  // Submissão de Adição de Nova Filial a uma Igreja Sede existente (controle comercial SaaS)
+  const handleAddNewBranchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!parentChurchForNewBranch) return;
+    if (!newBranchData.name.trim()) {
+      showToast('Nome da congregação é obrigatório.', 'error');
+      return;
+    }
+
+    const bSlug = newBranchData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const bLogin = (newBranchData.loginUser.trim().toLowerCase() || bSlug.replace(/-/g, ''));
+
+    registerNewChurch({
+      name: newBranchData.name,
+      slug: bSlug,
+      loginUser: bLogin,
+      loginPassword: newBranchData.loginPassword.trim() || '1234',
+      logoUrl: parentChurchForNewBranch.logoUrl || '',
+      address: newBranchData.neighborhood || parentChurchForNewBranch.address || '',
+      city: newBranchData.city || parentChurchForNewBranch.city || '',
+      state: newBranchData.state || parentChurchForNewBranch.state || '',
+      instagram: parentChurchForNewBranch.instagram || '',
+      phone: parentChurchForNewBranch.phone || '',
+      whatsapp: newBranchData.whatsapp || parentChurchForNewBranch.whatsapp || '',
+      pastorName: newBranchData.pastorName || 'Pastor Congregação',
+      pastorPhone: newBranchData.whatsapp || '',
+      pastorWhatsapp: newBranchData.whatsapp || '',
+      dailyReportHour: '08:00',
+      financialPin: '0000',
+      financialPinChanged: false,
+      isHeadquarters: false,
+      parentChurchId: parentChurchForNewBranch.id,
+      mustChangePassword: true,
+      isActive: true
+    });
+
+    // Se a matriz ainda não estava com a flag de sede ativa, ativa automaticamente
+    if (!parentChurchForNewBranch.isHeadquarters) {
+      updateChurchData({
+        ...parentChurchForNewBranch,
+        isHeadquarters: true,
+        subsidiaryMasterPassword: parentChurchForNewBranch.subsidiaryMasterPassword || '160605'
+      });
+    }
+
+    showToast(`Congregação "${newBranchData.name}" vinculada com sucesso à sede "${parentChurchForNewBranch.name}"!`, 'success');
+    setIsAddBranchModalOpen(false);
+    setParentChurchForNewBranch(null);
+    setNewBranchData({
+      name: '',
+      pastorName: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      whatsapp: '',
+      loginUser: '',
+      loginPassword: '1234'
+    });
   };
 
   // Submissão da Edição
@@ -435,6 +560,9 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
             {allChurches.map(c => {
               const isSelected = c.id === currentChurch.id;
               const isPasswordVisible = visiblePasswords[c.id] || false;
+              const isHead = Boolean(c.isHeadquarters || allChurches.some(x => x.parentChurchId === c.id));
+              const branches = allChurches.filter(x => x.parentChurchId === c.id);
+              const parent = c.parentChurchId ? allChurches.find(x => x.id === c.parentChurchId) : null;
 
               return (
                 <div
@@ -442,6 +570,8 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                   className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
                     isSelected
                       ? 'bg-sky-50/50 border-sky-300 shadow-md shadow-sky-500/5'
+                      : isHead
+                      ? 'bg-indigo-50/20 border-indigo-200/80 hover:border-indigo-300'
                       : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'
                   }`}
                 >
@@ -462,6 +592,17 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                             {isSelected && (
                               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200 shrink-0">
                                 Ativa
+                              </span>
+                            )}
+                            {isHead && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0 flex items-center gap-1">
+                                <Building2 className="w-2.5 h-2.5 text-indigo-600" />
+                                SEDE ({branches.length} filial{branches.length === 1 ? '' : 'is'})
+                              </span>
+                            )}
+                            {c.parentChurchId && parent && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200 shrink-0 flex items-center gap-1" title={`Filial vinculada à igreja sede: ${parent.name}`}>
+                                ↳ Filial de {parent.name}
                               </span>
                             )}
                             {c.mustChangePassword && (
@@ -540,18 +681,54 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                           {c.financialPinChanged && c.financialPin && c.financialPin !== '0000' ? 'Ativa & Exclusiva' : 'Pendente de Cadastro'}
                         </span>
                       </div>
+
+                      {/* Se for Igreja Sede: Senha Master de Supervisão */}
+                      {isHead && (
+                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
+                          <span className="text-slate-500 flex items-center gap-1">
+                            <KeyRound className="w-3 h-3 text-indigo-600" /> Senha Master Filiais:
+                          </span>
+                          <code className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded font-mono font-bold text-[10px] border border-indigo-200">
+                            {c.subsidiaryMasterPassword || '160605'}
+                          </code>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* BARRA DE AÇÕES INFERIOR */}
                   <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
+                      {/* Botão de Adicionar Nova Filial (Cobrança Avulsa SaaS para Sedes ou qualquer igreja que virar sede) */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setParentChurchForNewBranch(c);
+                          setNewBranchData({
+                            name: '',
+                            pastorName: '',
+                            neighborhood: '',
+                            city: c.city || '',
+                            state: c.state || '',
+                            whatsapp: c.whatsapp || '',
+                            loginUser: '',
+                            loginPassword: '1234'
+                          });
+                          setIsAddBranchModalOpen(true);
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:border-indigo-300 border border-indigo-200 text-xs font-bold transition-all shadow-2xs"
+                        title="Adicionar congregação filial para esta igreja sede (SaaS)"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>+ Filial</span>
+                      </button>
+
                       {/* Botão de Copiar Acesso */}
                       <button
                         type="button"
                         onClick={() => {
                           const userLogin = c.loginUser || c.slug;
-                          const textToCopy = `🏛️ *Acesso ao Sistema de Gestão Eclesiástica*\n\n⛪ *Igreja:* ${c.name}\n👤 *Usuário:* ${userLogin}\n🔑 *Senha Inicial:* ${c.mustChangePassword ? '1234 (ou a provisória cadastrada)' : 'Sua senha cadastrada'}\n🌐 *Link de Acesso:* https://gestaodeigrejas-beta.vercel.app\n\n*(No primeiro acesso será solicitado definir a senha definitiva)*`;
+                          const textToCopy = `🏛️ *Acesso ao Sistema de Gestão Eclesiástica*\n\n⛪ *Igreja:* ${c.name}\n👤 *Usuário:* ${userLogin}\n🔑 *Senha Inicial:* ${c.mustChangePassword ? '1234 (ou a provisória cadastrada)' : 'Sua senha cadastrada'}\n🌐 *Link de Acesso:* https://gestaodeigrejas-beta.vercel.app\n\n*(No primeiro acesso será solicitado definir a senha definitiva de todos os módulos)*`;
                           navigator.clipboard.writeText(textToCopy);
                           showToast(`Acesso da igreja "${c.name}" copiado!`, 'success');
                         }}
@@ -944,6 +1121,167 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                 />
               </div>
 
+              {/* SEÇÃO: CONGREGAÇÕES / FILIAIS FILHAS (SAAS EXCLUSIVO SAULO MONTEIRO) */}
+              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/90 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-indigo-700" />
+                    <span className="text-xs font-bold text-indigo-950">
+                      Esta igreja possui congregações / filiais filhas?
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasBranches}
+                      onChange={e => setHasBranches(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {hasBranches && (
+                  <div className="space-y-4 pt-2 border-t border-indigo-200/70 animate-in fade-in">
+                    <div>
+                      <label className="block text-xs font-semibold text-indigo-950 mb-1 flex items-center justify-between">
+                        <span>Senha Master da Sede (Para Visualizar Filiais) *</span>
+                        <span className="text-[10px] text-indigo-600 font-bold">Solicitada ao alternar</span>
+                      </label>
+                      <input
+                        type="text"
+                        required={hasBranches}
+                        placeholder="Ex: 160605 ou senha personalizada"
+                        value={subsidiaryMasterPassInput}
+                        onChange={e => setSubsidiaryMasterPassInput(e.target.value)}
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold text-slate-800"
+                      />
+                      <p className="text-[10px] text-indigo-700 mt-1">
+                        O pastor da Sede digitará esta senha para inspecionar cada congregação filha no topo da tela.
+                      </p>
+                    </div>
+
+                    {/* Lista de Filiais Adicionadas */}
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-indigo-900">
+                          Filiais Contratadas ({branchesList.length})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const num = branchesList.length + 1;
+                            setBranchesList(prev => [
+                              ...prev,
+                              {
+                                name: `Congregação ${num}`,
+                                pastorName: '',
+                                neighborhood: '',
+                                loginUser: '',
+                                loginPassword: '1234'
+                              }
+                            ]);
+                          }}
+                          className="px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1 shadow-xs transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Adicionar Filial</span>
+                        </button>
+                      </div>
+
+                      {branchesList.length === 0 ? (
+                        <div className="p-3 text-center rounded-xl bg-white/70 border border-indigo-100 text-xs text-indigo-800/80">
+                          Nenhuma filial adicionada ainda. Clique em <strong>"+ Adicionar Filial"</strong> para cadastrar cada congregação contratada.
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                          {branchesList.map((branch, idx) => (
+                            <div key={idx} className="p-3 rounded-xl bg-white border border-indigo-200 text-xs space-y-2 shadow-2xs relative">
+                              <div className="flex items-center justify-between font-bold text-indigo-950 pb-1 border-b border-indigo-50">
+                                <span>Filial #{idx + 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setBranchesList(prev => prev.filter((_, i) => i !== idx))}
+                                  className="text-rose-500 hover:text-rose-700 p-0.5"
+                                  title="Remover esta filial"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Nome da Congregação *</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="Ex: Congregação Jacarecica"
+                                    value={branch.name}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      const autoLogin = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+                                      setBranchesList(prev => prev.map((b, i) => i === idx ? {
+                                        ...b,
+                                        name: val,
+                                        loginUser: b.loginUser ? b.loginUser : autoLogin
+                                      } : b));
+                                    }}
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Pastor Local / Responsável</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Nome do pastor local"
+                                    value={branch.pastorName}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      setBranchesList(prev => prev.map((b, i) => i === idx ? { ...b, pastorName: val } : b));
+                                    }}
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Bairro / Local</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Ex: Jacarecica"
+                                    value={branch.neighborhood}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      setBranchesList(prev => prev.map((b, i) => i === idx ? { ...b, neighborhood: val } : b));
+                                    }}
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Login da Filial *</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="Ex: cbajacarecica"
+                                    value={branch.loginUser}
+                                    onChange={e => {
+                                      const val = e.target.value.toLowerCase().replace(/\s+/g, '');
+                                      setBranchesList(prev => prev.map((b, i) => i === idx ? { ...b, loginUser: val } : b));
+                                    }}
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -1150,6 +1488,40 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                 </div>
               </div>
 
+              {/* Configurações de Sede e Filiais na Edição */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200 text-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-950 flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-indigo-700" />
+                    Igreja Sede (Possui Congregações Filhas)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editingChurch.isHeadquarters)}
+                    onChange={e => setEditingChurch({ ...editingChurch, isHeadquarters: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {editingChurch.isHeadquarters && (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-indigo-900 mb-1">
+                      Senha Master de Supervisão de Filiais
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: 160605"
+                      value={editingChurch.subsidiaryMasterPassword || ''}
+                      onChange={e => setEditingChurch({ ...editingChurch, subsidiaryMasterPassword: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-xl border border-indigo-200 bg-white font-mono font-bold text-slate-800"
+                    />
+                    <p className="text-[10px] text-indigo-600 mt-1">
+                      Senha mestra utilizada pelo pastor da sede para visualizar e inspecionar suas filiais.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -1164,6 +1536,178 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                 >
                   <Save className="w-4 h-4" />
                   Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA O MASTER ADMIN ADICIONAR FILIAL A UMA SEDE EXISTENTE (COBRANÇA SAAS) */}
+      {isAddBranchModalOpen && parentChurchForNewBranch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 text-slate-800 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => {
+                setIsAddBranchModalOpen(false);
+                setParentChurchForNewBranch(null);
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center justify-center">
+                <Plus className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Adicionar Congregação Filial
+                </h3>
+                <p className="text-xs text-indigo-700 font-semibold truncate max-w-sm">
+                  Vinculada à Sede: {parentChurchForNewBranch.name}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs mb-4">
+              💡 <strong>Controle Comercial:</strong> Esta nova congregação terá funções completas e login próprio, ficando vinculada à supervisão da igreja sede selecionada.
+            </div>
+
+            <form onSubmit={handleAddNewBranchSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Nome da Congregação Filial *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Congregação Bairro Novo"
+                  value={newBranchData.name}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const autoLogin = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+                    setNewBranchData(prev => ({
+                      ...prev,
+                      name: val,
+                      loginUser: prev.loginUser ? prev.loginUser : autoLogin
+                    }));
+                  }}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Pastor Responsável Local
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Pr. Carlos Silva"
+                    value={newBranchData.pastorName}
+                    onChange={e => setNewBranchData({ ...newBranchData, pastorName: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    WhatsApp da Filial / Pastor
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="(DDD) 99999-9999"
+                    value={newBranchData.whatsapp}
+                    onChange={e => setNewBranchData({ ...newBranchData, whatsapp: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Bairro / Localidade
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Ponta da Terra"
+                    value={newBranchData.neighborhood}
+                    onChange={e => setNewBranchData({ ...newBranchData, neighborhood: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Cidade
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Maceió"
+                    value={newBranchData.city}
+                    onChange={e => setNewBranchData({ ...newBranchData, city: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Credenciais de Acesso da Filial */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  <Lock className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Credenciais de Acesso Exclusivas da Filial</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Usuário de Login *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ex: cbapontadaterra"
+                      value={newBranchData.loginUser}
+                      onChange={e => setNewBranchData({ ...newBranchData, loginUser: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Senha Provisória *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="1234"
+                      value={newBranchData.loginPassword}
+                      onChange={e => setNewBranchData({ ...newBranchData, loginPassword: e.target.value })}
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  No primeiro login, o líder desta filial passará pelo assistente de configuração de senhas de seus próprios módulos.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddBranchModalOpen(false);
+                    setParentChurchForNewBranch(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-500/20 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  Cadastrar e Vincular Filial
                 </button>
               </div>
             </form>
