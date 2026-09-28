@@ -32,6 +32,7 @@ interface ChurchContextType {
   changeChurchPassword: (churchId: string, currentPass: string, newPass: string) => { success: boolean; message: string };
   refreshChurches: () => void;
   // Supervisão de Congregações Filhas da Igreja Sede
+  resetSubsidiaryMasterPassword: (churchId: string) => Promise<{ success: boolean; message: string }>;
   isViewingAsHeadquarters: boolean;
   headquartersChurch: Church | null;
   switchToSubsidiary: (subsidiaryId: string, masterPasswordInput: string) => { success: boolean; message?: string };
@@ -368,6 +369,25 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setChurches(getChurches());
   };
 
+  const resetSubsidiaryMasterPassword = async (churchId: string): Promise<{ success: boolean; message: string }> => {
+    const all = getChurches();
+    const church = all.find(c => c.id === churchId);
+    if (!church) return { success: false, message: 'Igreja não encontrada.' };
+
+    const updated: Church = {
+      ...church,
+      subsidiaryMasterPassword: '',
+      updatedAt: new Date().toISOString()
+    };
+    saveChurch(updated);
+    await saveChurchToCloud(updated);
+    setChurches(getChurches());
+    return {
+      success: true,
+      message: `Senha master de supervisão da "${church.name}" resetada com sucesso! O pastor da sede poderá cadastrá-la em Configurações.`
+    };
+  };
+
   // Identifica se o usuário da Sede está visualizando uma filial
   const isViewingAsHeadquarters = Boolean(headquartersOriginId && headquartersOriginId !== activeChurchId);
   const headquartersChurch = headquartersOriginId ? (churches.find(c => c.id === headquartersOriginId) || null) : null;
@@ -484,6 +504,7 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       resetChurchPassword,
       changeChurchPassword,
       refreshChurches,
+      resetSubsidiaryMasterPassword,
       isViewingAsHeadquarters,
       headquartersChurch,
       switchToSubsidiary,

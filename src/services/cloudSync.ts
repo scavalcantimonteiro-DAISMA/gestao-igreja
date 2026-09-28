@@ -333,6 +333,11 @@ export async function syncChurchesFromCloud(): Promise<Church[]> {
         const cloudData = docSnap.data() as Church;
         if (cloudData && cloudData.id) {
           if (!isChurchDeleted(cloudData.id)) {
+            // Sanitização de segurança: Se a senha pessoal do admin ou demo estiver gravada, limpa imediatamente
+            if (cloudData.subsidiaryMasterPassword === '160605' || cloudData.subsidiaryMasterPassword === 'cba123') {
+              cloudData.subsidiaryMasterPassword = '';
+              saveChurchToCloud(cloudData).catch(() => {});
+            }
             cloudIds.add(cloudData.id);
             saveChurch(cloudData);
           }
@@ -405,6 +410,10 @@ export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () 
         snapshot.docs.forEach(docSnap => {
           const cloudData = docSnap.data() as Church;
           if (cloudData && cloudData.id && !isChurchDeleted(cloudData.id)) {
+            if (cloudData.subsidiaryMasterPassword === '160605' || cloudData.subsidiaryMasterPassword === 'cba123') {
+              cloudData.subsidiaryMasterPassword = '';
+              saveChurchToCloud(cloudData).catch(() => {});
+            }
             cloudIds.add(cloudData.id);
             saveChurch(cloudData);
           }

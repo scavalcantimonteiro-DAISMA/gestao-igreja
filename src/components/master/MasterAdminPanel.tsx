@@ -29,7 +29,8 @@ import {
   Code2,
   KeyRound,
   Copy,
-  ShieldAlert
+  ShieldAlert,
+  RotateCcw
 } from 'lucide-react';
 import { Church } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
@@ -41,7 +42,17 @@ import { setupDemoChurch } from '../../services/demoChurch';
 import { exportFullSystemBackup, importFullSystemBackup } from '../../services/storage';
 
 export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> = ({ onSwitchToChurchView }) => {
-  const { allChurches, currentChurch, selectChurch, registerNewChurch, updateChurchData, removeChurch, resetChurchPassword, resetChurchFinancialPin } = useChurch();
+  const { 
+    allChurches, 
+    currentChurch, 
+    selectChurch, 
+    registerNewChurch, 
+    updateChurchData, 
+    removeChurch, 
+    resetChurchPassword, 
+    resetChurchFinancialPin,
+    resetSubsidiaryMasterPassword
+  } = useChurch();
   const { logout } = useAuth();
   const { showToast } = useNotification();
 
@@ -555,196 +566,337 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
             </div>
           </div>
 
-          {/* GRID DE IGREJAS */}
+          {/* GRID DE IGREJAS (Filiais agrupadas dentro da respectiva Igreja Sede) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {allChurches.map(c => {
-              const isSelected = c.id === currentChurch.id;
-              const isPasswordVisible = visiblePasswords[c.id] || false;
-              const isHead = Boolean(c.isHeadquarters || allChurches.some(x => x.parentChurchId === c.id));
-              const branches = allChurches.filter(x => x.parentChurchId === c.id);
-              const parent = c.parentChurchId ? allChurches.find(x => x.id === c.parentChurchId) : null;
+            {allChurches
+              .filter(c => !c.parentChurchId || !allChurches.some(p => p.id === c.parentChurchId))
+              .map(c => {
+                const isSelected = c.id === currentChurch.id;
+                const isPasswordVisible = visiblePasswords[c.id] || false;
+                const branches = allChurches.filter(x => x.parentChurchId === c.id);
+                const isHead = Boolean(c.isHeadquarters || branches.length > 0);
+                const parent = c.parentChurchId ? allChurches.find(x => x.id === c.parentChurchId) : null;
 
-              return (
-                <div
-                  key={c.id}
-                  className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                    isSelected
-                      ? 'bg-sky-50/50 border-sky-300 shadow-md shadow-sky-500/5'
-                      : isHead
-                      ? 'bg-indigo-50/20 border-indigo-200/80 hover:border-indigo-300'
-                      : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="space-y-3">
-                    {/* TOPO DO CARD: LOGO + NOME */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center font-black text-sky-700 text-lg overflow-hidden shrink-0 shadow-sm">
-                          {c.logoUrl ? (
-                            <img src={c.logoUrl} alt={c.name} className="w-full h-full object-contain p-1" />
-                          ) : (
-                            <span className="text-sky-700 font-black">{c.name[0]}</span>
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <h4 className="font-bold text-base text-slate-900 leading-tight">{c.name}</h4>
-                            {isSelected && (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200 shrink-0">
-                                Ativa
-                              </span>
-                            )}
-                            {isHead && (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0 flex items-center gap-1">
-                                <Building2 className="w-2.5 h-2.5 text-indigo-600" />
-                                SEDE ({branches.length} filial{branches.length === 1 ? '' : 'is'})
-                              </span>
-                            )}
-                            {c.parentChurchId && parent && (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200 shrink-0 flex items-center gap-1" title={`Filial vinculada à igreja sede: ${parent.name}`}>
-                                ↳ Filial de {parent.name}
-                              </span>
-                            )}
-                            {c.mustChangePassword && (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0 flex items-center gap-1" title="Esta congregação está com senha provisória e precisará trocá-la no próximo acesso">
-                                <KeyRound className="w-2.5 h-2.5 text-amber-600" />
-                                Senha Provisória
-                              </span>
+                return (
+                  <div
+                    key={c.id}
+                    className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-sky-50/50 border-sky-300 shadow-md shadow-sky-500/5'
+                        : isHead
+                        ? 'bg-indigo-50/20 border-indigo-200/80 hover:border-indigo-300'
+                        : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* TOPO DO CARD: LOGO + NOME */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center font-black text-sky-700 text-lg overflow-hidden shrink-0 shadow-sm">
+                            {c.logoUrl ? (
+                              <img src={c.logoUrl} alt={c.name} className="w-full h-full object-contain p-1" />
+                            ) : (
+                              <span className="text-sky-700 font-black">{c.name[0]}</span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-slate-400" />
-                            {c.city} - {c.state} • {c.instagram || '@igreja'}
-                          </p>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <h4 className="font-bold text-base text-slate-900 leading-tight">{c.name}</h4>
+                              {isSelected && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200 shrink-0">
+                                  Ativa
+                                </span>
+                              )}
+                              {isHead && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0 flex items-center gap-1">
+                                  <Building2 className="w-2.5 h-2.5 text-indigo-600" />
+                                  SEDE ({branches.length} filial{branches.length === 1 ? '' : 'is'})
+                                </span>
+                              )}
+                              {c.parentChurchId && parent && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200 shrink-0 flex items-center gap-1" title={`Filial vinculada à igreja sede: ${parent.name}`}>
+                                  ↳ Filial de {parent.name}
+                                </span>
+                              )}
+                              {c.mustChangePassword && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0 flex items-center gap-1" title="Esta congregação está com senha provisória e precisará trocá-la no próximo acesso">
+                                  <KeyRound className="w-2.5 h-2.5 text-amber-600" />
+                                  Senha Provisória
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-slate-400" />
+                              {c.city} - {c.state} • {c.instagram || '@igreja'}
+                            </p>
+                          </div>
                         </div>
+
+                        {/* Botão de Edição Rápida */}
+                        <button
+                          onClick={() => setEditingChurch(c)}
+                          className="p-2 rounded-xl bg-white hover:bg-sky-50 text-slate-500 hover:text-sky-600 border border-slate-200 transition-colors shadow-2xs"
+                          title="Editar Igreja"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
                       </div>
 
-                      {/* Botão de Edição Rápida */}
-                      <button
-                        onClick={() => setEditingChurch(c)}
-                        className="p-2 rounded-xl bg-white hover:bg-sky-50 text-slate-500 hover:text-sky-600 border border-slate-200 transition-colors shadow-2xs"
-                        title="Editar Igreja"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* DADOS DA IGREJA */}
-                    <div className="p-3 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-700 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium flex items-center gap-1">
-                          <User className="w-3.5 h-3.5 text-slate-400" /> Login:
-                        </span>
-                        <code className="bg-sky-50 text-sky-700 px-2 py-0.5 rounded font-mono font-bold text-[11px] border border-sky-100">
-                          {c.loginUser || c.slug}
-                        </code>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium flex items-center gap-1">
-                          <Lock className="w-3.5 h-3.5 text-slate-400" /> Senha:
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <code className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-mono font-bold text-[11px]">
-                            {isPasswordVisible ? (c.loginPassword || '0000') : '••••••••'}
+                      {/* DADOS DA IGREJA */}
+                      <div className="p-3 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-700 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500 font-medium flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 text-slate-400" /> Login:
+                          </span>
+                          <code className="bg-sky-50 text-sky-700 px-2 py-0.5 rounded font-mono font-bold text-[11px] border border-sky-100">
+                            {c.loginUser || c.slug}
                           </code>
-                          <button
-                            type="button"
-                            onClick={() => togglePasswordVisibility(c.id)}
-                            className="text-slate-400 hover:text-slate-700 p-0.5"
-                            title={isPasswordVisible ? "Ocultar senha" : "Ver senha"}
-                          >
-                            {isPasswordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
                         </div>
-                      </div>
 
-                      <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500">Pastor Titular:</span>
-                        <span className="font-semibold text-slate-800">{c.pastorName}</span>
-                      </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500 font-medium flex items-center gap-1">
+                            <Lock className="w-3.5 h-3.5 text-slate-400" /> Senha:
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <code className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-mono font-bold text-[11px]">
+                              {isPasswordVisible ? (c.loginPassword || '0000') : '••••••••'}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility(c.id)}
+                              className="text-slate-400 hover:text-slate-700 p-0.5"
+                              title={isPasswordVisible ? "Ocultar senha" : "Ver senha"}
+                            >
+                              {isPasswordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
 
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500">WhatsApp Pastor:</span>
-                        <span className="font-mono text-slate-700">{c.pastorWhatsapp || c.whatsapp}</span>
-                      </div>
+                        <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500">Pastor Titular:</span>
+                          <span className="font-semibold text-slate-800">{c.pastorName}</span>
+                        </div>
 
-                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
-                        <span className="text-slate-500 flex items-center gap-1">
-                          <DollarSign className="w-3 h-3 text-emerald-600" /> Senha Financeira:
-                        </span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          c.financialPinChanged && c.financialPin && c.financialPin !== '0000'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          {c.financialPinChanged && c.financialPin && c.financialPin !== '0000' ? 'Ativa & Exclusiva' : 'Pendente de Cadastro'}
-                        </span>
-                      </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500">WhatsApp Pastor:</span>
+                          <span className="font-mono text-slate-700">{c.pastorWhatsapp || c.whatsapp}</span>
+                        </div>
 
-                      {/* Se for Igreja Sede: Senha Master de Supervisão */}
-                      {isHead && (
                         <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
                           <span className="text-slate-500 flex items-center gap-1">
-                            <KeyRound className="w-3 h-3 text-indigo-600" /> Senha Master Filiais:
+                            <DollarSign className="w-3 h-3 text-emerald-600" /> Senha Financeira:
                           </span>
-                          {c.subsidiaryMasterPassword && c.subsidiaryMasterPassword !== '160605' ? (
-                            <code className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded font-mono font-bold text-[10px] border border-indigo-200">
-                              {c.subsidiaryMasterPassword}
-                            </code>
-                          ) : (
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                              Pendente (Definir em Configurações)
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            c.financialPinChanged && c.financialPin && c.financialPin !== '0000'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {c.financialPinChanged && c.financialPin && c.financialPin !== '0000' ? 'Ativa & Exclusiva' : 'Pendente de Cadastro'}
+                          </span>
+                        </div>
+
+                        {/* Se for Igreja Sede: Senha Master de Supervisão */}
+                        {isHead && (
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
+                            <span className="text-slate-500 flex items-center gap-1">
+                              <KeyRound className="w-3 h-3 text-indigo-600" /> Senha Master Filiais:
                             </span>
+                            <div className="flex items-center gap-1.5">
+                              {c.subsidiaryMasterPassword && c.subsidiaryMasterPassword !== '160605' && c.subsidiaryMasterPassword !== 'cba123' ? (
+                                <code className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded font-mono font-bold text-[10px] border border-indigo-200">
+                                  {c.subsidiaryMasterPassword}
+                                </code>
+                              ) : (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                  Pendente (Definir em Configurações)
+                                </span>
+                              )}
+                              {c.subsidiaryMasterPassword && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (window.confirm(`Tem certeza que deseja resetar a Senha Master de Supervisão de "${c.name}"? A congregação sede poderá definir uma nova senha no painel de Configurações.`)) {
+                                      const res = await resetSubsidiaryMasterPassword(c.id);
+                                      showToast(res.message, res.success ? 'success' : 'error');
+                                    }
+                                  }}
+                                  className="text-[10px] font-bold text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 transition-colors"
+                                  title="Resetar senha master desta sede"
+                                >
+                                  Resetar
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* CONGREGAÇÕES FILIAIS VINCULADAS - AGRUPADAS NA SEDE COM GESTÃO COMPLETA */}
+                      {isHead && (
+                        <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/90 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                              <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Filiais Vinculadas ({branches.length})</span>
+                            </span>
+                            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                              Gestão Direta ADM
+                            </span>
+                          </div>
+
+                          {branches.length === 0 ? (
+                            <div className="p-3 rounded-xl bg-white/80 border border-dashed border-indigo-200 text-center text-xs text-indigo-800/70 font-medium">
+                              Nenhuma filial cadastrada nesta sede ainda. Clique em "+ Filial" abaixo para vincular.
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {branches.map(branch => {
+                                const isBranchPasswordVisible = visiblePasswords[branch.id] || false;
+                                const isBranchSelected = branch.id === currentChurch.id;
+
+                                return (
+                                  <div key={branch.id} className="p-3 rounded-xl bg-white border border-indigo-100 shadow-2xs space-y-2">
+                                    {/* Topo da Filial */}
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span className="font-bold text-xs text-slate-900 leading-tight">
+                                            {branch.name}
+                                          </span>
+                                          {isBranchSelected && (
+                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                                              Ativa
+                                            </span>
+                                          )}
+                                          {branch.neighborhood && (
+                                            <span className="text-[10px] text-slate-500 font-medium">
+                                              • {branch.neighborhood}
+                                            </span>
+                                          )}
+                                          {branch.mustChangePassword && (
+                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-0.5" title="Senha provisória pendente de troca no primeiro acesso">
+                                              <KeyRound className="w-2.5 h-2.5 text-amber-600" /> Provisória
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 mt-0.5">
+                                          {branch.pastorName ? `Pr. ${branch.pastorName}` : 'Sem pastor titular'} {(branch.pastorWhatsapp || branch.whatsapp) ? `• ${branch.pastorWhatsapp || branch.whatsapp}` : ''}
+                                        </div>
+                                      </div>
+
+                                      {/* Botões rápidos: Editar, Excel, Excluir */}
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => setEditingChurch(branch)}
+                                          className="p-1 rounded-lg bg-slate-50 hover:bg-sky-50 text-slate-500 hover:text-sky-600 border border-slate-200 transition-colors"
+                                          title={`Editar filial ${branch.name}`}
+                                        >
+                                          <Edit3 className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDownloadBackup(branch)}
+                                          className="p-1 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 border border-slate-200 transition-colors"
+                                          title={`Baixar Excel da filial ${branch.name}`}
+                                        >
+                                          <Download className="w-3.5 h-3.5 text-emerald-600" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setChurchToDelete(branch)}
+                                          className="p-1 rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 transition-colors"
+                                          title={`Excluir filial ${branch.name}`}
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Dados de Login da Filial */}
+                                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 text-[11px] flex flex-wrap items-center justify-between gap-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-slate-500 font-medium">Login:</span>
+                                        <code className="font-mono text-indigo-700 bg-white px-1.5 py-0.5 rounded border border-indigo-100 font-bold">
+                                          {branch.loginUser || branch.slug}
+                                        </code>
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-slate-500 font-medium">Senha:</span>
+                                        <code className="font-mono text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold">
+                                          {isBranchPasswordVisible ? (branch.loginPassword || '0000') : '••••••••'}
+                                        </code>
+                                        <button
+                                          type="button"
+                                          onClick={() => togglePasswordVisibility(branch.id)}
+                                          className="text-slate-400 hover:text-slate-700 p-0.5"
+                                          title={isBranchPasswordVisible ? "Ocultar senha" : "Ver senha"}
+                                        >
+                                          {isBranchPasswordVisible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Ações da Filial */}
+                                    <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-slate-100">
+                                      <div className="flex flex-wrap items-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const userLogin = branch.loginUser || branch.slug;
+                                            const textToCopy = `🏛️ *Acesso ao Sistema de Gestão Eclesiástica*\n\n⛪ *Filial:* ${branch.name}\n🏛️ *Sede:* ${c.name}\n👤 *Usuário:* ${userLogin}\n🔑 *Senha Inicial:* ${branch.mustChangePassword ? '1234 (ou a provisória cadastrada)' : 'Sua senha cadastrada'}\n🌐 *Link de Acesso:* https://gestaodeigrejas-beta.vercel.app\n\n*(No primeiro acesso será solicitado definir a senha definitiva de todos os módulos)*`;
+                                            navigator.clipboard.writeText(textToCopy);
+                                            showToast(`Acesso da filial "${branch.name}" copiado!`, 'success');
+                                          }}
+                                          className="flex items-center gap-1 px-2 py-1 rounded-md bg-white hover:bg-sky-50 text-sky-700 hover:border-sky-300 border border-slate-200 text-[10px] font-semibold transition-all shadow-2xs"
+                                          title="Copiar dados de acesso da filial para envio ao pastor"
+                                        >
+                                          <Copy className="w-3 h-3 text-sky-600" />
+                                          <span>Copiar Acesso</span>
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setChurchToResetPassword(branch);
+                                            setProvisionalPassInput('1234');
+                                          }}
+                                          className="flex items-center gap-1 px-2 py-1 rounded-md bg-white hover:bg-amber-50 text-amber-700 hover:border-amber-300 border border-slate-200 text-[10px] font-semibold transition-all shadow-2xs"
+                                          title="Redefinir senha de login desta filial"
+                                        >
+                                          <KeyRound className="w-3 h-3 text-amber-600" />
+                                          <span>Reset Login</span>
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => setChurchToResetFinancialPin(branch)}
+                                          className="flex items-center gap-1 px-2 py-1 rounded-md bg-white hover:bg-rose-50 text-rose-700 hover:border-rose-300 border border-slate-200 text-[10px] font-semibold transition-all shadow-2xs"
+                                          title="Resetar senha financeira desta filial"
+                                        >
+                                          <ShieldAlert className="w-3 h-3 text-rose-600" />
+                                          <span>Reset Fin.</span>
+                                        </button>
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEnterChurch(branch.id)}
+                                        className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition-all shadow-2xs active:scale-95 ml-auto"
+                                        title={`Visualizar painel completo da filial ${branch.name}`}
+                                      >
+                                        <Eye className="w-3 h-3" />
+                                        <span>Visualizar Filial</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
                       )}
                     </div>
-
-                    {/* CONGREGAÇÕES FILIAIS VINCULADAS - BOTÃO DE VISUALIZAÇÃO DIRETA ADM */}
-                    {isHead && branches.length > 0 && (
-                      <div className="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-200/90 space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Congregações Filiais Vinculadas ({branches.length})</span>
-                          </span>
-                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
-                            Acesso ADM
-                          </span>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          {branches.map(branch => (
-                            <div key={branch.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-white border border-indigo-100 gap-2 shadow-2xs">
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-xs text-slate-900 truncate flex items-center gap-1.5">
-                                  <span>{branch.name}</span>
-                                  {branch.neighborhood && (
-                                    <span className="text-[10px] font-normal text-slate-500">({branch.neighborhood})</span>
-                                  )}
-                                </div>
-                                <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                                  {branch.pastorName ? `Pr. ${branch.pastorName}` : 'Sem pastor titular'} • Login: <code className="font-mono text-[10px] text-indigo-700 bg-indigo-50 px-1 rounded">{branch.loginUser || branch.slug}</code>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                                <button
-                                  type="button"
-                                  onClick={() => handleEnterChurch(branch.id)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-2xs active:scale-95"
-                                  title={`Visualizar painel completo da filial ${branch.name}`}
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  <span>Visualizar Filial</span>
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
                   {/* BARRA DE AÇÕES INFERIOR */}
                   <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
@@ -813,6 +965,24 @@ export const MasterAdminPanel: React.FC<{ onSwitchToChurchView?: () => void }> =
                         <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
                         <span>Reset Financeiro</span>
                       </button>
+
+                      {/* Botão de Resetar Senha Master de Filiais (se for sede) */}
+                      {isHead && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (window.confirm(`Tem certeza que deseja resetar a Senha Master de Supervisão da sede "${c.name}"? A congregação sede poderá definir uma nova senha no painel de Configurações.`)) {
+                              const res = await resetSubsidiaryMasterPassword(c.id);
+                              showToast(res.message, res.success ? 'success' : 'error');
+                            }
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-indigo-50 text-indigo-700 hover:border-indigo-300 border border-slate-200 text-xs font-semibold transition-all shadow-2xs"
+                          title="Resetar Senha Master de Supervisão de filiais para esta Sede"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Reset Master</span>
+                        </button>
+                      )}
 
                       {/* Botão de Backup Excel */}
                       <button

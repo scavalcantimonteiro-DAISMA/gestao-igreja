@@ -1,5 +1,5 @@
 // Service Worker para PWA do Portal Igrejas com Auto-Update transparente
-const CACHE_NAME = 'portal-igrejas-pwa-v7';
+const CACHE_NAME = 'portal-igrejas-pwa-v8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
