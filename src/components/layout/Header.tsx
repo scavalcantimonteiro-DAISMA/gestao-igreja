@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
             <ChurchBrandLogo church={currentChurch} variant="compact" />
 
             {/* BOTÃO: VISUALIZAR CONGREGAÇÃO (EXCLUSIVO PARA IGREJA SEDE E SUAS FILIAIS) */}
-            {effectiveHeadquarters && (subsidiaries.length > 0 || isViewingAsHeadquarters) && !isMasterAdmin && (
+            {effectiveHeadquarters && (
               <div className="relative">
                 <button
                   onClick={() => setShowSubsidiaryDropdown(!showSubsidiaryDropdown)}
@@ -187,45 +187,51 @@ export const Header: React.FC<HeaderProps> = ({
                       Congregações Filhas
                     </p>
 
-                    <div className="max-h-60 overflow-y-auto space-y-1">
-                      {subsidiaries.map(sub => {
-                        const isCurrentActive = sub.id === currentChurch.id;
-                        return (
-                          <button
-                            key={sub.id}
-                            onClick={() => {
-                              if (isCurrentActive) {
+                    {subsidiaries.length === 0 ? (
+                      <div className="p-3 text-center rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-500">
+                        Nenhuma congregação filial cadastrada para esta sede ainda.
+                      </div>
+                    ) : (
+                      <div className="max-h-60 overflow-y-auto space-y-1">
+                        {subsidiaries.map(sub => {
+                          const isCurrentActive = sub.id === currentChurch.id;
+                          return (
+                            <button
+                              key={sub.id}
+                              onClick={() => {
+                                if (isCurrentActive) {
+                                  setShowSubsidiaryDropdown(false);
+                                  return;
+                                }
+                                setSubsidiaryToAccess(sub);
+                                setMasterPassInput('');
+                                setMasterPassError('');
                                 setShowSubsidiaryDropdown(false);
-                                return;
-                              }
-                              setSubsidiaryToAccess(sub);
-                              setMasterPassInput('');
-                              setMasterPassError('');
-                              setShowSubsidiaryDropdown(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors text-left ${
-                              isCurrentActive
-                                ? 'bg-amber-50 text-amber-900 font-bold border border-amber-300'
-                                : 'text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            <div className="min-w-0 flex-1 pr-2">
-                              <p className="font-semibold truncate">{sub.name}</p>
-                              <p className="text-[10px] text-slate-500 truncate">
-                                {sub.pastorName ? `Pr. ${sub.pastorName}` : (sub.neighborhood || sub.city)}
-                              </p>
-                            </div>
-                            {isCurrentActive ? (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-bold shrink-0">
-                                Ativa
-                              </span>
-                            ) : (
-                              <KeyRound className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors text-left ${
+                                isCurrentActive
+                                  ? 'bg-amber-50 text-amber-900 font-bold border border-amber-300'
+                                  : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="min-w-0 flex-1 pr-2">
+                                <p className="font-semibold truncate">{sub.name}</p>
+                                <p className="text-[10px] text-slate-500 truncate">
+                                  {sub.pastorName ? `Pr. ${sub.pastorName}` : (sub.neighborhood || sub.city)}
+                                </p>
+                              </div>
+                              {isCurrentActive ? (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-bold shrink-0">
+                                  Ativa
+                                </span>
+                              ) : (
+                                <KeyRound className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
