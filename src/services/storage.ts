@@ -4,6 +4,7 @@ import {
   Child, 
   Family, 
   SmallGroup, 
+  SmallGroupMeeting,
   Ministry, 
   MinistryScale,
   Leadership, 
@@ -27,6 +28,7 @@ import {
   INITIAL_CHILDREN, 
   INITIAL_FAMILIES, 
   INITIAL_SMALL_GROUPS, 
+  INITIAL_SMALL_GROUP_MEETINGS, 
   INITIAL_MINISTRIES, 
   INITIAL_MINISTRY_SCALES,
   INITIAL_LEADERSHIP, 
@@ -518,6 +520,8 @@ export function deleteChurch(id: string): void {
   setLocal('families', families);
   const smallGroups = getLocal<SmallGroup[]>('small_groups', []).filter(g => g.churchId !== id);
   setLocal('small_groups', smallGroups);
+  const meetings = getLocal<SmallGroupMeeting[]>('small_group_meetings', []).filter(m => m.churchId !== id);
+  setLocal('small_group_meetings', meetings);
   const ministries = getLocal<Ministry[]>('ministries', []).filter(m => m.churchId !== id);
   setLocal('ministries', ministries);
   const leadership = getLocal<Leadership[]>('leadership', []).filter(l => l.churchId !== id);
@@ -681,6 +685,41 @@ export function deleteSmallGroup(id: string): void {
   const pgs = getLocal<SmallGroup[]>('small_groups', INITIAL_SMALL_GROUPS);
   setLocal('small_groups', pgs.filter(p => p.id !== id));
   notifyCloudSync('delete', 'small_groups', id);
+
+  // Remove também as reuniões vinculadas a este PG
+  const meetings = getLocal<SmallGroupMeeting[]>('small_group_meetings', INITIAL_SMALL_GROUP_MEETINGS);
+  const remainingMeetings = meetings.filter(m => m.smallGroupId !== id);
+  setLocal('small_group_meetings', remainingMeetings);
+}
+
+// ==========================================
+// REUNIÕES E FREQUÊNCIA DE PEQUENOS GRUPOS
+// ==========================================
+
+export function getSmallGroupMeetings(churchId: string, smallGroupId?: string): SmallGroupMeeting[] {
+  const list = getLocal<SmallGroupMeeting[]>('small_group_meetings', INITIAL_SMALL_GROUP_MEETINGS);
+  return list.filter(m => m.churchId === churchId && (!smallGroupId || m.smallGroupId === smallGroupId));
+}
+
+export function saveSmallGroupMeeting(meeting: SmallGroupMeeting): void {
+  const list = getLocal<SmallGroupMeeting[]>('small_group_meetings', INITIAL_SMALL_GROUP_MEETINGS);
+  const index = list.findIndex(m => m.id === meeting.id);
+  const updated: SmallGroupMeeting = index >= 0 
+    ? { ...meeting, updatedAt: new Date().toISOString() }
+    : { ...meeting, createdAt: meeting.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+  if (index >= 0) {
+    list[index] = updated;
+  } else {
+    list.push(updated);
+  }
+  setLocal('small_group_meetings', list);
+  notifyCloudSync('save', 'small_group_meetings', updated);
+}
+
+export function deleteSmallGroupMeeting(id: string): void {
+  const list = getLocal<SmallGroupMeeting[]>('small_group_meetings', INITIAL_SMALL_GROUP_MEETINGS);
+  setLocal('small_group_meetings', list.filter(m => m.id !== id));
+  notifyCloudSync('delete', 'small_group_meetings', id);
 }
 
 // ==========================================

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Building2, MessageSquare, History, Save, ShieldAlert, CheckCircle2, CalendarCheck, KeyRound, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Settings, Building2, MessageSquare, History, Save, ShieldAlert, CheckCircle2, CalendarCheck, KeyRound, Eye, EyeOff, ShieldCheck, Flame } from 'lucide-react';
 import { Church, MessageTemplate } from '../../types';
 import { useChurch } from '../../context/ChurchContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -30,6 +30,9 @@ export const SettingsView: React.FC = () => {
     defaultGeneralSender: currentChurch.defaultGeneralSender || 'secretaria',
     dailyReportHour: currentChurch.dailyReportHour,
     scaleAccessPassword: currentChurch.scaleAccessPassword || '',
+    smallGroupsAccessPassword: currentChurch.smallGroupsAccessPassword || '',
+    smallGroupsCoordinatorName: currentChurch.smallGroupsCoordinatorName || '',
+    smallGroupsCoordinatorWhatsapp: currentChurch.smallGroupsCoordinatorWhatsapp || '',
     subsidiaryMasterPassword: currentChurch.subsidiaryMasterPassword || ''
   });
 
@@ -52,6 +55,9 @@ export const SettingsView: React.FC = () => {
       defaultGeneralSender: currentChurch.defaultGeneralSender || 'secretaria',
       dailyReportHour: currentChurch.dailyReportHour,
       scaleAccessPassword: currentChurch.scaleAccessPassword || '',
+      smallGroupsAccessPassword: currentChurch.smallGroupsAccessPassword || '',
+      smallGroupsCoordinatorName: currentChurch.smallGroupsCoordinatorName || '',
+      smallGroupsCoordinatorWhatsapp: currentChurch.smallGroupsCoordinatorWhatsapp || '',
       subsidiaryMasterPassword: currentChurch.subsidiaryMasterPassword || ''
     });
   }, [currentChurch]);
@@ -361,6 +367,76 @@ export const SettingsView: React.FC = () => {
                   <p>
                     Senha: <strong className="text-indigo-800 font-mono">{churchForm.scaleAccessPassword || 'Defina ao lado e salve'}</strong>
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Senha Específica para Líderes de Pequenos Grupos (PGs) */}
+            <div className="p-4 rounded-2xl bg-orange-50/70 border border-orange-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-orange-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <Flame className="w-4 h-4 text-orange-600" />
+                  <span>Acesso Restrito: Líderes de Pequenos Grupos</span>
+                </span>
+                <span className="text-[10px] bg-orange-200/80 text-orange-900 font-bold px-2 py-0.5 rounded-full">
+                  Exclusivo Aba de Pequenos Grupos
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Cadastre uma senha específica para que os líderes de pequenos grupos (células) acessem o sistema. Ao entrarem com o <strong>mesmo usuário da igreja</strong> e essa senha, o sistema liberará <strong>apenas a aba Pequenos Grupos</strong>, permitindo gerenciar membros, registrar a frequência de reuniões e disparar relatórios para o pastor ou coordenador via WhatsApp.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-orange-600" />
+                    <span>Senha de Acesso para Pequenos Grupos</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: pg2026 ou celula123"
+                    value={churchForm.smallGroupsAccessPassword || ''}
+                    onChange={e => setChurchForm({ ...churchForm, smallGroupsAccessPassword: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-orange-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-orange-500 transition-colors font-mono"
+                  />
+                </div>
+                <div className="flex flex-col justify-end text-[11px] text-slate-600 bg-white/70 p-2.5 rounded-xl border border-orange-100">
+                  <p>
+                    🔑 <strong>Como repassar aos líderes de PG:</strong>
+                  </p>
+                  <p className="mt-0.5">
+                    Login: <strong className="text-orange-900 font-mono">{currentChurch.loginUser || currentChurch.slug}</strong>
+                  </p>
+                  <p>
+                    Senha: <strong className="text-orange-900 font-mono">{churchForm.smallGroupsAccessPassword || 'Defina ao lado e salve'}</strong>
+                  </p>
+                </div>
+              </div>
+
+              {/* Coordenador Geral de Pequenos Grupos (Opcional) */}
+              <div className="pt-2 border-t border-orange-200/60 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Coordenador Geral dos PGs (Nome)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Pr. Carlos ou Diác. Marcos"
+                    value={churchForm.smallGroupsCoordinatorName || ''}
+                    onChange={e => setChurchForm({ ...churchForm, smallGroupsCoordinatorName: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-orange-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-orange-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    WhatsApp do Coordenador Geral (para relatórios)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="(82) 99999-9999"
+                    value={churchForm.smallGroupsCoordinatorWhatsapp || ''}
+                    onChange={e => setChurchForm({ ...churchForm, smallGroupsCoordinatorWhatsapp: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-orange-200 text-slate-900 text-xs sm:text-sm outline-none focus:border-orange-500 transition-colors"
+                  />
                 </div>
               </div>
             </div>

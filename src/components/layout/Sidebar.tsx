@@ -47,6 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [showInstallModal, setShowInstallModal] = React.useState(false);
 
   const isScaleLeaderOnly = currentUser?.role === 'LIDER_ESCALA';
+  const isSmallGroupLeaderOnly = currentUser?.role === 'LIDER_PG';
 
   const fullMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -74,9 +75,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 
-  // SE FOR LÍDER DE ESCALA: exibe unicamente a aba "Criar Escala"
+  // SE FOR LÍDER DE ESCALA OU PG: exibe unicamente a respectiva aba autorizada
   const menuItems = isScaleLeaderOnly 
     ? [{ id: 'scales', label: 'Criar Escala', icon: CalendarCheck }]
+    : isSmallGroupLeaderOnly
+    ? [{ id: 'smallgroups', label: 'Pequenos Grupos (PG)', icon: Flame }]
     : fullMenuItems;
 
   const handleSelect = (id: string) => {

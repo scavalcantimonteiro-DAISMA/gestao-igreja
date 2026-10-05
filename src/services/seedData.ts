@@ -4,6 +4,7 @@ import {
   Child, 
   Family, 
   SmallGroup, 
+  SmallGroupMeeting,
   Ministry, 
   MinistryScale,
   Leadership, 
@@ -88,6 +89,8 @@ export const INITIAL_CHILDREN: Child[] = [];
 export const INITIAL_FAMILIES: Family[] = [];
 
 export const INITIAL_SMALL_GROUPS: SmallGroup[] = [];
+
+export const INITIAL_SMALL_GROUP_MEETINGS: SmallGroupMeeting[] = [];
 
 export const INITIAL_MINISTRIES: Ministry[] = [...CBA_MINISTRIES, ...DEMO_MINISTRIES];
 

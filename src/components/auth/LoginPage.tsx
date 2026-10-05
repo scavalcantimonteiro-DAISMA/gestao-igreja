@@ -52,6 +52,8 @@ export const LoginPage: React.FC = () => {
       selectChurch(res.churchId);
       if (res.role === 'LIDER_ESCALA') {
         showToast(`Acesso liberado: Gestão de Escalas (${target?.name || 'Igreja'})`, 'success');
+      } else if (res.role === 'LIDER_PG') {
+        showToast(`Acesso liberado: Pequenos Grupos (${target?.name || 'Igreja'})`, 'success');
       } else {
         showToast(`Bem-vindo à ${target?.name || 'sua igreja'}!`, 'success');
       }

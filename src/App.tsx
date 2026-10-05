@@ -29,8 +29,13 @@ const MainLayout: React.FC = () => {
   const { currentChurch, isViewingAsHeadquarters, headquartersChurch, returnToHeadquarters } = useChurch();
 
   const isScaleLeader = currentUser?.role === 'LIDER_ESCALA';
+  const isSmallGroupLeader = currentUser?.role === 'LIDER_PG';
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>(() => isScaleLeader ? 'scales' : 'dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (isScaleLeader) return 'scales';
+    if (isSmallGroupLeader) return 'smallgroups';
+    return 'dashboard';
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
   const [viewingChurchAsMaster, setViewingChurchAsMaster] = useState(false);
@@ -38,8 +43,10 @@ const MainLayout: React.FC = () => {
   React.useEffect(() => {
     if (isScaleLeader && activeTab !== 'scales') {
       setActiveTab('scales');
+    } else if (isSmallGroupLeader && activeTab !== 'smallgroups') {
+      setActiveTab('smallgroups');
     }
-  }, [isScaleLeader, activeTab]);
+  }, [isScaleLeader, isSmallGroupLeader, activeTab]);
 
   // SE NÃO ESTIVER LOGADO: Exibe a tela de login inicial antes de tudo!
   if (!currentUser) {

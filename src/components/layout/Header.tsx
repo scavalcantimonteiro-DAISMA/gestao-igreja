@@ -19,7 +19,8 @@ import {
   Eye,
   KeyRound,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Flame
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
@@ -302,11 +303,16 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Centro: Barra de Pesquisa Global ou Badge de Escala */}
+        {/* Centro: Barra de Pesquisa Global ou Badge de Escala/PG */}
         {currentUser?.role === 'LIDER_ESCALA' ? (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-bold">
             <CalendarCheck className="w-4 h-4 text-indigo-600" />
             <span>Painel Exclusivo de Escalas Ministeriais</span>
+          </div>
+        ) : currentUser?.role === 'LIDER_PG' ? (
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-900 text-xs font-bold">
+            <Flame className="w-4 h-4 text-orange-600" />
+            <span>Painel Exclusivo de Pequenos Grupos</span>
           </div>
         ) : (
           <div className="hidden lg:flex items-center flex-1 max-w-md mx-6">
@@ -345,7 +351,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Botão Relatório Diário do Pastor (apenas admin/pastor) */}
-          {currentUser?.role !== 'LIDER_ESCALA' && (
+          {currentUser?.role !== 'LIDER_ESCALA' && currentUser?.role !== 'LIDER_PG' && (
             <button
               onClick={() => setShowDailyReport(true)}
               title="Gerar Relatório Diário do Pastor"
@@ -357,7 +363,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* Sino de Notificações (apenas admin/pastor) */}
-          {currentUser?.role !== 'LIDER_ESCALA' && (
+          {currentUser?.role !== 'LIDER_ESCALA' && currentUser?.role !== 'LIDER_PG' && (
             <div className="relative">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}

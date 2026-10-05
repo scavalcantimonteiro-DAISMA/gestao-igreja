@@ -18,6 +18,9 @@ export interface Church {
   loginUser?: string;
   loginPassword?: string;
   scaleAccessPassword?: string; // Senha cadastrada para líderes acessarem exclusivamente a aba de escalas
+  smallGroupsAccessPassword?: string; // Senha cadastrada para líderes acessarem exclusivamente a aba de pequenos grupos
+  smallGroupsCoordinatorName?: string; // Nome do coordenador geral dos pequenos grupos
+  smallGroupsCoordinatorWhatsapp?: string; // WhatsApp do coordenador geral para envio de relatórios
   mustChangePassword?: boolean;
   cnpj?: string;
   address: string;
@@ -227,7 +230,10 @@ export interface SmallGroupMeeting {
   absentees: string[];
   visitors: string[];
   notes: string;
+  prayerRequests?: string;
+  leaderName?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Ministry {

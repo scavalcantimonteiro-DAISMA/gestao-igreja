@@ -93,7 +93,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       }
 
-      // 2. VERIFICA SE DIGITOU A SENHA ADMINISTRATIVA PRINCIPAL DA IGREJA
+      // 2. VERIFICA SE DIGITOU A SENHA ESPECÍFICA DE LÍDER DE PEQUENO GRUPO (PG)
+      const isSmallGroupPass = Boolean(
+        matchedChurch.smallGroupsAccessPassword && 
+        matchedChurch.smallGroupsAccessPassword.trim() !== '' && 
+        pass.trim() === matchedChurch.smallGroupsAccessPassword.trim()
+      );
+
+      if (isSmallGroupPass) {
+        const pgUser: User = {
+          id: 'usr_pg_' + matchedChurch.id,
+          churchId: matchedChurch.id,
+          name: `Líder de Pequeno Grupo (${matchedChurch.name})`,
+          email: `pg@${matchedChurch.slug}.com`,
+          role: 'LIDER_PG',
+          isActive: true,
+          createdAt: new Date().toISOString()
+        };
+        setCurrentUser(pgUser);
+        return { 
+          success: true, 
+          churchId: matchedChurch.id, 
+          role: 'LIDER_PG', 
+          mustChangePassword: false 
+        };
+      }
+
+      // 3. VERIFICA SE DIGITOU A SENHA ADMINISTRATIVA PRINCIPAL DA IGREJA
       const expectedPass = matchedChurch.loginPassword || '0000';
       const isPassCorrect = 
         pass === expectedPass || 
