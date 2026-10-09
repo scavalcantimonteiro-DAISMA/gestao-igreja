@@ -10,7 +10,6 @@ import {
   Eye, 
   EyeOff, 
   Sparkles,
-  CalendarCheck,
   X
 } from 'lucide-react';
 import { Church } from '../../types';
@@ -42,8 +41,6 @@ export const FirstLoginSecurityModal: React.FC<FirstLoginSecurityModalProps> = (
 
   const [subsidiaryMasterPass, setSubsidiaryMasterPass] = useState(church.subsidiaryMasterPassword || '');
   const [confirmSubsidiaryMasterPass, setConfirmSubsidiaryMasterPass] = useState(church.subsidiaryMasterPassword || '');
-
-  const [scalePass, setScalePass] = useState(church.scaleAccessPassword || '');
 
   // Visibilidade de senhas
   const [showLoginPass, setShowLoginPass] = useState(false);
@@ -111,8 +108,7 @@ export const FirstLoginSecurityModal: React.FC<FirstLoginSecurityModalProps> = (
       const res = await setupInitialSecurity(church.id, {
         newLoginPassword: trimmedLogin,
         newFinancialPin: trimmedPin.length > 0 ? trimmedPin : undefined,
-        subsidiaryMasterPassword: isHeadquarters ? subsidiaryMasterPass.trim() : undefined,
-        scaleAccessPassword: scalePass.trim() ? scalePass.trim() : undefined
+        subsidiaryMasterPassword: isHeadquarters ? subsidiaryMasterPass.trim() : undefined
       });
 
       if (res.success) {
@@ -322,24 +318,6 @@ export const FirstLoginSecurityModal: React.FC<FirstLoginSecurityModalProps> = (
               </div>
             </div>
           )}
-
-          {/* MÓDULO 4: SENHA PARA LÍDERES DE ESCALAS (OPCIONAL) */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-            <div className="flex items-center gap-2 text-slate-800 font-semibold text-xs">
-              <CalendarCheck className="w-4 h-4 text-slate-500" />
-              <span>4. Senha para Líderes de Escalas (Opcional)</span>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              Permite que os voluntários e líderes acessem unicamente o módulo de escalas sem visualizar membros ou finanças.
-            </p>
-            <input
-              type="text"
-              value={scalePass}
-              onChange={e => setScalePass(e.target.value)}
-              placeholder="Ex: escala123 (opcional)"
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
-            />
-          </div>
 
           {/* BOTÕES DE AÇÃO */}
           <div className="flex items-center gap-3 pt-2">
