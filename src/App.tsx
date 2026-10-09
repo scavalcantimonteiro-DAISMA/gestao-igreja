@@ -39,6 +39,7 @@ const MainLayout: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
   const [viewingChurchAsMaster, setViewingChurchAsMaster] = useState(false);
+  const [isSecurityModalDismissed, setIsSecurityModalDismissed] = useState(false);
 
   React.useEffect(() => {
     if (isScaleLeader && activeTab !== 'scales') {
@@ -117,12 +118,13 @@ const MainLayout: React.FC = () => {
         </div>
       )}
 
-      {/* Modal obrigatório de configuração de segurança inicial (caso a igreja ainda não tenha configurado) */}
-      {!isMasterAdmin && (currentChurch.mustChangePassword || !currentChurch.financialPinChanged) && (
+      {/* Modal de configuração de segurança inicial (caso a igreja precise alterar senha inicial) */}
+      {!isMasterAdmin && currentChurch.mustChangePassword && !isSecurityModalDismissed && (
         <FirstLoginSecurityModal
           isOpen={true}
           church={currentChurch}
-          onSuccess={() => {}}
+          onClose={() => setIsSecurityModalDismissed(true)}
+          onSuccess={() => setIsSecurityModalDismissed(true)}
         />
       )}
 

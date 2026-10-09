@@ -42,7 +42,7 @@ interface ChurchContextType {
     churchId: string,
     passwords: {
       newLoginPassword: string;
-      newFinancialPin: string;
+      newFinancialPin?: string;
       subsidiaryMasterPassword?: string;
       scaleAccessPassword?: string;
     }
@@ -445,26 +445,35 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (!church) return { success: false, message: 'Congregação não encontrada.' };
 
     const trimmedLoginPass = passwords.newLoginPassword.trim();
-    const trimmedPin = passwords.newFinancialPin.trim();
+    const trimmedPin = passwords.newFinancialPin ? passwords.newFinancialPin.trim() : '';
 
     if (trimmedLoginPass.length < 4) {
       return { success: false, message: 'A nova senha de login deve ter no mínimo 4 caracteres.' };
     }
-    if (trimmedPin.length < 4) {
-      return { success: false, message: 'A senha financeira deve ter no mínimo 4 dígitos ou caracteres.' };
-    }
-    if (trimmedLoginPass.toLowerCase() === trimmedPin.toLowerCase()) {
-      return { success: false, message: 'A senha financeira deve ser obrigatoriamente diferente da senha de login por segurança.' };
-    }
-    if (trimmedPin === '0000') {
-      return { success: false, message: 'A senha financeira não pode ser a senha padrão "0000". Escolha uma senha segura.' };
+
+    let financialPinVal = church.financialPin || '0000';
+    let financialPinChangedVal = church.financialPinChanged || false;
+
+    if (trimmedPin.length > 0) {
+      if (trimmedPin.length < 4) {
+        return { success: false, message: 'A senha financeira deve ter no mínimo 4 dígitos ou caracteres.' };
+      }
+      if (trimmedLoginPass.toLowerCase() === trimmedPin.toLowerCase()) {
+        return { success: false, message: 'A senha financeira deve ser obrigatoriamente diferente da senha de login por segurança.' };
+      }
+      if (trimmedPin === '0000') {
+        return { success: false, message: 'A senha financeira não pode ser a senha padrão "0000". Escolha uma senha segura.' };
+      }
+      financialPinVal = trimmedPin;
+      financialPinChangedVal = true;
+      setIsFinancialUnlocked(true);
     }
 
     const updated: Church = {
       ...church,
       loginPassword: trimmedLoginPass,
-      financialPin: trimmedPin,
-      financialPinChanged: true,
+      financialPin: financialPinVal,
+      financialPinChanged: financialPinChangedVal,
       mustChangePassword: false,
       mustSetupSecurity: false,
       updatedAt: new Date().toISOString()
@@ -479,10 +488,9 @@ export const ChurchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     saveChurch(updated);
     setChurches(getChurches());
-    setIsFinancialUnlocked(true);
     await saveChurchToCloud(updated);
 
-    return { success: true, message: 'Todas as senhas foram configuradas com sucesso! Bem-vindo.' };
+    return { success: true, message: 'Credenciais de acesso e segurança configuradas com sucesso! Bem-vindo.' };
   };
 
   return (

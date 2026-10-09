@@ -304,6 +304,10 @@ export const LoginPage: React.FC = () => {
         <FirstLoginSecurityModal
           isOpen={isSecurityModalOpen}
           church={securityModalChurch}
+          onClose={() => {
+            setIsSecurityModalOpen(false);
+            setSecurityModalChurch(null);
+          }}
           onSuccess={() => {
             const cid = securityModalChurch.id;
             selectChurch(cid);

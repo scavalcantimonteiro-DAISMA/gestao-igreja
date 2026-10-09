@@ -347,12 +347,17 @@ export async function syncChurchesFromCloud(): Promise<Church[]> {
       });
     }
 
-    // Garante que a CBA e o Demo estejam sempre presentes tanto localmente quanto na nuvem
-    const cbaChurch = INITIAL_CHURCHES.find(c => c.id === 'church_cba_maceio');
-    if (cbaChurch) {
-      saveChurch(cbaChurch);
-      if (!cloudIds.has('church_cba_maceio')) {
-        saveChurchToCloud(cbaChurch).catch(console.warn);
+    // Garante que a CBA esteja presente tanto localmente quanto na nuvem sem sobrescrever credenciais
+    if (!cloudIds.has('church_cba_maceio')) {
+      const localCba = getChurches().find(c => c.id === 'church_cba_maceio');
+      if (localCba) {
+        saveChurchToCloud(localCba).catch(console.warn);
+      } else {
+        const cbaChurch = INITIAL_CHURCHES.find(c => c.id === 'church_cba_maceio');
+        if (cbaChurch) {
+          saveChurch(cbaChurch);
+          saveChurchToCloud(cbaChurch).catch(console.warn);
+        }
       }
     }
 
@@ -421,10 +426,12 @@ export function subscribeToChurches(onUpdate: (churches: Church[]) => void): () 
           }
         });
 
-        // Garante permanência da CBA
-        const cbaChurch = INITIAL_CHURCHES.find(c => c.id === 'church_cba_maceio');
-        if (cbaChurch) {
-          saveChurch(cbaChurch);
+        // Garante permanência da CBA apenas se não existir nem na nuvem nem localmente
+        if (!cloudIds.has('church_cba_maceio') && !getChurches().some(c => c.id === 'church_cba_maceio')) {
+          const cbaChurch = INITIAL_CHURCHES.find(c => c.id === 'church_cba_maceio');
+          if (cbaChurch) {
+            saveChurch(cbaChurch);
+          }
         }
 
         if (cloudIds.size > 0) {
